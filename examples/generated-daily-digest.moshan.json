@@ -12,6 +12,13 @@
   "license": "MIT",
   "kind": "stack",
   "category": "组合栈",
+  "tags": [
+    "download",
+    "data",
+    "search",
+    "ai",
+    "selfhost"
+  ],
   "group": "plugin",
   "keywords": [
     "ai",

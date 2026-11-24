@@ -19,7 +19,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "name", "version", "repo", "kind"],
+        "required": ["id", "name", "version", "kind"],
         "properties": {
           "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,48}$" },
           "name": { "type": "string" },
@@ -29,6 +29,12 @@
           "kind": { "enum": ["single", "stack", "adapter"] },
           "category": { "type": "string" },
           "keywords": { "type": "array", "items": { "type": "string" } },
+          "tags": {
+            "type": "array",
+            "minItems": 1,
+            "description": "分类标签，取自目录的 tags 词表。构建索引时由清单 tags 或组件条目标签推导而来，不接受空数组。",
+            "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,23}$" }
+          },
           "version": { "type": "string" },
           "manifest": { "type": "string", "description": "moshan.json 直链；缺省则由 repo 拼 raw/refs/heads/main/moshan.json" },
           "pack": { "type": "string", "description": "包直链；缺省则由 repo+version 拼 GitHub Release 资产" },

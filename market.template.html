@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>墨山 · 插件仓库</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --panel:#fff; --ink:#171a1f; --muted:#666e7a;
+    --line:#dfe3e9; --line-2:#eef1f4; --accent:#0f766e; --accent-soft:#e6f4f1;
+    --warn:#b45309; --warn-soft:#fdf3e3; --err:#b42318; --err-soft:#fdeceb;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.18);
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --bg:#101216; --panel:#181b20; --ink:#e8eaed; --muted:#98a1ad;
+    --line:#2a2f37; --line-2:#22262c; --accent:#2dd4bf; --accent-soft:#12312e;
+    --warn:#f0b357; --warn-soft:#2e2413; --err:#f07b72; --err-soft:#33191a;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px -16px rgba(0,0,0,.7);
+  }}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    display:flex;flex-direction:column;overflow:hidden}
+  header{display:flex;align-items:center;gap:12px;padding:11px 16px;background:var(--panel);
+    border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .brand{font-weight:650;letter-spacing:.2px}
+  .brand small{font-weight:400;color:var(--muted);margin-left:8px}
+  .tabs{display:flex;gap:3px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:2px}
+  .tabs button{border:0;background:transparent;padding:5px 11px;border-radius:7px;font-size:13px;color:var(--muted)}
+  .tabs button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(16,24,40,.08);font-weight:600}
+  #q{flex:1;min-width:160px;max-width:340px;padding:7px 11px;border:1px solid var(--line);
+    border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;outline:none}
+  #q:focus{border-color:var(--accent)}
+  .stats{display:flex;gap:6px;margin-left:auto}
+  .stat{font-size:12px;color:var(--muted);background:var(--bg);border:1px solid var(--line);
+    border-radius:999px;padding:3px 10px}
+  .stat b{color:var(--ink);font-weight:600}
+  main{flex:1;display:flex;min-height:0}
+  .list{width:400px;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px;
+    border-right:1px solid var(--line)}
+  .item{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+    cursor:pointer;transition:.14s}
+  .item:hover{border-color:var(--accent)}
+  .item.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+  .item .r1{display:flex;align-items:baseline;gap:7px}
+  .item .nm{font-weight:640;font-size:13.5px}
+  .item .ver{font:11px/1.6 var(--mono);color:var(--muted)}
+  .item .sp{flex:1}
+  .badge{font:11px/1.5 var(--mono);border-radius:5px;padding:1px 6px;border:1px solid var(--line);
+    color:var(--muted);background:var(--bg)}
+  .badge.single{color:#0f766e;background:#e6f4f1;border-color:transparent}
+  .badge.stack{color:#6d28d9;background:#f1eaff;border-color:transparent}
+  .badge.adapter{color:#b45309;background:#fdf3e3;border-color:transparent}
+  @media (prefers-color-scheme:dark){
+    .badge.single{color:#2dd4bf;background:#12312e}
+    .badge.stack{color:#c4b5fd;background:#241d3d}
+    .badge.adapter{color:#f0b357;background:#2e2413}
+  }
+  .item .sum{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .item .kw{font:11px/1.5 var(--mono);color:var(--muted);margin-top:5px;opacity:.85}
+  /* 标签：与「能力」是两套维度。能力是给蓝图格子用的（media.download），标签是给人筛的（界面 / 前端 / 网络） */
+  .tagbar{display:flex;align-items:center;gap:5px;padding:7px 16px;background:var(--panel);
+    border-bottom:1px solid var(--line);overflow-x:auto;flex-wrap:wrap}
+  .tagbar[hidden]{display:none}
+  .tchip{font:11.5px/1.5 inherit;border:1px solid var(--line);background:var(--bg);color:var(--muted);
+    border-radius:999px;padding:2px 9px;cursor:pointer;white-space:nowrap;
+    display:inline-flex;align-items:center;gap:5px}
+  .tchip:hover{border-color:var(--accent);color:var(--accent)}
+  .tchip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .tchip .n{font:10.5px/1 var(--mono);opacity:.6}
+  .tchip.on .n{opacity:.85}
+  .tchip.grp{border:0;border-left:1px solid var(--line);border-radius:0;background:transparent;
+    cursor:default;padding:2px 6px 2px 9px;margin-left:3px;opacity:.5;font-size:11px}
+  .tchip.grp:hover{color:var(--muted)}
+  .trow{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+  .tag{font:11px/1.5 inherit;border-radius:5px;padding:1px 6px;background:var(--accent-soft);
+    color:var(--accent);white-space:nowrap}
+  .detail{flex:1;overflow:auto;padding:16px 18px 90px}
+  .empty{color:var(--muted);font-size:13px;padding:24px 4px}
+  h1{font-size:17px;margin:0 0 2px}
+  .sub{color:var(--muted);font-size:12.5px;margin-bottom:12px}
+  h2{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+    margin:18px 0 8px;font-weight:600}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .kv{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px}
+  .kv i{font-style:normal;color:var(--muted)}
+  .comp{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:8px;overflow:hidden}
+  .comp .hd{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg);
+    border-bottom:1px solid var(--line-2)}
+  .comp .cid{font-weight:620;font-size:13px}
+  .comp .img{font:11px/1.6 var(--mono);color:var(--muted);margin-left:auto;text-align:right;
+    max-width:58%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .comp .bd{padding:6px 12px 9px}
+  label.mod{display:flex;align-items:flex-start;gap:8px;padding:5px 0;font-size:12.5px;cursor:pointer}
+  label.mod input{margin-top:2px;accent-color:var(--accent)}
+  label.mod .cap{font:11px/1.6 var(--mono);color:var(--muted)}
+  label.mod .art{margin-left:auto;font:11px/1.6 var(--mono);color:var(--muted);white-space:nowrap}
+  label.mod.off .nm2{color:var(--muted)}
+  .note{font-size:11.5px;color:var(--muted);padding:2px 0 0 24px}
+  .warnbox{background:var(--warn-soft);border:1px solid transparent;color:var(--warn);
+    border-radius:8px;padding:8px 11px;font-size:12.5px;margin:10px 0}
+  .okbox{background:var(--accent-soft);border-radius:8px;padding:8px 11px;font-size:12.5px;
+    color:var(--accent);margin:10px 0}
+  footer{position:fixed;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);
+    padding:9px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 -6px 20px -14px rgba(16,24,40,.4)}
+  footer .sum{font-size:12.5px;color:var(--muted)}
+  footer .sum b{color:var(--ink)}
+  code.cmd{flex:1;font:11.5px/1.5 var(--mono);background:var(--bg);border:1px solid var(--line);
+    border-radius:7px;padding:6px 9px;max-height:54px;overflow:auto;white-space:pre-wrap;
+    word-break:break-all}
+  button.primary{background:var(--accent);border:1px solid var(--accent);color:#fff;border-radius:8px;
+    padding:6px 14px;font:inherit;cursor:pointer}
+  button.primary:hover{filter:brightness(1.08)}
+  button.ghost{background:var(--panel);border:1px solid var(--line);color:var(--ink);
+    border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}
+  button.ghost:hover{border-color:var(--accent);color:var(--accent)}
+  @media (max-width:820px){
+    header{gap:8px;padding:10px 12px}
+    #q{order:9;flex:1 1 100%;max-width:none;min-width:0}
+    .tagbar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding:7px 12px}
+    .tagbar::-webkit-scrollbar{height:4px}
+    .tagbar::-webkit-scrollbar-thumb{background:var(--line);border-radius:2px}
+    .tchip{flex:0 0 auto}
+    main{flex-direction:column}
+    .list{width:auto;max-height:44%;border-right:0;border-bottom:1px solid var(--line)}
+    .detail{padding:14px 14px 96px}
+    footer{gap:8px}
+    footer .sum{display:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">墨山插件仓库<small>点开 → 勾模块 → 装上</small></div>
+  <div class="tabs">
+    <button data-tab="plugins" class="on">插件</button>
+    <button data-tab="catalog">软件目录</button>
+  </div>
+  <input id="q" placeholder="搜插件、软件、能力…（中文也行）">
+  <div class="stats" id="stats"></div>
+</header>
+<div class="tagbar" id="tagbar" hidden></div>
+<main>
+  <section class="list" id="list"></section>
+  <aside class="detail" id="detail"><div class="empty">左边选一个。</div></aside>
+</main>
+<footer>
+  <div class="sum" id="fsum">未选择</div>
+  <code class="cmd" id="fcmd">—</code>
+  <button class="ghost" id="copy">复制命令</button>
+  <button class="primary" id="export">导出清单</button>
+</footer>
+
+<script id="registry" type="application/json"><!--REGISTRY_JSON--></script>
+<script id="manifests" type="application/json"><!--MANIFESTS_JSON--></script>
+<script id="catalog" type="application/json"><!--CATALOG_JSON--></script>
+<script>
+const REG = JSON.parse(document.getElementById('registry').textContent);
+const MFS = JSON.parse(document.getElementById('manifests').textContent);
+const CAT = JSON.parse(document.getElementById('catalog').textContent);
+const ENTRIES = Object.fromEntries(CAT.entries.map(e=>[e.id,e]));
+// 标签词表：条目只存 id，展示名与分组都从词表取，改词表一处即可全站生效
+const TV = Object.fromEntries((CAT.tags||[]).map(t=>[t.id,t]));
+
+let tab = 'plugins';
+let q = '';
+let activeTag = null;   // 当前筛选的标签 id；null=全部
+let selId = null;
+let sel = {};        // { [manifestId]: { [compId]: [moduleId,...] } }  显式勾选，空对象=用默认
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const mb = n => n==null?'':(n>=1024?(n/1024).toFixed(1)+' GB':(Math.round(n*10)/10)+' MB');
+
+/* ---------- 模块选择：显式即准，绝不偷偷补回 ---------- */
+function modsOf(mf, compId){
+  const entry = ENTRIES[compId];
+  if(!entry) return [];
+  const explicit = (sel[mf.id]||{})[compId];
+  let chosen = explicit
+    ? entry.modules.filter(m=>explicit.includes(m.id))
+    : entry.modules.filter(m=>m.default!==false);
+  // requires 闭包：依赖的能力若本组件内有模块供给，必须一并打开（与 CLI 同规则）
+  const got = new Set(chosen.map(m=>m.capability));
+  for(const m of [...chosen]){
+    for(const cap of (m.requires||[])){
+      if(got.has(cap)) continue;
+      const p = entry.modules.find(x=>x.capability===cap);
+      if(p){ chosen.push(p); got.add(cap); }
+    }
+  }
+  return [...new Set(chosen)];
+}
+
+/* ---------- 下载集 ---------- */
+function downloadsOf(mf){
+  const items = [];
+  const seen = new Set();
+  for(const c of (mf.components||[])){
+    const entry = ENTRIES[c.id];
+    if(!entry) continue;
+    const mods = modsOf(mf, c.id);
+    let base=null;
+    for(const m of mods){
+      const a = m.artifact || {kind:'none'};
+      if(a.kind==='image') base = {ref:a.ref, size:a.size_mb};
+      else if(a.kind==='asset') items.push({c:c.id, kind:'asset', ref:(a.repo||'')+' '+(a.match||''), size:a.size_mb});
+      else if(a.kind==='package') items.push({c:c.id, kind:'package', ref:(a.name||'')+(a.extra?'['+a.extra+']':''), size:a.size_mb});
+      else if(a.kind==='build') items.push({c:c.id, kind:'build', ref:a.context, size:a.size_mb});
+    }
+    let ref=null, size=null;
+    const vmod = mods.map(m=>m.artifact||{}).find(a=>a.variant);
+    if(vmod && base){
+      // 变体镜像替换基础镜像，只算一份体积（与 CLI 同规则）
+      const parts = base.ref.split(':');
+      const tag = parts.pop();
+      ref = parts.join(':')+':'+tag+'-'+vmod.variant;
+      size = vmod.size_mb || base.size;
+    } else if(base){ ref=base.ref; size=base.size; }
+    if(ref && !seen.has(ref)){ seen.add(ref); items.push({c:c.id, kind:'image', ref, size}); }
+  }
+  return items;
+}
+
+function imageOf(mf, compId){
+  const entry = ENTRIES[compId];
+  if(!entry || entry.kind!=='container') return null;
+  const mods = modsOf(mf, compId);
+  const base = entry.modules.map(m=>m.artifact||{}).find(a=>a.kind==='image');
+  if(!base) return null;
+  const v = mods.map(m=>m.artifact||{}).find(a=>a.variant);
+  if(!v) return base.ref;
+  const [repo,tag] = base.ref.split(/:(?=[^:]*$)/);
+  return repo+':'+tag+'-'+v.variant;
+}
+
+function useString(mf){
+  const parts=[];
+  for(const c of (mf.components||[])){
+    if(!ENTRIES[c.id]) continue;
+    const mods = modsOf(mf, c.id).map(m=>m.id);
+    if(mods.length) parts.push(c.id+':'+mods.join(','));
+  }
+  return parts.join(';');
+}
+
+/* ---------- 渲染 ---------- */
+function match(hay, needle){
+  hay = hay.toLowerCase(); needle = needle.toLowerCase();
+  if(hay.includes(needle)) return true;
+  // 中文逐字覆盖，让「媒体」也能命中「影视媒体库」
+  return [...needle].every(ch=>hay.includes(ch));
+}
+
+function tagChip(id){
+  const t = TV[id];
+  if(!t) return '<span class="tag">'+esc(id)+'</span>';
+  return '<span class="tag" title="'+esc(t.desc||'')+'">'+esc(t.label)+'</span>';
+}
+function tagRow(it, inline){
+  const ts = (it && it.tags) || [];
+  if(!ts.length) return '';
+  return '<div class="trow"'+(inline?' style="margin:-4px 0 10px"':'')+'>'+ts.map(tagChip).join('')+'</div>';
+}
+function tagText(it){
+  return ((it&&it.tags)||[]).map(t=>(TV[t]||{}).label||t).join(' ');
+}
+
+function renderTagbar(){
+  const bar = $('#tagbar');
+  const items = tab==='plugins' ? REG.plugins : CAT.entries;
+  // 两个页签共用一套词表与筛选状态：切过去看「协议」下有哪些插件，是同一件事
+  if(!items.some(it=>(it.tags||[]).length)){ bar.hidden = true; return; }
+  bar.hidden = false;
+  const cnt = {};
+  for(const e of items) for(const t of (e.tags||[])) cnt[t] = (cnt[t]||0)+1;
+  let h = '<button class="tchip'+(activeTag?'':' on')+'" data-tag="">全部<span class="n">'+items.length+'</span></button>';
+  let grp = null;
+  for(const t of (CAT.tags||[])){
+    const n = cnt[t.id]||0;
+    if(!n) continue;                        // 空标签不上栏，免得点了白屏
+    if(t.group!==grp){ h += '<span class="tchip grp">'+esc(t.group)+'</span>'; grp = t.group; }
+    h += '<button class="tchip'+(activeTag===t.id?' on':'')+'" data-tag="'+esc(t.id)+
+         '" title="'+esc(t.desc||'')+'">'+esc(t.label)+'<span class="n">'+n+'</span></button>';
+  }
+  bar.innerHTML = h;
+  bar.querySelectorAll('[data-tag]').forEach(el=>{
+    el.onclick = () => { activeTag = el.dataset.tag || null; renderAll(); };
+  });
+}
+
+function renderStats(){
+  const caps = CAT.capabilities.length;
+  const mods = CAT.entries.reduce((n,e)=>n+e.modules.length,0);
+  $('#stats').innerHTML =
+    '<div class="stat">商店 <b>'+REG.plugins.length+'</b></div>' +
+    '<div class="stat">软件 <b>'+CAT.entries.length+'</b></div>' +
+    '<div class="stat">模块 <b>'+mods+'</b></div>' +
+    '<div class="stat">能力 <b>'+caps+'</b></div>';
+}
+
+function renderList(){
+  const list = $('#list');
+  if(tab==='plugins'){
+    const rows = REG.plugins
+      .filter(p=>!activeTag || (p.tags||[]).includes(activeTag))
+      .filter(p=>!q || match([p.id,p.name,p.summary,(p.keywords||[]).join(' '),(p.aliases||[]).join(' '),p.category||'',tagText(p)].join(' '), q));
+    // 筛掉当前选中项时，右栏不能还挂着列表里看不到的东西
+    if(rows.length && !rows.some(p=>p.id===selId)) selId = rows[0].id;
+    list.innerHTML = rows.length ? rows.map(p=>
+      '<div class="item '+(selId===p.id?'on':'')+'" data-id="'+p.id+'">'+
+        '<div class="r1"><span class="nm">'+esc(p.name)+'</span>'+
+        '<span class="ver">'+esc(p.version)+'</span><span class="sp"></span>'+
+        '<span class="badge '+esc(p.kind)+'">'+esc(p.kind)+'</span></div>'+
+        '<div class="sum">'+esc(p.summary||'')+'</div>'+
+        tagRow(p)+
+        ((p.keywords||[]).length?'<div class="kw">'+esc(p.keywords.join(' · '))+'</div>':'')+
+      '</div>').join('') : '<div class="empty">'+(activeTag?'这个标签下没有插件，点「全部」看看。':'没有匹配的插件。')+'</div>';
+  } else {
+    const rows = CAT.entries
+      .filter(e=>!activeTag || (e.tags||[]).includes(activeTag))
+      .filter(e=>!q || match([e.id,e.name,(e.repo||''),e.kind,e.tier||'',tagText(e),
+        e.modules.map(m=>m.capability+' '+(m.label||'')).join(' ')].join(' '), q));
+    if(rows.length && !rows.some(e=>e.id===selId)) selId = rows[0].id;
+    list.innerHTML = rows.length ? rows.map(e=>{
+      const def = e.modules.filter(m=>m.default!==false).reduce((n,m)=>n+((m.artifact||{}).size_mb||0),0);
+      const isRef = e.kind==='existing';
+      return '<div class="item '+(selId===e.id?'on':'')+'" data-id="'+esc(e.id)+'">'+
+        '<div class="r1"><span class="nm">'+esc(e.name)+'</span><span class="sp"></span>'+
+        '<span class="badge">'+esc(isRef?'只登记':e.kind)+'</span></div>'+
+        '<div class="sum">'+(isRef?'技术基座 / 协议参考 · 不下载':e.modules.length+' 个模块已拆解 · 默认下载 '+mb(def))+'</div>'+
+        tagRow(e)+
+        (isRef?'':'<div class="kw">'+esc(e.modules.map(m=>m.capability).join(' · '))+'</div>')+
+        '</div>';
+    }).join('') : '<div class="empty">'+(activeTag?'这个标签下没有软件，点「全部」看看。':'没有匹配的软件。')+'</div>';
+  }
+  list.querySelectorAll('.item').forEach(el=>el.onclick=()=>{ selId=el.dataset.id; renderAll(); });
+}
+
+function renderPlugin(p){
+  const mf = MFS[p.id];
+  if(!mf) return '<h1>'+esc(p.name)+'</h1><div class="warnbox">索引里有这个插件，但本机找不到它的清单文件（manifest: '+esc(p.manifest||'—')+'）。</div>';
+  const items = downloadsOf(mf);
+  const total = items.reduce((n,i)=>n+(i.size||0),0);
+  const selCount = Object.values(sel[mf.id]||{}).reduce((n,a)=>n+a.length,0);
+
+  let html = '<h1>'+esc(mf.name)+' <span class="ver" style="font-size:12px">'+esc(mf.version)+'</span></h1>'+
+    '<div class="sub">'+esc(mf.summary||'')+'</div>'+
+    tagRow(p, true)+
+    '<div class="row">'+
+      '<div class="kv"><i>形态</i> '+esc(mf.kind)+'</div>'+
+      '<div class="kv"><i>清单</i> '+esc(p.manifest||'')+'</div>'+
+      '<div class="kv"><i>下载</i> <b>'+mb(total)+'</b></div>'+
+      '<div class="kv"><i>权限</i> '+esc((mf.permissions||[]).join(', ')||'—')+'</div>'+
+    '</div>';
+
+  html += '<h2>组件与模块（勾掉的不下载）</h2>';
+  for(const c of (mf.components||[])){
+    const entry = ENTRIES[c.id];
+    if(!entry){
+      html += '<div class="comp"><div class="hd"><span class="cid">'+esc(c.id)+'</span>'+
+        '<span class="badge">自带胶水</span><span class="img">'+esc((c.runtime||{}).entry||'—')+'</span></div>'+
+        '<div class="bd"><div class="note" style="padding:0">目录里没有拆解，协议只生成骨架与探活，逻辑要你自己写。</div></div></div>';
+      continue;
+    }
+    const chosen = modsOf(mf, c.id);
+    const ids = chosen.map(m=>m.id);
+    html += '<div class="comp"><div class="hd"><span class="cid">'+esc(entry.name)+'</span>'+
+      '<span class="badge">'+esc(entry.kind)+'</span>'+
+      '<span class="img">'+esc(imageOf(mf,c.id)||(c.runtime||{}).entry||entry.id)+'</span></div><div class="bd">';
+    for(const m of entry.modules){
+      const on = ids.includes(m.id);
+      const a = m.artifact||{kind:'none'};
+      const tag = a.kind==='none' ? (a.variant?('换 '+a.variant+' 变体'):'无需下载') : (a.kind+' · '+mb(a.size_mb));
+      html += '<label class="mod '+(on?'':'off')+'">'+
+        '<input type="checkbox" data-comp="'+esc(c.id)+'" data-mod="'+esc(m.id)+'" '+(on?'checked':'')+'>'+
+        '<span><span class="nm2">'+esc(m.label||m.id)+'</span> '+
+        '<span class="cap">'+esc(m.capability)+'</span>'+
+        (m.note?'<div class="note">'+esc(m.note)+'</div>':'')+'</span>'+
+        '<span class="art">'+esc(tag)+'</span></label>';
+    }
+    html += '</div></div>';
+  }
+
+  html += '<h2>要下载什么</h2>';
+  if(!items.length) html += '<div class="okbox">无需下载：全部是同一制品内的开关。</div>';
+  else {
+    html += '<div class="comp"><div class="bd">';
+    for(const i of items){
+      html += '<div style="display:flex;gap:8px;font:12px/1.9 var(--mono);padding:2px 0">'+
+        '<span style="color:var(--muted);min-width:78px">'+esc(i.c)+'</span>'+
+        '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(i.ref)+'</span>'+
+        '<span style="color:var(--muted)">'+mb(i.size)+'</span></div>';
+    }
+    html += '<div style="border-top:1px solid var(--line-2);margin-top:6px;padding-top:6px;font-size:12.5px">合计 <b>'+mb(total)+'</b></div>';
+    html += '</div></div>';
+  }
+
+  if(selCount) html += '<div class="okbox">你手动改过模块（'+selCount+' 个勾选），这就是定向模式：不做推荐，按你选的算。</div>';
+  html += '<h2>连线</h2><div class="comp"><div class="bd">'+
+    (mf.wires||[]).map(w=>'<div style="font-size:12px;padding:3px 0">'+
+      '<span class="badge">'+(w.carrier==='volume'?'共享卷':'环境变量')+'</span> '+
+      esc(w.from.component)+' → '+esc(w.to.component)+
+      (w.to.env?' <span style="font:11px var(--mono);color:var(--muted)">'+esc(w.to.env)+'</span>':'')+
+      '<div class="note" style="padding-left:0">'+esc(w.note||'')+'</div></div>').join('')+
+    '</div></div>';
+  return html;
+}
+
+function renderEntry(e){
+  // 只登记的条目（技术基座 / 协议）：没有制品，不参与下载集，详情页换一套说法
+  if(e.kind==='existing'){
+    const m = e.modules[0]||{};
+    const gh = 'https://github.com/'+(e.repo||'');
+    return '<h1>'+esc(e.name)+'</h1>'+
+      '<div class="sub">'+esc(e.repo||'')+' · '+esc(e.license||'')+' · '+(e.tier||'community')+'</div>'+
+    tagRow(e, true)+
+      '<div class="row">'+
+        '<div class="kv"><i>形态</i> 只登记</div>'+
+        '<div class="kv"><i>能力</i> '+esc(m.capability||'—')+'</div>'+
+        '<div class="kv"><i>下载</i> <b>无</b></div>'+
+      '</div>'+
+      '<div class="okbox">只登记链接与介绍：不下载、不安装、不进下载集。要用就按下面的地址自己装——'+
+        '目录在这里的作用是「先知道有这个东西、它解决哪一段」，不是「点一下就装上」。</div>'+
+      '<h2>为什么收在这里</h2><div class="comp"><div class="bd"><div class="note" style="padding:0">'+esc(e.notes||'')+'</div></div></div>'+
+      '<h2>链接</h2><div class="comp"><div class="bd"><div class="note" style="padding:0">'+
+        '<a href="'+esc(gh)+'" target="_blank" rel="noopener">'+esc(e.repo||'')+'</a>'+
+        (e.homepage?' · <a href="'+esc(e.homepage)+'" target="_blank" rel="noopener">'+esc(e.homepage)+'</a>':'')+
+      '</div></div></div>';
+  }
+  const def = e.modules.filter(m=>m.default!==false);
+  const defSize = def.reduce((n,m)=>n+((m.artifact||{}).size_mb||0),0);
+  // 变体模块是「替换镜像」而非「叠加」，全模块体积按替换算，避免虚高
+  const vmod = e.modules.find(m=>(m.artifact||{}).variant);
+  const rest = e.modules.filter(m=>m.default!==false && m!==vmod)
+    .reduce((n,m)=>n+((m.artifact||{}).size_mb||0),0);
+  const all = vmod ? Math.max(rest, (vmod.artifact||{}).size_mb||0) : defSize;
+  let html = '<h1>'+esc(e.name)+'</h1>'+
+    '<div class="sub">'+esc(e.repo||'')+' · '+esc(e.license||'')+' · '+(e.tier||'community')+'</div>'+
+    tagRow(e, true)+
+    '<div class="row">'+
+      '<div class="kv"><i>形态</i> '+esc(e.kind)+'</div>'+
+      '<div class="kv"><i>默认下载</i> <b>'+mb(defSize)+'</b></div>'+
+      '<div class="kv"><i>全模块</i> '+mb(all)+'</div>'+
+      '<div class="kv"><i>内存</i> '+((e.cost||{}).ram_mb||'?')+' MB</div>'+
+    '</div>'+
+    '<div class="okbox">拆解已完成，制品未下载。勾到组合里才会算进下载集——这就是「需要的话再下载」。</div>'+
+    '<h2>模块拆解</h2><div class="comp"><div class="bd">';
+  for(const m of e.modules){
+    const a = m.artifact||{kind:'none'};
+    const tag = a.kind==='none' ? (a.variant?('换 '+a.variant+' 变体'):'同一制品') : (a.kind+' · '+mb(a.size_mb));
+    html += '<div style="display:flex;gap:8px;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--line-2)">'+
+      '<span style="min-width:96px;font-weight:600">'+esc(m.label||m.id)+'</span>'+
+      '<span class="cap" style="flex:1">'+esc(m.capability)+'</span>'+
+      '<span class="art">'+esc(tag)+'</span>'+
+      '<span class="badge">'+(m.default!==false?'默认':'可选')+'</span></div>'+
+      (m.note?'<div class="note">'+esc(m.note)+'</div>':'');
+  }
+  html += '</div></div>';
+  html += '<h2>怎么用它</h2><div class="comp"><div class="bd"><div class="note" style="padding:0">'+
+    '把它放进蓝图格子，或在装某个插件时用 <code style="font-family:var(--mono)">--use "'+esc(e.id)+':'+esc(e.modules.filter(m=>m.default!==false).map(m=>m.id).join(','))+'"</code> 显式指定。'+
+    '</div></div></div>';
+  return html;
+}
+
+function currentUse(){
+  if(tab!=='plugins' || !selId) return null;
+  const mf = MFS[selId]; if(!mf) return null;
+  return {mf, use: useString(mf)};
+}
+
+function renderFooter(){
+  const cur = currentUse();
+  const cmd = $('#fcmd');
+  if(tab==='catalog'){
+    const shown = CAT.entries.filter(e=>!activeTag || (e.tags||[]).includes(activeTag)).length;
+    $('#fsum').innerHTML = activeTag
+      ? '软件目录 · 标签「'+esc((TV[activeTag]||{}).label||activeTag)+'」 <b>'+shown+'</b> / '+CAT.entries.length+' 个条目'
+      : '软件目录 · 共 '+CAT.entries.length+' 个条目 · '+(CAT.tags||[]).length+' 个标签';
+    cmd.textContent = 'python3 tools/moshan.py catalog';
+    return;
+  }
+  if(activeTag && tab==='plugins'){
+    const shown = REG.plugins.filter(p=>(p.tags||[]).includes(activeTag)).length;
+    $('#fsum').innerHTML = '插件 · 标签「'+esc((TV[activeTag]||{}).label||activeTag)+'」 <b>'+shown+'</b> / '+REG.plugins.length+' 个';
+    cmd.textContent = 'python3 tools/moshan.py registry "examples/*.moshan.json"';
+    return;
+  }
+  if(!cur){
+    $('#fsum').textContent = '未选择插件';
+    cmd.textContent = 'python3 tools/moshan.py search <关键词>';
+    return;
+  }
+  const items = downloadsOf(cur.mf);
+  const total = items.reduce((n,i)=>n+(i.size||0),0);
+  $('#fsum').innerHTML = '合计 <b>'+mb(total)+'</b> · '+items.length+' 个制品';
+  cmd.textContent = 'python3 tools/moshan.py plan '+ (REG.plugins.find(p=>p.id===selId)||{}).manifest +' --use "'+cur.use+'"';
+}
+
+function renderAll(){
+  renderStats(); renderTagbar(); renderList(); renderFooter();
+  const d = $('#detail');
+  if(tab==='plugins'){
+    const p = REG.plugins.find(x=>x.id===selId);
+    d.innerHTML = p ? renderPlugin(p) : '<div class="empty">选一个插件。左边列表点一下即可。</div>';
+  } else {
+    const e = ENTRIES[selId];
+    d.innerHTML = e ? renderEntry(e) : '<div class="empty">这些是拆解好的开源软件。点开看它被拆成了哪些模块、各自要下多少。</div>';
+  }
+  d.querySelectorAll('input[type=checkbox][data-mod]').forEach(cb=>{
+    cb.onchange = () => {
+      const mf = MFS[selId]; if(!mf) return;
+      const cid = cb.dataset.comp;
+      sel[mf.id] = sel[mf.id] || {};
+      if(!sel[mf.id][cid]) sel[mf.id][cid] = modsOf(mf, cid).map(m=>m.id);
+      const arr = sel[mf.id][cid];
+      if(cb.checked){ if(!arr.includes(cb.dataset.mod)) arr.push(cb.dataset.mod); }
+      else sel[mf.id][cid] = arr.filter(x=>x!==cb.dataset.mod);
+      renderAll();
+    };
+  });
+}
+
+document.querySelectorAll('.tabs button').forEach(b=>{
+  b.onclick = () => {
+    tab = b.dataset.tab;
+    selId = tab==='plugins' ? (REG.plugins[0]||{}).id : (CAT.entries[0]||{}).id;
+    document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on', x===b));
+    renderAll();
+  };
+});
+$('#q').oninput = e => { q = e.target.value.trim(); renderAll(); };
+$('#copy').onclick = async () => {
+  const t = $('#fcmd').textContent;
+  try { await navigator.clipboard.writeText(t); $('#copy').textContent='已复制'; }
+  catch(e){
+    const ta=document.createElement('textarea'); ta.value=t; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove(); $('#copy').textContent='已复制';
+  }
+  setTimeout(()=>{$('#copy').textContent='复制命令';},1200);
+};
+$('#export').onclick = () => {
+  const cur = currentUse();
+  if(!cur){ alert('先在插件列表里选一个。'); return; }
+  const mf = JSON.parse(JSON.stringify(cur.mf));
+  mf.extensions = mf.extensions || {};
+  const ui = mf.extensions['cn.moshan.ui'] = mf.extensions['cn.moshan.ui'] || {};
+  ui.selection = ui.selection || {};
+  for(const c of (mf.components||[])){
+    if(ENTRIES[c.id]) ui.selection[c.id] = modsOf(cur.mf, c.id).map(m=>m.id);
+  }
+  const blob = new Blob([JSON.stringify(mf,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = mf.id+'.moshan.json'; a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+renderAll();
+</script>
+</body>
+</html>

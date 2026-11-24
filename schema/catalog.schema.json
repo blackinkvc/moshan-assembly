@@ -5,7 +5,7 @@
   "description": "开源软件的「能力目录」：把每个软件拆成功能模块，每个模块只声明两件事——我提供什么能力（provides）、我需要别人给我什么（accepts）。蓝图里的格子填的都是能力，不是软件名。",
   "type": "object",
   "additionalProperties": false,
-  "required": ["spec", "capabilities", "entries"],
+  "required": ["spec", "capabilities", "tags", "entries"],
   "properties": {
     "$schema": { "type": "string" },
     "spec": { "const": "1.0" },
@@ -28,18 +28,40 @@
       }
     },
 
+    "tags": {
+      "type": "array",
+      "description": "标签词表。与 capabilities 正交：capability 说「能供给什么」（进蓝图格子），tag 说「属于哪个领域 / 什么栈」（给人筛选用）。每个条目至少打一个，且只能打这里的词。",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "group"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,23}$" },
+          "label": { "type": "string", "maxLength": 16 },
+          "group": { "enum": ["领域", "技术栈"] },
+          "desc": { "type": "string" }
+        }
+      }
+    },
+
     "entries": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "name", "kind", "license", "modules"],
+        "required": ["id", "name", "kind", "license", "tags", "modules"],
         "properties": {
           "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,48}$" },
           "name": { "type": "string" },
           "repo": { "type": "string", "pattern": "^[\\w.-]+/[\\w.-]+$" },
           "homepage": { "type": "string" },
           "kind": { "enum": ["container", "process", "binary", "existing"] },
+          "tags": {
+            "type": "array",
+            "minItems": 1,
+            "description": "本条目所属的标签 id，必须在顶层 tags 词表里。第一个会被当作主动标签用于列表展示。",
+            "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,23}$" }
+          },
           "image": { "type": "string", "description": "kind=container：镜像仓库名，不含 tag" },
           "sample_tag": { "type": "string", "description": "示例 tag。安装时必须用 registry API 取当期稳定版再写死，禁止 latest 漂移" },
           "license": { "type": "string" },

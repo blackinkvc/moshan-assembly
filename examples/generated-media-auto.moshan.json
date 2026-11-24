@@ -12,6 +12,12 @@
   "license": "MIT",
   "kind": "stack",
   "category": "组合栈",
+  "tags": [
+    "media",
+    "download",
+    "network",
+    "selfhost"
+  ],
   "group": "other",
   "keywords": [
     "automation",

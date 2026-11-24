@@ -173,6 +173,12 @@
             "size_mb": 190
           }
         }
+      ],
+      "tags": [
+        "download",
+        "network",
+        "web",
+        "selfhost"
       ]
     },
     {
@@ -255,6 +261,12 @@
             "note": "整镜替换为 -vaapi 变体（含基础层），并透传 /dev/dri；不勾则仍用基础镜像"
           }
         }
+      ],
+      "tags": [
+        "media",
+        "web",
+        "backend",
+        "selfhost"
       ]
     },
     {
@@ -292,6 +304,12 @@
             "size_mb": 60
           }
         }
+      ],
+      "tags": [
+        "media",
+        "web",
+        "backend",
+        "selfhost"
       ]
     },
     {
@@ -360,6 +378,12 @@
             "note": "内置搜索索引，勾选只打开开关"
           }
         }
+      ],
+      "tags": [
+        "data",
+        "ui",
+        "desktop",
+        "selfhost"
       ]
     },
     {
@@ -397,6 +421,12 @@
             "size_mb": 130
           }
         }
+      ],
+      "tags": [
+        "search",
+        "backend",
+        "native",
+        "selfhost"
       ]
     },
     {
@@ -433,6 +463,12 @@
             "size_mb": 240
           }
         }
+      ],
+      "tags": [
+        "data",
+        "backend",
+        "native",
+        "selfhost"
       ]
     },
     {
@@ -465,6 +501,12 @@
             "size_mb": 40
           }
         }
+      ],
+      "tags": [
+        "data",
+        "backend",
+        "native",
+        "selfhost"
       ]
     },
     {
@@ -501,6 +543,11 @@
             "size_mb": 160
           }
         }
+      ],
+      "tags": [
+        "data",
+        "backend",
+        "selfhost"
       ]
     },
     {
@@ -538,6 +585,12 @@
             "size_mb": 200
           }
         }
+      ],
+      "tags": [
+        "ops",
+        "web",
+        "backend",
+        "selfhost"
       ]
     },
     {
@@ -574,6 +627,12 @@
             "size_mb": 90
           }
         }
+      ],
+      "tags": [
+        "security",
+        "backend",
+        "native",
+        "selfhost"
       ]
     },
     {
@@ -610,6 +669,12 @@
             "size_mb": 300
           }
         }
+      ],
+      "tags": [
+        "network",
+        "download",
+        "backend",
+        "selfhost"
       ]
     },
     {
@@ -652,6 +717,11 @@
             "note": "整仓 4.19MB。先比对 commit sha，变了才重拉；上游每天只更 3 次"
           }
         }
+      ],
+      "tags": [
+        "download",
+        "data",
+        "cli"
       ]
     },
     {
@@ -691,6 +761,11 @@
             "note": "本地已有该进程，无外部依赖"
           }
         }
+      ],
+      "tags": [
+        "ai",
+        "dev",
+        "cli"
       ]
     },
     {
@@ -713,6 +788,12 @@
             "note": "只登记链接与介绍，不下载、不安装"
           }
         }
+      ],
+      "tags": [
+        "desktop",
+        "ui",
+        "frontend",
+        "native"
       ]
     },
     {
@@ -735,6 +816,12 @@
             "note": "只登记链接与介绍，不下载、不安装"
           }
         }
+      ],
+      "tags": [
+        "desktop",
+        "ui",
+        "frontend",
+        "native"
       ]
     },
     {
@@ -757,6 +844,11 @@
             "note": "只登记链接与介绍，不下载、不安装"
           }
         }
+      ],
+      "tags": [
+        "frontend",
+        "ui",
+        "native"
       ]
     },
     {
@@ -779,6 +871,11 @@
             "note": "只登记链接与介绍，不下载、不安装"
           }
         }
+      ],
+      "tags": [
+        "dev",
+        "native",
+        "cli"
       ]
     },
     {
@@ -801,6 +898,11 @@
             "note": "只登记链接与介绍，不下载、不安装"
           }
         }
+      ],
+      "tags": [
+        "dev",
+        "backend",
+        "frontend"
       ]
     },
     {
@@ -823,6 +925,11 @@
             "note": "只登记链接与介绍，不下载、不安装"
           }
         }
+      ],
+      "tags": [
+        "protocol",
+        "ai",
+        "dev"
       ]
     },
     {
@@ -845,6 +952,10 @@
             "note": "只登记链接与介绍，不下载、不安装"
           }
         }
+      ],
+      "tags": [
+        "protocol",
+        "ai"
       ]
     },
     {
@@ -867,6 +978,11 @@
             "note": "只登记链接与介绍，不下载、不安装"
           }
         }
+      ],
+      "tags": [
+        "protocol",
+        "ai",
+        "dev"
       ]
     },
     {
@@ -889,6 +1005,12 @@
             "note": "只登记链接与介绍，不下载、不安装"
           }
         }
+      ],
+      "tags": [
+        "protocol",
+        "ai",
+        "ui",
+        "frontend"
       ]
     },
     {
@@ -911,6 +1033,12 @@
             "note": "只登记链接与介绍，不下载、不安装"
           }
         }
+      ],
+      "tags": [
+        "protocol",
+        "ai",
+        "ui",
+        "frontend"
       ]
     },
     {
@@ -933,7 +1061,122 @@
             "note": "只登记链接与介绍，不下载、不安装"
           }
         }
+      ],
+      "tags": [
+        "protocol",
+        "ai",
+        "security"
       ]
+    }
+  ],
+  "tags": [
+    {
+      "id": "ui",
+      "label": "界面",
+      "group": "领域",
+      "desc": "用户能看见、能点的那一层：布局、组件、交互"
+    },
+    {
+      "id": "frontend",
+      "label": "前端",
+      "group": "领域",
+      "desc": "浏览器里跑的代码：DOM、状态、构建产物"
+    },
+    {
+      "id": "backend",
+      "label": "后端",
+      "group": "领域",
+      "desc": "常驻服务：接口、任务队列、业务逻辑"
+    },
+    {
+      "id": "dev",
+      "label": "开发",
+      "group": "领域",
+      "desc": "写代码时用的东西：编译、包管理、编辑器接入"
+    },
+    {
+      "id": "network",
+      "label": "网络",
+      "group": "领域",
+      "desc": "出网、代理、协议转发、抓取外站"
+    },
+    {
+      "id": "download",
+      "label": "下载",
+      "group": "领域",
+      "desc": "把远端的东西拿到本地：RSS、媒体、种子、镜像"
+    },
+    {
+      "id": "media",
+      "label": "媒体",
+      "group": "领域",
+      "desc": "音视频与图片：播放、转码、刮削、图库"
+    },
+    {
+      "id": "data",
+      "label": "数据",
+      "group": "领域",
+      "desc": "存与算：关系库、KV、对象存储、笔记正文"
+    },
+    {
+      "id": "search",
+      "label": "检索",
+      "group": "领域",
+      "desc": "全文索引与查询，区别于「存」"
+    },
+    {
+      "id": "ai",
+      "label": "AI",
+      "group": "领域",
+      "desc": "模型、Agent、推理链、算价"
+    },
+    {
+      "id": "security",
+      "label": "安全",
+      "group": "领域",
+      "desc": "凭证、加密、鉴权、隐私边界"
+    },
+    {
+      "id": "ops",
+      "label": "运维",
+      "group": "领域",
+      "desc": "部署、监控、统计、日志这类跑了之后才需要的事"
+    },
+    {
+      "id": "desktop",
+      "label": "桌面",
+      "group": "技术栈",
+      "desc": "装成独立应用跑在系统里，而不是开个网页"
+    },
+    {
+      "id": "web",
+      "label": "Web",
+      "group": "技术栈",
+      "desc": "以浏览器为界面，带 HTTP 端口"
+    },
+    {
+      "id": "cli",
+      "label": "命令行",
+      "group": "技术栈",
+      "desc": "一条命令跑完，无界面"
+    },
+    {
+      "id": "protocol",
+      "label": "协议",
+      "group": "技术栈",
+      "desc": "规范本身，不是实现——只登记链接"
+    },
+    {
+      "id": "native",
+      "label": "原生",
+      "group": "技术栈",
+      "desc": "编译成二进制，运行时不带解释器"
+    },
+    {
+      "id": "selfhost",
+      "label": "可自建",
+      "group": "技术栈",
+      "desc": "能在自己的机器上跑起来，不依赖厂商云"
     }
   ]
 }

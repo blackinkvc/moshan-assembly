@@ -14,7 +14,8 @@
   · 没勾的模块不产生下载项，也不进 compose —— 这是「要用的才下」的实现点。
 
 用法:
-  python3 tools/moshan.py catalog [--cap media.download]
+  python3 tools/moshan.py catalog [--cap media.download] [--tag ui]
+  python3 tools/moshan.py tags [--entries]
   python3 tools/moshan.py plan examples/generated-media-auto.moshan.json
   python3 tools/moshan.py plan <manifest> --use "jellyfin:stream,transcode;siyuan:store"
   python3 tools/moshan.py install <manifest> --out build/media
@@ -88,12 +89,14 @@ class Comp(object):
 
     def __init__(self, comp_id, manifest_comp, entry):
         self.id = comp_id
+        self.is_self = bool((manifest_comp or {}).get("_self"))
         self.mc = manifest_comp or {}
         self.entry = entry            # 目录条目，可能为 None（custom 胶水）
         self.modules = []             # 选中的模块对象
         self.variant = None           # 因某模块要求而切换的镜像变体
         self.downloads = []           # [(kind, label, ref, size_mb, why)]
         self.skipped = []             # [(module_id, size_mb)] 未选但本可下载
+        self.fallback_image = False   # 镜像靠条目兜底下载了
 
     @property
     def kind(self):
@@ -183,7 +186,19 @@ def assemble(manifest, entries, use=None, skip=None):
             skip_map.setdefault(cid.strip(), []).extend(m.strip() for m in mods.split(",") if m.strip())
 
     comps = []
-    for mc in manifest.get("components") or []:
+    raw = list(manifest.get("components") or [])
+    if not raw:
+        # single / adapter 形态只有顶层 runtime：它自己就是那一个组件
+        raw = [{
+            "_self": True,
+            "id": manifest["id"],
+            "kind": "process",
+            "expose": manifest.get("port"),
+            "runtime": manifest.get("runtime") or {},
+            "provides": [{"name": "webui", "port": manifest.get("port") or 0, "protocol": "http"}],
+            "health": manifest.get("health") or {},
+        }]
+    for mc in raw:
         e = entries.get(mc["id"])
         c = Comp(mc["id"], mc, e)
         if e:
@@ -226,11 +241,22 @@ def assemble(manifest, entries, use=None, skip=None):
                 c.downloads.append(("image", "镜像(%s)" % c.variant, c.image(), size, why))
             elif base:
                 c.downloads.append(("image", "镜像", base[0], base[1], base[2]))
+            elif c.kind == "container" and c.entry:
+                # 选中模块都没声明镜像（例如只勾 library）：镜像仍按条目取，不能漏。
+                # 体积取该条目任一 image 制品的体积作参考。
+                ref = "%s:%s" % (c.entry.get("image"), c.entry.get("sample_tag"))
+                size = next((a.get("size_mb") for a in
+                             [(m.get("artifact") or {}) for m in c.entry["modules"]]
+                             if a.get("kind") == "image"), None)
+                c.downloads.append(("image", "镜像", ref, size, "组件本体（所选模块只提供开关）"))
+                c.fallback_image = True
             # 未选模块的潜在体积（告诉用户省了多少）
             for mid, m in idx.items():
                 if mid in {x["id"] for x in c.modules}:
                     continue
                 a = m.get("artifact") or {}
+                if c.fallback_image and a.get("kind") == "image":
+                    continue  # 镜像已兜底下载，再说「省了」就是骗人
                 if a.get("kind") in ("image", "asset", "package") and a.get("size_mb"):
                     c.skipped.append((mid, a["size_mb"]))
         comps.append(c)
@@ -287,7 +313,12 @@ def render_plan(manifest, comps, items, entries, mode="auto"):
     out.append("")
     for c in comps:
         if not c.entry:
-            out.append("- **%s** — 自带胶水，无目录条目（需自己实现）" % c.id)
+            if c.is_self:
+                rt = c.mc.get("runtime") or {}
+                out.append("- **%s** — 本包自带进程（`%s`），无上游依赖，不需要下载镜像" % (
+                    c.id, rt.get("entry") or "—"))
+            else:
+                out.append("- **%s** — 自带胶水，无目录条目（需自己实现）" % c.id)
             continue
         mods = "、".join("%s(%s)" % (m.get("label") or m["id"], m["capability"]) for m in c.modules) or "无"
         variant_note = (" [镜像变体: %s]" % c.variant) if c.variant else ""
@@ -329,7 +360,17 @@ def render_plan(manifest, comps, items, entries, mode="auto"):
             out.append("  - %s → %s：%s" % (w["from"]["component"], w["to"]["component"], w.get("note", "")))
         out.append("")
 
-    missing = [c.id for c in comps if not c.entry and c.kind == "process"]
+    attach = manifest.get("attach") or {}
+    if attach.get("url"):
+        h = manifest.get("health") or {}
+        out.append("## 外部服务（不安装，只登记与探活）")
+        out.append("")
+        out.append("- 地址：`%s`" % attach["url"])
+        out.append("- 探活：`%s`，每 %ss 一次" % (h.get("path") or "/", h.get("interval") or 60))
+        out.append("- 生命周期：**不代管**。起停由它所在的那台机器负责，中台只判断活着没有。")
+        out.append("")
+
+    missing = [c.id for c in comps if not c.entry and c.kind == "process" and not c.is_self]
     if missing:
         out.append("## 五、需要你自己实现的部分")
         out.append("")
@@ -487,14 +528,22 @@ def render_install_sh(manifest, comps, items):
         lines.append("mkdir -p cache")
         for i in assets:
             lines.append('curl -fL --retry 3 -o cache/%s.bin "%s"' % (i["component"], i["ref"]))
+    has_proc = any(c.kind == "process" for c in comps)
+    execing = False
     if has_compose:
         lines.append("")
         lines.append("docker compose up -d")
-    if any(c.kind == "process" for c in comps):
+        if has_proc:
+            lines.append("")
+            lines.append('echo "容器已起。宿主机进程请另开终端执行：./run.sh"')
+    elif has_proc:
         lines.append("")
-        lines.append('echo "容器已起。宿主机进程请另开终端执行：./run.sh"')
-    lines.append("")
-    lines.append('echo "==> 完成"')
+        lines.append('echo "本包没有容器，直接前台跑：./run.sh"')
+        lines.append("exec ./run.sh")
+        execing = True
+    if not execing:
+        lines.append("")
+        lines.append('echo "==> 完成"')
     return "\n".join(lines) + "\n"
 
 
@@ -524,7 +573,10 @@ def render_readme(manifest, comps, items):
         out.append("")
     out.append("## 下载体积")
     out.append("")
-    out.append("合计 %s，共 %d 个制品。" % (human(sum(i.get("size_mb") or 0 for i in items)), len(items)))
+    if items:
+        out.append("合计 %s，共 %d 个制品。" % (human(sum(i.get("size_mb") or 0 for i in items)), len(items)))
+    else:
+        out.append("无需下载：本包只有同一制品内的开关，或用的就是本机已有的程序。")
     out.append("")
     out.append("## 怎么起")
     out.append("")
@@ -540,27 +592,70 @@ def render_readme(manifest, comps, items):
 def cmd_catalog(args):
     cat, entries = catalog()
     caps = {c["id"]: c for c in cat["capabilities"]}
+    tmap = {t["id"]: t for t in cat.get("tags") or []}
     if args.json:
         print(json.dumps(cat, ensure_ascii=False, indent=2))
         return 0
-    print("能力词表 %d 条，条目 %d 个\n" % (len(caps), len(entries)))
+    tag = getattr(args, "tag", None)
+    if tag and tag not in tmap:
+        die("词表里没有标签 %r（可用：%s）" % (tag, "、".join(sorted(tmap))))
+    print("能力词表 %d 条，标签 %d 个，条目 %d 个\n" % (len(caps), len(tmap), len(entries)))
+    shown = 0
     for e in cat["entries"]:
+        if tag and tag not in (e.get("tags") or []):
+            continue
         mods = [m for m in e["modules"] if not args.cap or m["capability"] == args.cap]
         if args.cap and not mods:
             continue
+        shown += 1
         total = sum(((m.get("artifact") or {}).get("size_mb") or 0)
                     for m in e["modules"] if m.get("default", True))
+        # 标签写在 id 前，一眼能看出这条归在哪一类
+        tline = "/".join((tmap.get(t) or {}).get("label", t) for t in (e.get("tags") or []))
         print("%-14s %-10s %-6s %6s  %s" % (e["id"], e["kind"], e.get("tier", "community"),
                                             human(total), (e.get("repo") or "")))
+        print("   %s  标签 %s" % (" " * 8, tline))
         for m in mods:
             a = m.get("artifact") or {"kind": "none"}
-            tag = a.get("kind")
-            if tag == "image":
-                tag += "@" + (a.get("ref") or "").rsplit(":", 1)[-1]
-            elif tag == "none" and a.get("variant"):
-                tag += "->" + a["variant"]
-            print("   %-10s %-18s %-22s %s" % (m["id"], m["capability"], tag,
+            tag_ = a.get("kind")
+            if tag_ == "image":
+                tag_ += "@" + (a.get("ref") or "").rsplit(":", 1)[-1]
+            elif tag_ == "none" and a.get("variant"):
+                tag_ += "->" + a["variant"]
+            print("   %-10s %-18s %-22s %s" % (m["id"], m["capability"], tag_,
                                                human(a.get("size_mb")) if a.get("size_mb") else ""))
+    if tag:
+        print("\n标签「%s」命中 %d / %d 个条目" % (tmap[tag]["label"], shown, len(entries)))
+    return 0
+
+
+def cmd_tags(args):
+    """列标签词表与用量。零用量的标签会标出来——要么忘了给条目打，要么这个词该删。"""
+    cat, _ = catalog()
+    vocab = cat.get("tags") or []
+    if not vocab:
+        print("目录里还没有标签词表。")
+        return 1
+    cnt = {t["id"]: 0 for t in vocab}
+    usage = {}
+    for e in cat["entries"]:
+        for t in (e.get("tags") or []):
+            if t in cnt:
+                cnt[t] += 1
+                usage.setdefault(t, []).append(e["id"])
+    grp = None
+    for t in vocab:
+        if t.get("group") != grp:
+            grp = t.get("group")
+            print("\n[%s]" % grp)
+        warn = "" if cnt[t["id"]] else "  ← 零使用"
+        print("  %-12s %-6s %2d  %s%s" % (t["id"], t["label"], cnt[t["id"]],
+                                          t.get("desc", ""), warn))
+    if args.entries:
+        print("")
+        for t in vocab:
+            if usage.get(t["id"]):
+                print("%-12s %s" % (t["id"], " ".join(usage[t["id"]])))
     return 0
 
 
@@ -637,6 +732,29 @@ def cmd_registry(args):
     files = []
     for pat in args.paths:
         files.extend(sorted(glob.glob(pat)))
+    # 标签词表来自能力目录：插件与软件条目共用一套，界面上才能一个筛选器管两边
+    cat = load_json(CATALOG) if os.path.exists(CATALOG) else {"entries": [], "tags": []}
+    tag_order = [t["id"] for t in (cat.get("tags") or [])]
+    tag_ids = set(tag_order)
+    entry_tags = {e["id"]: list(e.get("tags") or []) for e in (cat.get("entries") or [])}
+
+    def tags_for(m, pid):
+        """清单自己写的 tags 优先；没写就按它装的组件推导（并集，按词表顺序，最多 5 个）；
+        single/adapter 没有组件，退回按 id 认领同名目录条目。"""
+        declared = [t for t in (m.get("tags") or []) if isinstance(t, str)]
+        if declared:
+            for t in declared:
+                if t not in tag_ids:
+                    sys.stderr.write("警告 %s：标签 %r 不在目录词表里，界面上筛不到\n" % (pid, t))
+            return [t for t in tag_order if t in declared] + \
+                   [t for t in declared if t not in tag_ids]
+        got = set()
+        for c in (m.get("components") or []):
+            got.update(entry_tags.get(c.get("id"), []))
+        if not got:
+            got.update(entry_tags.get(pid, []))
+        return [t for t in tag_order if t in got][:5]
+
     plugins, seen = [], set()
     for f in files:
         try:
@@ -644,12 +762,21 @@ def cmd_registry(args):
         except Exception as ex:
             sys.stderr.write("跳过 %s：%s\n" % (f, ex))
             continue
-        if not isinstance(m, dict) or "components" not in m:
+        # 三种形态都要收：single 只有 runtime，adapter 只有 attach，stack 才有 components
+        if not isinstance(m, dict) or not ({"components", "runtime", "attach"} & set(m)):
             continue
         pid = m.get("id")
-        if not pid or pid in seen:
+        if not pid:
+            continue
+        if pid in seen:
+            sys.stderr.write("跳过 %s：id %r 已在索引里（先到先得）\n" % (f, pid))
             continue
         seen.add(pid)
+        # 中文可搜性：蓝图格子的中文标签就是最自然的别名，英文 keywords 搜不到「媒体」
+        aliases = list(m.get("aliases") or [])
+        for slot in (((m.get("extensions") or {}).get("cn.moshan.blueprint") or {}).get("slots") or []):
+            if slot.get("label"):
+                aliases.append(slot["label"])
         plugins.append({
             "id": pid,
             "name": m.get("name", pid),
@@ -661,6 +788,8 @@ def cmd_registry(args):
             "category": m.get("category"),
             "group": m.get("group"),
             "keywords": m.get("keywords") or [],
+            "tags": tags_for(m, pid),
+            "aliases": sorted(set(a for a in aliases if a)),
             "permissions": m.get("permissions") or [],
             "requires": m.get("requires") or {},
             "manifest": os.path.relpath(os.path.abspath(f), ROOT),
@@ -686,16 +815,23 @@ def cmd_registry(args):
 
 def _score(q, p):
     q = q.lower()
-    hay = " ".join([p.get("id", ""), p.get("name", ""), p.get("summary", ""),
-                    " ".join(p.get("keywords") or []), p.get("category") or ""]).lower()
+    ids = (p.get("id") or "").lower()
+    name = (p.get("name") or "").lower()
+    kw = " ".join(p.get("keywords") or []).lower()
+    al = " ".join(p.get("aliases") or []).lower()
+    hay = " ".join([ids, name, p.get("summary", ""), kw, al, p.get("category") or ""]).lower()
     if q not in hay:
         return 0
     s = 1
-    if q in (p.get("id") or "").lower():
-        s += 5
-    if q in (p.get("name") or "").lower():
+    if q in ids:
+        s += 6
+    if q in name:
+        s += 4
+    if q in al:
+        s += 4
+    if q in kw:
         s += 3
-    if q in " ".join(p.get("keywords") or []).lower():
+    if q in (p.get("summary") or "").lower():
         s += 2
     return s
 
@@ -733,8 +869,13 @@ def main(argv):
 
     p = sub.add_parser("catalog", help="列出能力目录（拆解知识，不含下载）")
     p.add_argument("--cap", help="只看某条能力")
+    p.add_argument("--tag", help="只看某个标签（如 ui、network、protocol）")
     p.add_argument("--json", action="store_true")
     p.set_defaults(fn=cmd_catalog)
+
+    p = sub.add_parser("tags", help="列标签词表与用量（零使用的会标出来）")
+    p.add_argument("--entries", action="store_true", help="附上每个标签下的条目 id")
+    p.set_defaults(fn=cmd_tags)
 
     p = sub.add_parser("plan", help="算出下载集、端口、注入（不下载）")
     p.add_argument("manifest")

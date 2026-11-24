@@ -31,6 +31,11 @@
     "category": { "type": "string" },
     "group": { "enum": ["plugin", "tool", "other"], "default": "other", "description": "中台弹窗归类，与现有 plugins.json 的 group 同义" },
     "keywords": { "type": "array", "items": { "type": "string" } },
+    "tags": {
+      "type": "array",
+      "description": "分类标签，取自 catalog/moshan-catalog.json 的 tags 词表（ui / dev / frontend / network …）。不写则由组件的目录条目标签推导；写了以这里为准，词表外的词构建时会告警。",
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,23}$" }
+    },
 
     "permissions": {
       "type": "array",

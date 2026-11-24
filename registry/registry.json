@@ -1,0 +1,161 @@
+{
+  "spec": "2.0",
+  "store_id": "local",
+  "name": "本机仓库",
+  "description": "本机插件仓库（由 tools/moshan.py registry 生成）",
+  "updated_at": "2026-11-24T18:30:13+08:00",
+  "plugins": [
+    {
+      "id": "daily-digest",
+      "name": "每日信息摘要",
+      "version": "0.1.0",
+      "kind": "stack",
+      "summary": "公众号与 RSS 自动进笔记库，可检索，顺带记 token 账",
+      "author": {
+        "name": "pamphile"
+      },
+      "repo": "",
+      "category": "组合栈",
+      "group": "plugin",
+      "keywords": [
+        "ai",
+        "news",
+        "note",
+        "search"
+      ],
+      "tags": [
+        "download",
+        "data",
+        "search",
+        "ai",
+        "selfhost"
+      ],
+      "aliases": [
+        "摘要胶水",
+        "检索",
+        "知识库",
+        "算价",
+        "采集"
+      ],
+      "permissions": [
+        "docker",
+        "fs:新闻摘录",
+        "net:https",
+        "net:127.0.0.1",
+        "exec:python3"
+      ],
+      "requires": {
+        "moshan": ">=2.1"
+      },
+      "manifest": "examples/generated-daily-digest.moshan.json",
+      "size": 6783,
+      "sha256": "7c2c2758e285f276f1b73589e9f87197524b841b9a52e2d33e1b30b17ac45024"
+    },
+    {
+      "id": "media-auto",
+      "name": "影视自动入库",
+      "version": "0.1.0",
+      "kind": "stack",
+      "summary": "下载完成自动改名，Jellyfin 立刻能播，中台一页看全",
+      "author": {
+        "name": "pamphile"
+      },
+      "repo": "",
+      "category": "组合栈",
+      "group": "other",
+      "keywords": [
+        "automation",
+        "media"
+      ],
+      "tags": [
+        "network",
+        "download",
+        "media",
+        "selfhost"
+      ],
+      "aliases": [
+        "下载",
+        "媒体库",
+        "改名胶水"
+      ],
+      "permissions": [
+        "docker",
+        "fs:媒体库",
+        "net:127.0.0.1",
+        "exec:python3"
+      ],
+      "requires": {
+        "moshan": ">=2.1"
+      },
+      "manifest": "examples/generated-media-auto.moshan.json",
+      "size": 5015,
+      "sha256": "02eff82100e8683f940cec4ecdb28b73b384cdcb2f78677bd951ed51fe323590"
+    },
+    {
+      "id": "llmcost",
+      "name": "Token 价格追踪",
+      "version": "1.1.0",
+      "kind": "single",
+      "summary": "模型 API / 套餐 / 本地部署成本",
+      "author": {
+        "name": "blackinkvc"
+      },
+      "repo": "blackinkvc/pocket-llmcost",
+      "category": "算价",
+      "group": "other",
+      "keywords": [
+        "token",
+        "price",
+        "llm",
+        "cost"
+      ],
+      "tags": [
+        "dev",
+        "ai",
+        "cli"
+      ],
+      "aliases": [],
+      "permissions": [
+        "fs:13-算价",
+        "net:https",
+        "exec:python3"
+      ],
+      "requires": {
+        "moshan": ">=1.0",
+        "python": ">=3.9"
+      },
+      "manifest": "examples/llmcost.moshan.json",
+      "size": 1564,
+      "sha256": "3c384eadd6c321cc0d460309c60f313c1babe35d96582ea15212c638fa405438"
+    },
+    {
+      "id": "siyuan-remote",
+      "name": "思源笔记（盒子上的）",
+      "version": "0.1.0",
+      "kind": "adapter",
+      "summary": "把 CasaOS 盒子里的思源接进中台，只登记不安装",
+      "author": {
+        "name": "pamphile"
+      },
+      "repo": "pamphile/moshan-siyuan-adapter",
+      "category": "笔记",
+      "group": "other",
+      "keywords": [],
+      "tags": [
+        "ui",
+        "data",
+        "selfhost"
+      ],
+      "aliases": [],
+      "permissions": [
+        "net:192.168.0.102"
+      ],
+      "requires": {
+        "moshan": ">=2.0"
+      },
+      "manifest": "examples/siyuan-remote.moshan.json",
+      "size": 1246,
+      "sha256": "052053dbc68837c9812ab745956af8ec01b41c20fb7928fe28e817dd0d28a5d4"
+    }
+  ]
+}

@@ -17,17 +17,20 @@ import json
 import re
 import sys
 import os
+import glob
 
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,48}$")
 REPO_RE = re.compile(r"^[\w.-]+/[\w.-]+$")
 SEMVER_RE = re.compile(r"^\d+\.\d+\.\d+")
 DOT_RE = re.compile(r"^[a-z][a-z0-9]*(\.[a-z][a-z0-9-]*){1,3}$")
+TAG_RE = re.compile(r"^[a-z][a-z0-9-]{1,23}$")
 SHA_RE = re.compile(r"^[a-f0-9]{64}$")
 
 KINDS = ("single", "stack", "adapter")
 COMP_KINDS = ("container", "process", "binary", "existing")
 ART_KINDS = {"image", "asset", "package", "build", "none"}
 GROUPS = ("plugin", "tool", "other")
+TAG_GROUPS = ("领域", "技术栈")
 STATUSES = ("ok", "warn", "error", "unknown", "stale")
 PERM_PREFIX = ("fs:", "net:", "exec:", "docker", "cron")
 
@@ -205,7 +208,8 @@ def validate_blueprint(d, name="<blueprint>"):
 
 
 def validate_catalog(d, name="<catalog>"):
-    """能力目录：模块引用的能力必须存在，容器必须能固定 tag，进程必须能启动。"""
+    """能力目录：模块引用的能力必须存在，容器必须能固定 tag，进程必须能启动，
+    每个条目必须打标签且标签在词表里。"""
     e = Err()
     if d.get("spec") != "1.0":
         e.add("spec", "必须是 \"1.0\"")
@@ -220,6 +224,29 @@ def validate_catalog(d, name="<catalog>"):
         caps.add(cid)
         if not DOT_RE.match(str(cid)):
             e.add("capabilities[%d].id" % i, "需为 a.b 形式（如 media.download）")
+
+    # 标签词表：和能力词表一样是受控的，条目只能打这里出现过的词
+    tag_ids, tag_used = set(), set()
+    for i, t in enumerate(d.get("tags") or []):
+        w = "tags[%d]" % i
+        tid = t.get("id")
+        if not tid:
+            e.add(w + ".id", "缺少 id")
+            continue
+        if tid in tag_ids:
+            e.add(w + ".id", "标签 id 重复 %r" % tid)
+        tag_ids.add(tid)
+        if not TAG_RE.match(str(tid)):
+            e.add(w + ".id", "需为小写字母/数字/连字符，2-24 字（如 ui、ag-ui）")
+        if not t.get("label"):
+            e.add(w + ".label", "缺少 label")
+        elif len(str(t["label"])) > 16:
+            e.add(w + ".label", "超过 16 字")
+        if t.get("group") not in TAG_GROUPS:
+            e.add(w + ".group", "必须是 %s 之一" % (TAG_GROUPS,))
+    if not tag_ids:
+        e.add("tags", "标签词表为空；每个条目都必须打标签，没有词表就无从校验")
+
     eids = set()
     for i, ent in enumerate(d.get("entries") or []):
         w = "entries[%d]" % i
@@ -233,6 +260,20 @@ def validate_catalog(d, name="<catalog>"):
         kind = ent.get("kind")
         if kind not in COMP_KINDS:
             e.add(w + ".kind", "必须是 %s 之一" % (COMP_KINDS,))
+        # 标签：必填、不重复、必须在词表内
+        etags = ent.get("tags")
+        if not isinstance(etags, list) or not etags:
+            e.add(w + ".tags", "必须至少打一个标签（否则筛不到这个条目）")
+        else:
+            seen_t = set()
+            for t in etags:
+                if t in seen_t:
+                    e.add(w + ".tags", "标签重复 %r" % t)
+                elif t not in tag_ids:
+                    e.add(w + ".tags", "引用了词表里不存在的标签 %r（先加到顶层 tags）" % t)
+                else:
+                    seen_t.add(t)
+                    tag_used.add(t)
         if kind == "container":
             if not ent.get("image"):
                 e.add(w + ".image", "容器条目缺少镜像")
@@ -307,9 +348,12 @@ def validate_registry(d, name="<registry>"):
             e.add(w + ".id", "重复的插件 id: %r" % pid)
         else:
             seen.add(pid)
-        for k in ("name", "version", "repo", "kind"):
+        for k in ("name", "version", "kind"):
             if not p.get(k):
                 e.add(w, "缺少 %r" % k)
+        # 安装来源：远端给 repo，本机自建给 manifest 相对路径，二者至少一个
+        if not p.get("repo") and not p.get("manifest"):
+            e.add(w, "repo 与 manifest 至少要给一个，否则无从安装")
         if p.get("kind") not in KINDS:
             e.add(w + ".kind", "必须是 %s 之一" % (KINDS,))
         if p.get("repo") and not REPO_RE.match(str(p["repo"])):
@@ -318,6 +362,19 @@ def validate_registry(d, name="<registry>"):
             e.add(w + ".sha256", "必须是 64 位小写 hex")
         if not p.get("sha256"):
             e.add(w + ".sha256", "缺少校验和（安装前必须校验，否则不做来源保证）")
+        # 标签：与软件目录共用一套词表，这里只能校格式；词表归属由 catalog 一侧保证
+        ptags = p.get("tags")
+        if not isinstance(ptags, list) or not ptags:
+            e.add(w + ".tags", "缺标签：界面按标签筛选时会漏掉这个插件（清单写 tags，或让组件能推出标签）")
+        else:
+            seen_t = set()
+            for t in ptags:
+                if t in seen_t:
+                    e.add(w + ".tags", "标签重复 %r" % t)
+                elif not TAG_RE.match(str(t)):
+                    e.add(w + ".tags", "标签格式不合法 %r（小写字母/数字/连字符，2-24 字）" % t)
+                else:
+                    seen_t.add(t)
     return e
 
 
@@ -438,8 +495,16 @@ def _load(path):
 
 def main(argv):
     if not argv:
-        print(__doc__)
-        return 2
+        # 无参数 = 仓库自检：AGENTS.md 里写的就是这条命令，必须真的能跑
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        defaults = [os.path.join(root, "catalog", "moshan-catalog.json"),
+                    os.path.join(root, "registry", "registry.json")]
+        defaults += sorted(glob.glob(os.path.join(root, "examples", "*.json")))
+        argv = [os.path.relpath(p, os.getcwd()) for p in defaults if os.path.isfile(p)]
+        if not argv:
+            print(__doc__)
+            return 2
+        print("（无参数，按仓库自检：catalog + registry + examples）\n")
     show_topo = "--topology" in argv
     args = [a for a in argv if not a.startswith("--")]
     targets = []

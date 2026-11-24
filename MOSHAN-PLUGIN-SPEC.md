@@ -4,7 +4,7 @@
 >
 > v2.1 增加的不是功能，是**入口**：不只让人「装」别人的包，还能自己「搭」一个——在画布上填格子（填能力，不填软件名），解析器推荐软件、挑模块、推导连线，最后吐出上一条那种可直接安装的包。
 >
-> 本文档对应可执行产物：`schema/*.schema.json`、`catalog/`、`examples/*.json`、`tools/validate.py`、`tools/blueprint.py`、`canvas.html`（校验 **10/10 通过**）。
+> 本文档对应可执行产物：`schema/*.schema.json`、`catalog/`、`examples/*.json`、`registry/`、`tools/*.py`、`canvas.html`、`market.html`（校验 **11/11 通过**）。
 
 ---
 
@@ -271,6 +271,13 @@ python3 tools/blueprint.py examples/blueprint-knowledge.json \
 **L1 · 现在就能做（零后端）**
 `moshan-plugins.json` 放在 `pamphile.github.io/moshan-registry/`，中台「插件市场」弹窗读它 → 搜索（`name/summary/keywords`）→ 详情页（拉 `moshan.json` + README）→ 安装。约 200 行前端 + 安装器。
 
+**分类用 `tags`，不用 `category` 硬编码。** 清单（`moshan.json`）与索引（`moshan-plugins.json` / `registry.json`）都可以带 `tags`，取值来自 `catalog/moshan-catalog.json` 的标签词表（`ui` / `dev` / `frontend` / `network` / `media` / `data` / `protocol` …共 18 个，分「领域」「技术栈」两组）。
+
+- 清单写了 `tags` 就以它为准，词表外的词构建索引时告警（不会静默丢掉）。
+- 没写则由它装的各组件的目录条目标签**并集**推导（按词表序取前 5）；`single` / `adapter` 没有组件，按插件 id 认领同名目录条目。
+- `validate.py` 两层都查：catalog 一侧查「词表里有没有这个词」，registry 一侧查「有没有标签、格式对不对」。
+- **与 `capabilities` 严格分开**：能力是给机器连管线的（一条能力只能有一个来源），标签是给人筛的（一个条目可以同时是「桌面 / 界面 / 前端 / 原生」）。合并会让推荐失去唯一解。
+
 **L2 · 多商店（也零后端）**
 抄 CasaOS：设置里可加任意 `store_url`。于是「我的商店」「团队的商店」「某个作者自建商店」并列，互不干扰。每个商店就是一个 JSON，可各自挂 Pages。
 
@@ -355,7 +362,7 @@ canvas.template.html   画布模板（改 UI 改这个，再重跑 build_canvas.
 已实测：
 
 ```bash
-python3 tools/validate.py examples/*.json catalog/moshan-catalog.json   # 10/10 通过
+python3 tools/validate.py examples/*.json catalog/moshan-catalog.json registry/registry.json   # 11/11 通过
 python3 tools/validate.py --topology examples/generated-media-auto.moshan.json
 python3 tools/blueprint.py examples/blueprint-knowledge.json --out ... --topology
 ```
@@ -364,12 +371,31 @@ python3 tools/blueprint.py examples/blueprint-knowledge.json --out ... --topolog
 
 ---
 
-## 12. 下一步只需你定一件事
+## 12. 追加：拆解与下载分离（v2.1 补充）
 
-三条路，按「多快看到结果」排序：
+目录里的模块现在多一个 `artifact` 字段，声明「这个模块要下载什么」：
 
-- **A · 装**：做 M2 的市场弹窗 + 9 步安装器，拿 `llmcost` 当第一个样板。半天到一天，能真点一下装上。
-- **B · 搭**：把 `canvas.html` 接进中台（当 iframe 面板），格子直接落成 `moshan.json`。画布已经可用，缺的只是中台里那个入口。
-- **C · 拆**：扩能力目录（现在 13 个软件，覆盖媒体/知识两条线），让更多领域的格子推荐得出来。这是纯数据活，收益随条数线性增长。
+| kind | 拉取方式 | 典型 |
+| --- | --- | --- |
+| `image` | `docker pull <ref>` | 容器镜像，可带 `variants` |
+| `asset` | `curl -fL <ref>` | Release 资产 / 数据仓库 zip |
+| `package` | `pip install name[extra]` | 语言包 |
+| `build` | `docker build --target` | 需本地构建 |
+| `none` | 不下载 | 同一制品内的开关；带 `variant` 时表示换镜像 |
 
-我的建议：**A 先做**。因为「装」的链路是「搭」的下游——画布导出的清单，最终还是要靠同一个安装器落地。装不通，搭得再漂亮也验证不了。A 通了以后，B 只是把画布塞进面板的一天工。
+三条规则：
+
+1. **变体是替换不是叠加**。`transcode` 带 `variant: vaapi` 时，镜像从 `10.10.3` 换成 `-vaapi`，体积按 490MB 算，不是 260+490。
+2. **未勾选不产生下载项**，也不进 compose。`plan` 会写明"未选 X，省 Y MB"。
+3. **一个 entry = 一个制品**。若某功能需要另一个镜像，不许塞进模块，拆成新 entry 用能力连线组合。
+
+对应实现：`tools/moshan.py` 的 `plan` / `install`，以及 `market.html` 的定向市场。总纲见 `ARCHITECTURE.md`。
+
+---
+
+## 13. 下一步
+
+已完成：M0 协议、M1 画布与解析、M2 拆解/下载分离、M3 仓库与市场。
+待做：**M4 真装**（拿 `llmcost` 当样板，一条命令装完能打开）、M5 `init` 收编脚手架、M6 卡片区接入中台。
+
+建议先 M4：`llmcost` 的清单已写好，装通即等于全链路验收。
