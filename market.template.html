@@ -30,6 +30,16 @@
   .tabs{display:flex;gap:3px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:2px}
   .tabs button{border:0;background:transparent;padding:5px 11px;border-radius:7px;font-size:13px;color:var(--muted)}
   .tabs button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(16,24,40,.08);font-weight:600}
+  .tabs button .cnt{font:10.5px/1 var(--mono);color:var(--muted);margin-left:5px;
+    background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:2px 5px;vertical-align:1px}
+  .tabs button.on .cnt{background:var(--accent);border-color:var(--accent);color:#fff}
+  /* 目录列表的分区标题：51 条不分段就没法看 */
+  .sec{display:flex;align-items:center;gap:7px;padding:11px 13px 5px;font:11px/1 var(--mono);
+    color:var(--muted);letter-spacing:.04em;text-transform:uppercase;position:sticky;top:0;
+    background:var(--panel);z-index:2;border-bottom:1px solid var(--line-2)}
+  .sec:first-child{padding-top:5px}
+  .sec b{color:var(--ink);font-weight:600;font-size:11px}
+  .sec .ln{flex:1;height:1px;background:var(--line-2)}
   #q{flex:1;min-width:160px;max-width:340px;padding:7px 11px;border:1px solid var(--line);
     border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;outline:none}
   #q:focus{border-color:var(--accent)}
@@ -135,8 +145,8 @@
 <header>
   <div class="brand">墨山插件仓库<small>点开 → 勾模块 → 装上</small></div>
   <div class="tabs">
-    <button data-tab="plugins" class="on">插件</button>
-    <button data-tab="catalog">软件目录</button>
+    <button data-tab="plugins">插件<span class="cnt"></span></button>
+    <button data-tab="catalog" class="on">软件目录<span class="cnt"></span></button>
   </div>
   <input id="q" placeholder="搜插件、软件、能力…（中文也行）">
   <div class="stats" id="stats"></div>
@@ -164,7 +174,7 @@ const ENTRIES = Object.fromEntries(CAT.entries.map(e=>[e.id,e]));
 // 标签词表：条目只存 id，展示名与分组都从词表取，改词表一处即可全站生效
 const TV = Object.fromEntries((CAT.tags||[]).map(t=>[t.id,t]));
 
-let tab = 'plugins';
+let tab = 'catalog';   // 目录是主体，插件才 4 个，别让人以为这里只有插件
 let q = '';
 let activeTag = null;   // 当前筛选的标签 id；null=全部
 let selId = null;
@@ -313,6 +323,22 @@ function renderStats(){
     '<div class="stat">能力 <b>'+caps+'</b></div>';
 }
 
+// 目录分区：51 条平铺看不出层次。判定只用三个信号（标签 model / kind / 模块能力），
+// 不新增字段，避免 catalog 里维护两份真相。
+const BASE_CAPS = ['dev.runtime','dev.build','ai.protocol'];
+const SEC_ORDER = ['bin','model','base','tool'];
+const SEC_META = {
+  bin:   {label:'可安装',       hint:'勾模块进蓝图，才算进下载集'},
+  model: {label:'开放权重模型', hint:'只登记权重、许可与体量'},
+  base:  {label:'技术基座与协议', hint:'只登记，不下载'},
+  tool:  {label:'桌面与系统工具', hint:'只登记，不下载'},
+};
+function catSection(e){
+  if((e.tags||[]).includes('model')) return 'model';
+  if(e.kind!=='existing') return 'bin';
+  return e.modules.every(m=>BASE_CAPS.includes(m.capability)) ? 'base' : 'tool';
+}
+
 function renderList(){
   const list = $('#list');
   if(tab==='plugins'){
@@ -337,7 +363,7 @@ function renderList(){
         e.modules.map(m=>m.capability+' '+(m.label||'')+' '+((m.artifact||{}).note||'')).join(' '),
         (e.notes||'')].join(' '), q));
     if(rows.length && !rows.some(e=>e.id===selId)) selId = rows[0].id;
-    list.innerHTML = rows.length ? rows.map(e=>{
+    const itemHTML = e=>{
       const def = e.modules.filter(m=>m.default!==false).reduce((n,m)=>n+((m.artifact||{}).size_mb||0),0);
       const isRef = e.kind==='existing';
       return '<div class="item '+(selId===e.id?'on':'')+'" data-id="'+esc(e.id)+'">'+
@@ -347,7 +373,18 @@ function renderList(){
         tagRow(e)+
         (isRef?'':'<div class="kw">'+esc(e.modules.map(m=>m.capability).join(' · '))+'</div>')+
         '</div>';
-    }).join('') : '<div class="empty">'+(activeTag?'这个标签下没有软件，点「全部」看看。':'没有匹配的软件。')+'</div>';
+    };
+    // 51 条不分段就没法找：按「能不能装 / 是什么」切四段
+    let out = '';
+    for(const s of SEC_ORDER){
+      const grp = rows.filter(x=>catSection(x)===s);
+      if(!grp.length) continue;
+      const meta = SEC_META[s];
+      out += '<div class="sec"><b>'+esc(meta.label)+'</b><span>'+grp.length+'</span>'+
+             '<span class="ln"></span><span style="text-transform:none;letter-spacing:0">'+esc(meta.hint)+'</span></div>';
+      out += grp.map(itemHTML).join('');
+    }
+    list.innerHTML = rows.length ? out : '<div class="empty">'+(activeTag?'这个标签下没有软件，点「全部」看看。':'没有匹配的软件。')+'</div>';
   }
   list.querySelectorAll('.item').forEach(el=>el.onclick=()=>{ selId=el.dataset.id; renderAll(); });
 }
@@ -553,6 +590,10 @@ function renderAll(){
     };
   });
 }
+
+// 页签上标数量：不然「只有 4 个插件」会被当成整个仓库的全部内容
+document.querySelector('[data-tab="plugins"] .cnt').textContent = REG.plugins.length;
+document.querySelector('[data-tab="catalog"] .cnt').textContent = CAT.entries.length;
 
 document.querySelectorAll('.tabs button').forEach(b=>{
   b.onclick = () => {
