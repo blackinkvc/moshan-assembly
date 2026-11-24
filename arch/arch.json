@@ -1744,6 +1744,1550 @@
           ]
         }
       ]
+    },
+    {
+      "id": "ai.text",
+      "name": "文本创作",
+      "kind": "domain",
+      "parent": null,
+      "abstract": "把「写」拆成六种写法：文案、长文、虚构、改写、翻译、摘要",
+      "note": "写作类产品表面都在「生成文字」，实际要的东西完全不同：文案要模板与平台调性，长文要大纲与引用，小说要人设一致性，改写要句式操控，翻译要术语表，摘要要压缩率。合成一格，用户就没法按需求选，库也就失去了匹配能力。",
+      "providers": []
+    },
+    {
+      "id": "ai.office",
+      "name": "办公产出",
+      "kind": "domain",
+      "parent": null,
+      "abstract": "表格、会议、导图、简历、笔记、扫描件——办公室里被接手的那几件事",
+      "note": "共同点：输入不是「一段话」而是「一份已有的文件或一场会」，难点在解析与结构化，不在生成。和 kb.ingest 的区别在目的：那边是为检索入库，这边是把原始材料改造成能交付的东西。",
+      "providers": []
+    },
+    {
+      "id": "ai.design",
+      "name": "视觉设计",
+      "kind": "domain",
+      "parent": null,
+      "abstract": "版式与品牌：把内容排成能发出去的图",
+      "note": "设计工具分两半：一半是生成素材（归 ai.media.image），一半是把素材排到版上（这一域）。后者看着简单，其实决定成品是否专业：栅格、留白、字号层级、品牌色一致性。",
+      "providers": []
+    },
+    {
+      "id": "ai.prompt",
+      "name": "提示词工程",
+      "kind": "domain",
+      "parent": null,
+      "abstract": "提示词的存、管、改、评",
+      "note": "多条产品线并行时提示词会膨胀到几百条，散在代码里改一次要发版、改坏了无法回滚。这一域解决的是「提示词作为资产」的问题，不是「怎么写得更好」——后者是模型能力，不是工程模块。",
+      "providers": []
+    },
+    {
+      "id": "ai.detect",
+      "name": "内容检测",
+      "kind": "domain",
+      "parent": null,
+      "abstract": "判断一段内容是不是机器写的，以及把它改得像人写的",
+      "note": "两类需求方向相反：平台要检测，作者要规避。技术上是一件事的两面——都吃「机器文本的统计特征」（困惑度、句长方差、连接词密度），所以这域必须成对看，只做检测而不懂改写就是在追一个总在变的靶。",
+      "providers": []
+    },
+    {
+      "id": "ai.search",
+      "name": "检索",
+      "kind": "domain",
+      "parent": null,
+      "abstract": "从「找得到」到「答得出」",
+      "note": "和 kb 的分界：kb 搜的是自己灌进去的文档，这一域搜的是开放世界。和 ai.agent.search 的分界：那边是 Agent 手里的一件工具，这边是可以独立成产品的检索能力（索引、排序、去重、垂直库）。",
+      "providers": []
+    },
+    {
+      "id": "ai.text.copy",
+      "name": "营销文案",
+      "kind": "module",
+      "parent": "ai.text",
+      "abstract": "卖点 + 平台调性 → 可直接发布的种草/测评/电商文案",
+      "note": "关键不在「写得好看」，在「符合平台规则」：小红书要口语和分段，亚马逊要关键词密度，公众号要结构。通常做法是「表单模板 + 平台片段 + 少量爆款样例」，样例比提示词有效得多。坑：同一套提示词喂所有平台，出来全是一个味，用户一眼看出是批量货。不需要它的场合：只要一篇通用介绍。",
+      "io": {
+        "in": "品牌 + 人群 + 卖点 + 平台",
+        "out": "多平台文案"
+      },
+      "providers": [
+        {
+          "id": "prompt-template",
+          "name": "表单模板 + 平台片段",
+          "kind": "pattern",
+          "note": "填表式输入，平台调性写成片段库，最省且可控；样例质量决定上限"
+        },
+        {
+          "id": "jasper",
+          "name": "Jasper / Copy.ai",
+          "kind": "commercial",
+          "note": "模板与工作流成熟，按坐席收费"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "难的是平台调性库，不是生成",
+          "effort": "3 天",
+          "tokens": "约 250 万",
+          "outline": [
+            "表单 schema 化：品牌、人群、卖点、平台、禁用词",
+            "每个平台一个片段库 + 2 条爆款样例，拼进系统提示",
+            "批量生成后做相似度去重（>0.9 的重写）",
+            "接禁用词与合规检查，否则文案会被平台限流"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.text.long",
+      "name": "长文与论文",
+      "kind": "module",
+      "parent": "ai.text",
+      "abstract": "大纲 → 分章 → 引用，一次生成整篇必然跑偏",
+      "note": "正确姿势是「先出大纲，人确认后再逐章写」，每章带上文摘要保持连贯。论文类还要处理引用：模型编造参考文献是常态，必须回外部检索核。坑：不分章直接要 8000 字，前后会自相矛盾，中途也没法纠正方向。不需要它的场合：800 字以内的短文，直接对话更快。",
+      "io": {
+        "in": "主题 + 素材 + 篇幅",
+        "out": "分章长文 / 带引用的报告"
+      },
+      "providers": [
+        {
+          "id": "langchain-long",
+          "name": "LangChain 长文链",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "langchain-ai/langchain",
+          "note": "map-reduce / refine 现成，省得自己拼上下文"
+        },
+        {
+          "id": "notion-ai",
+          "name": "Notion AI / 秘塔写作猫",
+          "kind": "commercial",
+          "note": "改稿体验好，长文结构偏弱"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "分章 + 引用核对是全部工作量，生成本身不难",
+          "effort": "4 天",
+          "tokens": "约 300 万",
+          "outline": [
+            "大纲 JSON：章节、每章要点、需要的数据",
+            "逐章生成，上下文只带大纲 + 上一章末尾 500 字",
+            "引用走检索：每处引用必须有 URL，没检索到就标注「待补」",
+            "全文一致性检查：术语表与人物/事实表比对"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.text.fiction",
+      "name": "小说与剧本",
+      "kind": "module",
+      "parent": "ai.text",
+      "abstract": "人设、世界观、章节、分镜——长篇最怕前后不一致",
+      "note": "技术难点不是生成，是「记住」：角色关系、已发生事件、埋下的伏笔。做法是维护结构化设定表（人物卡 / 时间线 / 世界书），每次生成前把相关条目检索出来注入上下文。短篇可以不管；超过三万字不建设定表，必然崩人设。剧本还要多一层分镜：一场戏拆成镜号、景别、台词。",
+      "io": {
+        "in": "设定 + 前情 + 本章目标",
+        "out": "章节正文 / 分镜脚本"
+      },
+      "providers": [
+        {
+          "id": "lorebook",
+          "name": "设定表 + 检索注入",
+          "kind": "pattern",
+          "note": "人物卡与时间线存 JSON，按出场角色召回，零依赖"
+        },
+        {
+          "id": "sillytavern",
+          "name": "SillyTavern",
+          "kind": "oss",
+          "license": "AGPL-3.0",
+          "repo": "SillyTavern/SillyTavern",
+          "note": "角色卡与世界书已是事实标准，可直接借数据结构"
+        },
+        {
+          "id": "novelai",
+          "name": "NovelAI / 彩云小梦",
+          "kind": "commercial",
+          "note": "续写顺手，长篇一致性仍要自己管"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "崩人设是这类产品唯一的死因，别指望靠提示词解决",
+          "effort": "5 天",
+          "tokens": "约 400 万",
+          "outline": [
+            "设定表三张：人物卡、时间线、世界规则",
+            "写前检索：本章出场角色 + 相关地点 + 未回收伏笔",
+            "写完回写：新增事实追加进设定表，标记伏笔状态",
+            "一致性检查：让另一个模型只挑前后矛盾"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.text.rewrite",
+      "name": "改写与降重",
+      "kind": "module",
+      "parent": "ai.text",
+      "abstract": "换句式、换词、调语气——包括「降 AIGC 率」",
+      "note": "降 AI 率本质是打乱机器文本的统计特征，常用手法是同义替换 + 句序调整 + 插入口语。代价是可读性下降，过度处理会变成病句；检测方也在升级，所以这是持续对抗，不能承诺「必过」。真正需要的是「改写但不改意思」，这要求逐段处理并锁定术语。不需要它的场合：一句话不顺，直接让模型改。",
+      "io": {
+        "in": "原文 + 改写强度 + 保留术语",
+        "out": "改写文本 + 改动对照"
+      },
+      "providers": [
+        {
+          "id": "rewrite-prompt",
+          "name": "分段改写 + 术语保护",
+          "kind": "pattern",
+          "note": "逐段处理、术语表锁定、温度调低，最稳且可解释"
+        },
+        {
+          "id": "quillbot",
+          "name": "QuillBot / 茅茅虫",
+          "kind": "commercial",
+          "note": "现成产品，批量与查重一体"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "降 AI 率是副产物，主产品价值是「可对照的改写」",
+          "effort": "3 天",
+          "tokens": "约 200 万",
+          "outline": [
+            "先切段（按标点与语义），段间不互相看，避免整篇同质",
+            "每段给三个改写强度，用户可选；强档允许拆句合句",
+            "术语表与专有名词用占位符抽出，改写后回填",
+            "输出 diff 视图，让用户看见改了什么——不然不敢用"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.text.translate",
+      "name": "翻译",
+      "kind": "module",
+      "parent": "ai.text",
+      "abstract": "术语一致、双语对照、长文档分块",
+      "note": "LLM 直译质量已够用，真正的问题是三件：术语表（同一份文档里 API 不能一会叫接口一会叫 API）、分块后的指代（代词跨块就丢）、格式保留（Markdown 与字幕时间轴不能被打乱）。做产品必须支持上传术语表。不需要它的场合：单个短句，直接问模型。",
+      "io": {
+        "in": "原文 + 术语表 + 目标语言",
+        "out": "译文 + 对照"
+      },
+      "providers": [
+        {
+          "id": "llm-glossary",
+          "name": "LLM + 术语表",
+          "kind": "pattern",
+          "note": "分块翻译 + 术语强制替换 + 上下文摘要向前传"
+        },
+        {
+          "id": "libretranslate",
+          "name": "LibreTranslate",
+          "kind": "oss",
+          "license": "AGPL-3.0",
+          "repo": "LibreTranslate/LibreTranslate",
+          "note": "可自部署，离线场景必须；质量弱于商用模型"
+        },
+        {
+          "id": "deepl",
+          "name": "DeepL API",
+          "kind": "commercial",
+          "note": "欧语最准，中文一般"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "难点全在格式与术语，翻译本身已经被模型解决了",
+          "effort": "4 天",
+          "tokens": "约 300 万",
+          "outline": [
+            "按段落切块，保留原始顺序号",
+            "每块带上「上一块译文末尾 200 字」作为上下文",
+            "术语命中先替换成占位符，译完回填",
+            "字幕/表格走专用路径：只译文本字段，时间轴与列结构不动"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.text.summary",
+      "name": "摘要与抽取",
+      "kind": "module",
+      "parent": "ai.text",
+      "abstract": "长文压缩成要点，或抽成结构化字段",
+      "note": "两条路：抽取式（挑原句，不会编但生硬）与生成式（通顺但会编）。合同、财报这类不容错的场景要抽取式并保留原文位置；读论文、听播客用生成式。坑：一次塞十万字进去，模型只看开头和结尾——必须分段摘要再归并，且保留段号以便回溯。",
+      "io": {
+        "in": "长文 / 转写稿",
+        "out": "要点 + 原文位置"
+      },
+      "providers": [
+        {
+          "id": "map-reduce",
+          "name": "分段摘要 + 归并",
+          "kind": "pattern",
+          "note": "map 出每段要点，reduce 合并去重；带段号可回溯"
+        },
+        {
+          "id": "langchain-sum",
+          "name": "LangChain summarize chain",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "langchain-ai/langchain",
+          "note": "现成链，适合先跑通再改"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "冲突处理是这类产品被信任的关键",
+          "effort": "2 天",
+          "tokens": "约 150 万",
+          "outline": [
+            "按标题或固定长度切段，每段带 index",
+            "map：每段出 3 条要点 + 关键数字，保留 index",
+            "reduce：合并同义要点，冲突的标出来而不是二选一",
+            "输出每条要点回链到段 index，界面可跳原文"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.office.sheet",
+      "name": "表格与数据",
+      "kind": "module",
+      "parent": "ai.office",
+      "abstract": "自然语言建表、写公式、出图",
+      "note": "卖点不是「生成表格」，是「把脏数据变成能看的东西」。链路：解析上传的 xlsx/csv → 推断列类型 → 生成公式或透视 → 出图。坑：模型写 Excel 公式经常用错区域引用，必须实际算一遍再返回；还要防注入（CSV 里以 = 开头的单元格会被 Excel 当公式执行）。不需要它的场合：数据小到能直接看一眼。",
+      "io": {
+        "in": "表格文件 + 自然语言指令",
+        "out": "改好的表 / 图表"
+      },
+      "providers": [
+        {
+          "id": "univer",
+          "name": "Univer / Luckysheet",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "dream-num/univer",
+          "note": "网页表格内核，公式引擎现成，别自己写"
+        },
+        {
+          "id": "excel-copilot",
+          "name": "Excel Copilot / XCell",
+          "kind": "commercial",
+          "note": "与 Office 深度绑定，导出最省心"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "别让模型算数，让它出计划——算错一次用户就不信了",
+          "effort": "6 天",
+          "tokens": "约 400 万",
+          "outline": [
+            "读表：只取表头 + 前 200 行做类型推断，别整表塞模型",
+            "生成计划而非代码：先出「选哪些列、怎么算」的步骤",
+            "按步骤调表格引擎 API 执行，公式由引擎算，模型不碰数值",
+            "结果回显并保留撤销；导入时过滤以 = + - @ 开头的单元格"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.office.meeting",
+      "name": "会议记录",
+      "kind": "module",
+      "parent": "ai.office",
+      "abstract": "录音 → 转写 → 分段纪要 → 待办",
+      "note": "链路固定：转写（ASR）→ 说话人分离 → 按议题切段 → 每段出摘要与决议 → 抽待办（谁、做什么、何时）。坑：多人抢话时分离错乱，纪要会张冠李戴；专有名词识别差，必须支持上传热词表。真正的价值在待办抽取，逐字稿只是副产品——只给逐字稿的产品没人用第二次。",
+      "io": {
+        "in": "录音 / 会议音频",
+        "out": "纪要 + 待办列表"
+      },
+      "providers": [
+        {
+          "id": "whisper-pyannote",
+          "name": "Whisper + pyannote",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "openai/whisper",
+          "note": "转写与说话人分离都能自建，中文用 FunASR 更准"
+        },
+        {
+          "id": "feishu-minutes",
+          "name": "飞书妙记 / 讯飞会议",
+          "kind": "commercial",
+          "note": "开箱可用，热词与协作成熟"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "待办抽取的质量决定复购，纪要只是及格线",
+          "effort": "5 天",
+          "tokens": "约 350 万",
+          "outline": [
+            "转写带词级时间戳，保留说话人标签",
+            "按语义切段：换人 + 长停顿 + 话题词变化",
+            "每段抽「结论 / 分歧 / 待办」，待办必须能落到人",
+            "输出回链到时间点，点一下跳到录音对应位置"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.office.mindmap",
+      "name": "导图与大纲",
+      "kind": "module",
+      "parent": "ai.office",
+      "abstract": "文字 ↔ 树结构，双向可编辑",
+      "note": "难点不在生成树，在「双向」：用户改节点要能回写成文本，文本改了要重排树。做法是只存一棵 JSON 树，文本视图由树渲染，避免两份数据打架。输出要考虑 XMind / Markdown 兼容，否则用户拿不走。不需要它的场合：一次性梳理思路，用大纲列表就够。",
+      "io": {
+        "in": "主题 / 长文",
+        "out": "导图（可导出）"
+      },
+      "providers": [
+        {
+          "id": "markmap",
+          "name": "markmap / mind-elixir",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "markmap/markmap",
+          "note": "Markdown 与脑图互转，前端直接跑"
+        },
+        {
+          "id": "xmind-ai",
+          "name": "XMind AI / AmyMind",
+          "kind": "commercial",
+          "note": "导出格式最全"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "视图与数据分离是唯一要点，做反了就是无尽 bug",
+          "effort": "3 天",
+          "tokens": "约 250 万",
+          "outline": [
+            "单一数据源：{id, text, children[]}，其余都是视图",
+            "生成时限制层级 3–4 层、每层 ≤7 个，否则没法看",
+            "编辑走命令式操作（加/删/移），便于撤销重做",
+            "导出 Markdown / OPML / xmind，别自造格式"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.office.resume",
+      "name": "简历与求职",
+      "kind": "module",
+      "parent": "ai.office",
+      "abstract": "结构化履历 + 岗位对齐 + 版式导出",
+      "note": "真正的需求是「按 JD 改」：把岗位描述抽成关键词与硬性条件，再逐条对照履历做匹配度，指出缺什么。铁律：只做重写与排序，不许新增事实——让模型编经历会毁掉求职者。导出要兼容 ATS（纯文本可解析），花哨排版反而减分。不需要它的场合：投一个熟人内推的岗位，人工改两句更快。",
+      "io": {
+        "in": "履历 + 岗位描述",
+        "out": "对齐后的简历"
+      },
+      "providers": [
+        {
+          "id": "jd-match",
+          "name": "JD 关键词对齐",
+          "kind": "pattern",
+          "note": "抽 JD 要求 → 逐条映射履历 → 出匹配度与缺口，不编造"
+        },
+        {
+          "id": "resume-tpl",
+          "name": "LaTeX / docx 模板",
+          "kind": "pattern",
+          "note": "模板渲染，版式稳定且 ATS 友好"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "缺什么比写什么更有用，别把它做成美化工具",
+          "effort": "3 天",
+          "tokens": "约 200 万",
+          "outline": [
+            "履历结构化：时间、公司、角色、动作、量化结果",
+            "JD 抽硬条件（年限/技能/证书）与软要求",
+            "逐条映射，输出「命中 / 部分命中 / 缺失」三态",
+            "只允许改写措辞与调整顺序，新增事实需用户确认"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.office.note",
+      "name": "笔记与个人知识",
+      "kind": "module",
+      "parent": "ai.office",
+      "abstract": "随手记 → 自动整理 → 可被问",
+      "note": "和 kb 的分界：kb 是灌进来的文档，这一层是自己写的东西，需要双链、标签、每日回顾这些组织手段。AI 的介入点有三处：自动摘要、自动打标与互链、对全库提问。坑：自动打标一旦不准，用户就不再信任标签体系，宁可让他手动确认——准确率不到八成时，建议比自动更合适。",
+      "io": {
+        "in": "笔记内容",
+        "out": "标签 / 链接 / 摘要"
+      },
+      "providers": [
+        {
+          "id": "siyuan",
+          "name": "思源笔记 / Obsidian",
+          "kind": "oss",
+          "license": "AGPL-3.0",
+          "repo": "siyuan-note/siyuan",
+          "note": "本地优先、双链与块引用成熟，可直接嵌"
+        },
+        {
+          "id": "notion-ai",
+          "name": "Notion AI",
+          "kind": "commercial",
+          "note": "协作强，数据在云上"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "笔记产品的胜负在输入体验，AI 只能加速整理",
+          "effort": "5 天",
+          "tokens": "约 300 万",
+          "outline": [
+            "正文存 Markdown，元数据（标签/链接）单独存",
+            "写入时异步跑摘要与关键词，不阻塞输入",
+            "互链建议用向量相似度召回，只给 3 条候选",
+            "检索走全文 + 向量混合，中文要配分词"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.office.ocr",
+      "name": "文档识别",
+      "kind": "module",
+      "parent": "ai.office",
+      "abstract": "扫描件、公式、表格、手写——把图变成结构化文本",
+      "note": "三档难度：印刷体（成熟）、表格（要还原行列合并）、公式与手写（仍在进步）。关键决定是「要不要保留版面坐标」：只出纯文本，后面没法做对照高亮；保留坐标才能点原文定位。坑：低质量扫描先做去噪与纠偏，否则识别率暴跌。",
+      "io": {
+        "in": "图片 / PDF 扫描件",
+        "out": "结构化文本 + 坐标"
+      },
+      "providers": [
+        {
+          "id": "paddleocr",
+          "name": "PaddleOCR",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "PaddlePaddle/PaddleOCR",
+          "note": "中文与表格最实用，可离线"
+        },
+        {
+          "id": "docling-ocr",
+          "name": "Docling",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "docling-project/docling",
+          "note": "版面还原好，能出 Markdown 与坐标"
+        },
+        {
+          "id": "mathpix",
+          "name": "Mathpix",
+          "kind": "commercial",
+          "note": "公式识别最强，按页收费"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "不保留坐标就没有产品价值，只是又一个复制粘贴",
+          "effort": "6 天",
+          "tokens": "约 400 万",
+          "outline": [
+            "预处理：灰度、二值化、透视矫正、去噪",
+            "版面分析先切块（段落/表格/图），别整页硬识别",
+            "表格单独走单元格检测 + 行列还原",
+            "输出带 bbox，前端用坐标做「点文字高亮原图」"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.design.layout",
+      "name": "版式与海报",
+      "kind": "module",
+      "parent": "ai.design",
+      "abstract": "模板 + 素材位 + 自适应排版",
+      "note": "核心是「约束」：文字长度不定、图片比例不定，排版要自适应而不是靠模型想象坐标。做法是模板里定义弹性容器，AI 只负责选模板与填内容。坑：让模型直接输出绝对坐标，换个字号就全糊在一起。不需要它的场合：发朋友圈的一张图，用现成模板改字即可。",
+      "io": {
+        "in": "文案 + 素材 + 场景",
+        "out": "可编辑的版式"
+      },
+      "providers": [
+        {
+          "id": "penpot",
+          "name": "Penpot",
+          "kind": "oss",
+          "license": "MPL-2.0",
+          "repo": "penpot/penpot",
+          "note": "开源设计工具，模板与组件体系可直接用"
+        },
+        {
+          "id": "canva",
+          "name": "Canva / 稿定",
+          "kind": "commercial",
+          "note": "模板海量，商用授权清楚"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "让模型碰坐标的设计工具，最终都死在换行上",
+          "effort": "7 天",
+          "tokens": "约 500 万",
+          "outline": [
+            "模板 DSL：绝对定位 + 弹性容器两种节点",
+            "AI 只输出「选哪个模板 + 每格填什么」，不输出坐标",
+            "渲染后按文本实际高度回流，超出则缩字号或换模板",
+            "导出 PNG / PDF，字体预置，缺字要显式报错"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.design.brand",
+      "name": "品牌与标识",
+      "kind": "module",
+      "parent": "ai.design",
+      "abstract": "Logo、配色、字体、VI 规范",
+      "note": "生成 Logo 只是第一步，真正的交付是「一套能落地的规范」：主色/辅色/禁用组合、最小尺寸、深浅底版本。技术上要出矢量（SVG）而不是位图，否则放大会糊。坑：生成结果常撞已有商标，商用前必须查重，产品里要明确提示——这既是法律风险也是口碑风险。",
+      "io": {
+        "in": "品牌名 + 行业 + 气质",
+        "out": "SVG 标识 + 配色规范"
+      },
+      "providers": [
+        {
+          "id": "svg-mark",
+          "name": "SVG 生成 + 字体轮廓",
+          "kind": "pattern",
+          "note": "模型出构图描述，SVG 模板渲染，可无损缩放"
+        },
+        {
+          "id": "looka",
+          "name": "Looka / Logoai",
+          "kind": "commercial",
+          "note": "打包输出 VI 与商用授权"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "交付规范比交付图形值钱，这是和出图工具的分界",
+          "effort": "5 天",
+          "tokens": "约 400 万",
+          "outline": [
+            "先定三件事：气质关键词、行业禁忌、名字长度",
+            "生成构图描述（几何/字母/图形），不直接出图",
+            "用 SVG 基本图形拼装，字体转轮廓，输出可编辑矢量",
+            "自动衍生：横版/竖版/单色/深底，附最小尺寸与留白规范"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.agent.multi",
+      "name": "多智能体协同",
+      "kind": "module",
+      "parent": "ai.agent",
+      "abstract": "角色分工、消息传递、汇总收敛",
+      "note": "大多数「多智能体」只是把一件事拆给几个角色轮流说，收益远小于宣传。真有用的场景是「互相审」：一个写、一个挑错、一个裁决，比单模型自检有效。坑：轮数不设上限会无限互夸，必须给终止条件与预算；消息全量广播会让上下文爆炸，要按角色裁剪。不需要它的场合：任务能一次做完。",
+      "io": {
+        "in": "任务 + 角色定义",
+        "out": "收敛后的产物"
+      },
+      "providers": [
+        {
+          "id": "autogen",
+          "name": "AutoGen / CrewAI",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "microsoft/autogen",
+          "note": "现成编排框架，先跑通再谈优化"
+        },
+        {
+          "id": "role-loop",
+          "name": "角色轮转 + 裁决",
+          "kind": "pattern",
+          "note": "三角色 + 最大轮数 + token 预算，最省且可控"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "多智能体的价值在审，不在分工",
+          "effort": "5 天",
+          "tokens": "约 350 万",
+          "outline": [
+            "角色 = 系统提示 + 可见消息范围，不是新模型",
+            "消息按角色裁剪：审稿人只看稿，不看过程",
+            "终止条件三选一：轮数上限 / 预算上限 / 裁决通过",
+            "全过程落盘可回放，否则出问题无法定位"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.agent.browser",
+      "name": "浏览器自动化",
+      "kind": "module",
+      "parent": "ai.agent",
+      "abstract": "打开网页、点、填、读——让 Agent 操作真实浏览器",
+      "note": "两条路线：选择器驱动（稳但每个站要写适配）与视觉驱动（通用但慢且贵）。生产上通常混合：先走 DOM，找不到再截图给多模态模型判断。坑：登录态与验证码是绕不过的墙，产品要留人工接管；页面一改脚本就废，必须能自愈或至少能告警。",
+      "io": {
+        "in": "目标 + 起始 URL",
+        "out": "抓到的数据 / 办完的事"
+      },
+      "providers": [
+        {
+          "id": "playwright",
+          "name": "Playwright",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "microsoft/playwright",
+          "note": "最稳的底层，可录制回放，调试友好"
+        },
+        {
+          "id": "browser-use",
+          "name": "browser-use",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "browser-use/browser-use",
+          "note": "LLM 驱动，省适配；慢且贵，适合长尾站点"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "最贵的不是识别，是页面改版后的运维",
+          "effort": "8 天",
+          "tokens": "约 600 万",
+          "outline": [
+            "先抽 DOM 结构给模型看（精简后），不给截图",
+            "动作空间限定：click / type / scroll / extract",
+            "每步执行后校验页面是否变化，无变化则重试或换选择器",
+            "登录态用持久化 profile，遇验证码暂停等人工"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.agent.computer",
+      "name": "桌面操作",
+      "kind": "module",
+      "parent": "ai.agent",
+      "abstract": "看屏幕、动鼠标键盘——操作没有 API 的软件",
+      "note": "比浏览器自动化更脆：分辨率、缩放、弹窗都会影响识别。做法是「截图 → 定位元素 → 执行 → 再截图校验」，每步都能回退。坑：误点会造成真实损失（删文件、转账），必须设高危操作确认与沙箱；速度也慢，不适合高频任务。不需要它的场合：目标软件有 API 或命令行。",
+      "io": {
+        "in": "任务描述",
+        "out": "操作序列 + 结果截图"
+      },
+      "providers": [
+        {
+          "id": "pyautogui",
+          "name": "pyautogui + 截图",
+          "kind": "oss",
+          "license": "BSD-3-Clause",
+          "repo": "asweigart/pyautogui",
+          "note": "最原始但够用，校验逻辑要自己写"
+        },
+        {
+          "id": "open-interpreter",
+          "name": "Open Interpreter",
+          "kind": "oss",
+          "license": "AGPL-3.0",
+          "repo": "OpenInterpreter/open-interpreter",
+          "note": "自然语言驱动本机，方便与风险同源"
+        },
+        {
+          "id": "yingdao",
+          "name": "影刀 RPA",
+          "kind": "commercial",
+          "note": "企业级，流程录制与异常处理成熟"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "这类产品的成本不在模型，在异常处理与责任边界",
+          "effort": "10 天",
+          "tokens": "约 800 万",
+          "outline": [
+            "截图 → 用视觉模型输出可点区域（带坐标与文字）",
+            "动作前二次确认：高危操作（删除/支付/发送）必须人工点",
+            "每步执行后截图比对，失败回退到上一步",
+            "全程录屏留证，出事能复盘"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.agent.support",
+      "name": "客服与坐席",
+      "kind": "module",
+      "parent": "ai.agent",
+      "abstract": "多渠道接入、知识回答、转人工",
+      "note": "技术上不难，难在「不知道就得转」：答错的成本远高于不答。必须做三件事：置信度阈值、知识缺口回收（把没答上的问题聚成工单）、人工接管时的上下文传递。坑：一上来就全自动，客户被绕三圈会投诉；先做「草稿建议」让坐席确认，效果好得多。",
+      "io": {
+        "in": "用户消息 + 知识库",
+        "out": "回复 / 转人工"
+      },
+      "providers": [
+        {
+          "id": "chatwoot",
+          "name": "Chatwoot + RAG",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "chatwoot/chatwoot",
+          "note": "开源客服台，接知识库与多渠道"
+        },
+        {
+          "id": "zendesk-ai",
+          "name": "Zendesk AI / 网易七鱼",
+          "kind": "commercial",
+          "note": "坐席体系成熟，按坐席收费"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "「不会就说不会」是唯一能上线的策略",
+          "effort": "7 天",
+          "tokens": "约 500 万",
+          "outline": [
+            "先算检索置信度，低于阈值直接转人工，不硬答",
+            "答必带出处，坐席可一键引用或改写",
+            "没答上的问题落库聚类，每周出知识缺口清单",
+            "接管时把历史与用户画像一并递给坐席"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.agent.research",
+      "name": "深度研究",
+      "kind": "module",
+      "parent": "ai.agent",
+      "abstract": "多轮检索 → 交叉验证 → 带引用的报告",
+      "note": "和普通问答的差别是「先规划再搜」：拆子问题、每个子问题独立检索、按来源可信度加权、最后组织成报告。坑：不去重会反复引用同一篇稿子的多个转载；不做时间过滤会把旧闻当新闻。引用的每条都要能点回原文，否则没人信。不需要它的场合：一个问题一两段能答完。",
+      "io": {
+        "in": "研究问题",
+        "out": "带引用的报告"
+      },
+      "providers": [
+        {
+          "id": "open-deep-research",
+          "name": "open_deep_research",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "langchain-ai/open_deep_research",
+          "note": "开源实现，含计划-检索-写作三段"
+        },
+        {
+          "id": "deep-research-api",
+          "name": "OpenAI / Gemini Deep Research",
+          "kind": "commercial",
+          "note": "开箱效果好，按次收费且过程不可控"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "可信度全靠「单一来源」敢不敢标出来",
+          "effort": "8 天",
+          "tokens": "约 600 万",
+          "outline": [
+            "拆子问题：3–6 个可独立检索的问句",
+            "每问独立检索，按域名去重 + 按时间过滤",
+            "交叉验证：同一结论需 ≥2 个独立来源，否则标「单一来源」",
+            "写作阶段只允许用检索到的片段，引用编号回链"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.model.finetune",
+      "name": "微调训练",
+      "kind": "module",
+      "parent": "ai.model",
+      "abstract": "LoRA / SFT：让小模型在特定任务上超过大模型",
+      "note": "先问「提示词够不够」——八成需求靠 few-shot 就解决了，微调是最后一招。真要做，LoRA 是默认选择（单卡可跑、多套适配器可热切）。坑：数据质量决定一切，500 条干净样本胜过 5 万条脏数据；必须留评测集，否则不知道是变好还是过拟合。",
+      "io": {
+        "in": "样本集 + 基座模型",
+        "out": "适配器权重 + 评测报告"
+      },
+      "providers": [
+        {
+          "id": "llamafactory",
+          "name": "LLaMA-Factory",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "hiyouga/LLaMA-Factory",
+          "note": "一条命令跑 LoRA，覆盖主流开源模型"
+        },
+        {
+          "id": "openai-ft",
+          "name": "OpenAI 微调 API",
+          "kind": "commercial",
+          "note": "不用管显卡，按 token 计费"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "没有评测集就不要微调，那是在赌",
+          "effort": "6 天",
+          "tokens": "约 400 万",
+          "outline": [
+            "样本清洗：去重、去模板化、统一格式（JSONL）",
+            "切分训练/验证/测试，测试集全程不参与调参",
+            "LoRA 超参从小开始（r=8），先跑 1 epoch 看曲线",
+            "上线前做 A/B：微调模型 vs 提示词方案，同题同评"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.model.host",
+      "name": "模型托管",
+      "kind": "module",
+      "parent": "ai.model",
+      "abstract": "把模型变成稳定的 HTTP 服务：并发、限流、计费",
+      "note": "和 ai.model.local 的分界：那边是「在我机器上跑起来」，这边是「对外提供不崩的服务」。要处理并发批处理、显存不足时排队、多模型热切换、按 key 计费。坑：单卡跑多个模型会互相挤显存，必须做模型驱逐策略，否则第一个请求就把服务打崩。",
+      "io": {
+        "in": "模型权重 + 请求",
+        "out": "OpenAI 兼容响应"
+      },
+      "providers": [
+        {
+          "id": "vllm-host",
+          "name": "vLLM",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "vllm-project/vllm",
+          "note": "吞吐最高，OpenAI 兼容接口，生产首选"
+        },
+        {
+          "id": "ollama-host",
+          "name": "Ollama",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "ollama/ollama",
+          "note": "部署最省事，并发弱，适合个人与小团队"
+        },
+        {
+          "id": "openrouter",
+          "name": "OpenRouter / 阿里云百炼",
+          "kind": "commercial",
+          "note": "不用运维，按量付费"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "别自研推理引擎，包一层调度就够",
+          "effort": "5 天",
+          "tokens": "约 300 万",
+          "outline": [
+            "统一入口：/v1/chat/completions，多后端按名字路由",
+            "排队与超时：按显存预留做准入，满了返回 429 而非排队",
+            "流式转发要处理中断，客户端断开要立刻释放显存",
+            "按 key 记账 token，日结；无记账就没法定价"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.media.edit",
+      "name": "图像编辑",
+      "kind": "module",
+      "parent": "ai.media",
+      "abstract": "抠图、消除、修复、扩图、超分",
+      "note": "这类需求的共同点是「局部改、其余不动」，所以技术上走 inpainting / matting 而不是整图重绘。抠图看边缘发丝，消除看接缝，超分看文字是否糊。坑：一键处理链式叠加会让画质雪崩，每步都要保留原图可回退。不需要它的场合：整张换风格，那归 ai.media.image。",
+      "io": {
+        "in": "原图 + 蒙版 + 指令",
+        "out": "改好的图"
+      },
+      "providers": [
+        {
+          "id": "iopaint",
+          "name": "IOPaint",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "Sanster/IOPaint",
+          "note": "消除与修复一体，可本地跑"
+        },
+        {
+          "id": "comfy-edit",
+          "name": "ComfyUI 工作流",
+          "kind": "oss",
+          "license": "GPL-3.0",
+          "repo": "comfyanonymous/ComfyUI",
+          "note": "复杂编辑用节点拼，灵活但门槛高"
+        },
+        {
+          "id": "ps-genfill",
+          "name": "Photoshop 生成式填充",
+          "kind": "commercial",
+          "note": "接缝最自然，按订阅"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "编辑类产品七成体验在蒙版，不在模型",
+          "effort": "6 天",
+          "tokens": "约 450 万",
+          "outline": [
+            "蒙版交互先行：画笔/自动分割/文字定位",
+            "编辑只处理蒙版区域，边缘做羽化融合",
+            "每步存历史，支持回到任意一步（无损）",
+            "导出前做一次整体观感检查，避免拼接痕"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.media.portrait",
+      "name": "人像与写真",
+      "kind": "module",
+      "parent": "ai.media",
+      "abstract": "换脸、写真、证件照、修复老照片",
+      "note": "技术上靠「身份保持」：把参考脸编码进生成过程。产品上必须处理两件事：肖像权提示（未经同意换脸是侵权）、以及「像不像」的预期管理——太像会恐怖谷，不像则没用。证件照还要满足尺寸与背景规范，这是能落地的差异点。",
+      "io": {
+        "in": "人脸参考图 + 风格",
+        "out": "人像图"
+      },
+      "providers": [
+        {
+          "id": "instantid",
+          "name": "InstantID / PuLID",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "instantX-research/InstantID",
+          "note": "单图保身份，效果稳，可本地跑"
+        },
+        {
+          "id": "remini",
+          "name": "Remini / 美图",
+          "kind": "commercial",
+          "note": "修复与增强效果最好，闭源"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "合规提示不是免责声明，是产品的一部分",
+          "effort": "7 天",
+          "tokens": "约 500 万",
+          "outline": [
+            "人脸检测 + 对齐，取身份 embedding",
+            "生成时按身份向量约束，风格另走 LoRA",
+            "修老照片先做划痕/噪点修复，再做人脸增强",
+            "证件照按规范裁切换底，输出多尺寸"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.media.avatar",
+      "name": "数字人",
+      "kind": "module",
+      "parent": "ai.media",
+      "abstract": "一张照片 + 一段音频 → 会说话的视频",
+      "note": "三条路线：唇形同步（便宜、只动嘴）、半身驱动（要视频素材）、全生成（贵）。选型看用途：口播课程用唇形同步就够，品牌代言才需要全生成。坑：中文口型对齐比英文难；长音频要分段渲染再拼接，否则口型越到后面越漂。",
+      "io": {
+        "in": "人像/视频 + 音频",
+        "out": "口播视频"
+      },
+      "providers": [
+        {
+          "id": "sadtalker",
+          "name": "SadTalker",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "OpenTalker/SadTalker",
+          "note": "照片驱动，开源可跑，质量中等"
+        },
+        {
+          "id": "heygen",
+          "name": "HeyGen / 硅基智能",
+          "kind": "commercial",
+          "note": "商用质量，按分钟计费"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "分段渲染是必须的，整段渲染必漂",
+          "effort": "10 天",
+          "tokens": "约 700 万",
+          "outline": [
+            "音频先切句，逐句渲染再拼，抵消累积漂移",
+            "口型以音素为单位对齐，中文需拼音-音素映射表",
+            "头部姿态做随机微动，否则像遗像",
+            "合成后统一色彩与锐度，避免拼接处跳变"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.media.clip",
+      "name": "视频剪辑",
+      "kind": "module",
+      "parent": "ai.media",
+      "abstract": "自动切片、去静音、加字幕、配乐对轴",
+      "note": "短视频的核心需求是「从长素材里挑高光」：靠语音转写 + 画面变化 + 音量峰值出候选，再让模型按主题排序。坑：最容易毁在字幕时间轴上——ASR 时间戳有偏差，必须做对齐校正，否则字幕越到后面越飘。不需要它的场合：只是裁头去尾，用剪映手拖更快。",
+      "io": {
+        "in": "长视频 + 目标时长",
+        "out": "成片 + 字幕"
+      },
+      "providers": [
+        {
+          "id": "ffmpeg",
+          "name": "FFmpeg + auto-editor",
+          "kind": "oss",
+          "license": "LGPL-2.1",
+          "repo": "FFmpeg/FFmpeg",
+          "note": "切、拼、压全包，静音检测现成"
+        },
+        {
+          "id": "jianying",
+          "name": "剪映 / Descript",
+          "kind": "commercial",
+          "note": "字幕与模板成熟，编辑体验好"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "字幕对不齐是用户流失的第一原因",
+          "effort": "8 天",
+          "tokens": "约 550 万",
+          "outline": [
+            "转写拿词级时间戳，作为所有切点的基准",
+            "候选片段：静音切除 + 语义完整句 + 情绪峰值",
+            "字幕用词级时间戳做行级重排，逐行校正偏移",
+            "渲染走 FFmpeg 滤镜链，别用逐帧合成（太慢）"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.media.transcribe",
+      "name": "语音转写",
+      "kind": "module",
+      "parent": "ai.media",
+      "abstract": "音频 → 带时间戳与说话人的文字",
+      "note": "中文场景优先 FunASR 或 Whisper 微调版。真正影响可用性的是三件事：时间戳精度（决定字幕能不能用）、标点与断句（决定可读性）、热词表（人名、型号）。坑：背景音乐与人声重叠时识别率骤降，先做分离再转写。",
+      "io": {
+        "in": "音频 / 视频",
+        "out": "带时间戳的文本"
+      },
+      "providers": [
+        {
+          "id": "whisper",
+          "name": "Whisper",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "openai/whisper",
+          "note": "多语种，时间戳准；中文用 large-v3"
+        },
+        {
+          "id": "funasr",
+          "name": "FunASR",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "modelscope/FunASR",
+          "note": "中文标点与热词更好，可离线"
+        },
+        {
+          "id": "xfyun-asr",
+          "name": "讯飞听见",
+          "kind": "commercial",
+          "note": "中文行业词识别强"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "时间戳不准，后面所有功能都白做",
+          "effort": "5 天",
+          "tokens": "约 350 万",
+          "outline": [
+            "先做 VAD 切句，长音频按静音切块并行识别",
+            "热词表注入：解码时给偏置，比事后纠错有效",
+            "标点用独立模型补，不要指望 ASR 自带",
+            "输出 SRT 前做一次时间轴单调性校验"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.media.clone",
+      "name": "声音克隆",
+      "kind": "module",
+      "parent": "ai.media",
+      "abstract": "几秒样本复刻音色，再让它说任何话",
+      "note": "门槛已经很低（GPT-SoVITS 几分钟出效果），所以产品风险主要在合规：必须做声纹授权确认与生成内容标识。技术上的取舍是「像」与「稳」：少样本更像但会破音，多样本更稳但要几分钟素材。不需要它的场合：只要一个好听的声音，用现成音色库。",
+      "io": {
+        "in": "参考音频 + 文本",
+        "out": "合成语音"
+      },
+      "providers": [
+        {
+          "id": "gpt-sovits",
+          "name": "GPT-SoVITS",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "RVC-Boss/GPT-SoVITS",
+          "note": "少样本效果好，社区活跃"
+        },
+        {
+          "id": "cosyvoice",
+          "name": "CosyVoice",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "FunAudioLLM/CosyVoice",
+          "note": "中文自然度高，支持指令控制"
+        },
+        {
+          "id": "elevenlabs",
+          "name": "ElevenLabs",
+          "kind": "commercial",
+          "note": "多语种最自然，按字符计费"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "合规比技术难，别把声纹授权做成勾选框",
+          "effort": "8 天",
+          "tokens": "约 600 万",
+          "outline": [
+            "参考音频做降噪与切片，取 3–10 秒干净片段",
+            "训练/推理分离：先出音色 embedding，再合成",
+            "长文本按句切，保持韵律连贯（带上一句末尾）",
+            "输出加不可听水印，用于追溯生成内容"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.media.clean",
+      "name": "音频修复",
+      "kind": "module",
+      "parent": "ai.media",
+      "abstract": "降噪、去混响、分离人声与伴奏",
+      "note": "三类问题三套算法：稳态噪声（风扇、电流）用谱减法，混响用去卷积，人声/伴奏分离用源分离模型。产品上常见错误是「一键增强」把齿音也放大，听感更差——应该给强度档位并允许 A/B 对比。不需要它的场合：录音本来就干净。",
+      "io": {
+        "in": "音频",
+        "out": "干净音频 / 分离音轨"
+      },
+      "providers": [
+        {
+          "id": "demucs",
+          "name": "Demucs",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "facebookresearch/demucs",
+          "note": "人声分离效果好，可离线"
+        },
+        {
+          "id": "adobe-enhance",
+          "name": "Adobe Podcast Enhance",
+          "kind": "commercial",
+          "note": "一键惊艳，但不可细调"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "过度降噪比不降噪更难听",
+          "effort": "5 天",
+          "tokens": "约 300 万",
+          "outline": [
+            "先判类型：稳态噪声 / 混响 / 重叠人声，走不同分支",
+            "分离用预训练源分离模型，别自己训",
+            "处理前后做波形与频谱对比，让用户听得见差别",
+            "给强度档位，默认中档，避免过度处理"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.media.3d",
+      "name": "三维生成",
+      "kind": "module",
+      "parent": "ai.media",
+      "abstract": "文字/图片 → 网格模型，可直接进引擎",
+      "note": "现在的输出多是不带骨骼的静态网格，贴图靠烘焙。落地要检查两件事：拓扑是否可编辑（三角面乱到没法改）、是否带 UV。坑：生成速度与质量强相关，几十秒出的模型只能当草模；商用还要看训练数据授权。不需要它的场合：只需要一个示意模型，去素材站下更快。",
+      "io": {
+        "in": "图 / 文字描述",
+        "out": "glb 网格"
+      },
+      "providers": [
+        {
+          "id": "triposr",
+          "name": "TripoSR",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "VAST-AI-Research/TripoSR",
+          "note": "单图出网格，几秒，适合草模"
+        },
+        {
+          "id": "tripo",
+          "name": "Tripo / Meshy",
+          "kind": "commercial",
+          "note": "质量高，有 API，按次收费"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "重拓扑决定模型能不能进生产管线",
+          "effort": "12 天",
+          "tokens": "约 900 万",
+          "outline": [
+            "图像先做前景分割，背景会污染重建",
+            "走隐式场重建再提网格（marching cubes）",
+            "减面 + 重拓扑，否则三角面没法编辑",
+            "自动 UV 展开 + 烘焙贴图，导出 glb"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.prompt.lib",
+      "name": "提示词库",
+      "kind": "module",
+      "parent": "ai.prompt",
+      "abstract": "模板、变量、版本、复用",
+      "note": "最小可用形态是「YAML 文件 + 变量占位 + git 版本」，比任何平台都可靠。上平台的价值在多环境、灰度回滚、以及非工程师也能改。坑：提示词存数据库却没做版本，改坏了无法回退，线上效果会莫名漂移——这类事故排查起来极慢，因为代码没变。",
+      "io": {
+        "in": "提示词文本 + 变量",
+        "out": "渲染后的 prompt"
+      },
+      "providers": [
+        {
+          "id": "yaml-git",
+          "name": "YAML + git",
+          "kind": "pattern",
+          "note": "零依赖，可 review 可回滚，小团队最省"
+        },
+        {
+          "id": "langfuse",
+          "name": "Langfuse",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "langfuse/langfuse",
+          "note": "提示词版本 + 调用追踪一体"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "核心是版本，不是编辑界面",
+          "effort": "3 天",
+          "tokens": "约 200 万",
+          "outline": [
+            "一条提示词一个文件，frontmatter 存变量与模型参数",
+            "渲染器：变量缺失直接抛错，别用空串兜底",
+            "版本 = git commit，生产引用 tag 而非分支",
+            "每次调用记录 prompt 版本号，出问题能追到具体版本"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.prompt.optimize",
+      "name": "提示词优化",
+      "kind": "module",
+      "parent": "ai.prompt",
+      "abstract": "让模型改写提示词，并用评测集验证是否真的更好",
+      "note": "只改不测等于玄学。正确链路：准备 20–50 条带期望输出的样例 → 自动改写候选 → 逐条跑分 → 只保留提升的版本。坑：优化目标写成「更详细」会把提示词膨胀到几千字，成本上升而效果不变；必须同时约束长度。不需要它的场合：只写一条提示词，手工试几版更快。",
+      "io": {
+        "in": "原提示词 + 评测集",
+        "out": "更优提示词 + 分数"
+      },
+      "providers": [
+        {
+          "id": "dspy",
+          "name": "DSPy",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "stanfordnlp/dspy",
+          "note": "把提示词当参数自动搜，前提是有评测集"
+        },
+        {
+          "id": "optimize-loop",
+          "name": "改写 + 跑分 + 保留最优",
+          "kind": "pattern",
+          "note": "不引框架，一个脚本就能跑"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "没有评测集的「优化」只是换了个说法",
+          "effort": "4 天",
+          "tokens": "约 250 万",
+          "outline": [
+            "评测集先行：输入 + 期望输出 + 评分方式（规则或 LLM 评）",
+            "每次只改一处（结构/示例/措辞），便于归因",
+            "同集跑分，保留提升且长度增幅 <20% 的版本",
+            "记录失败案例，作为下一轮改写的输入"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.detect.aigc",
+      "name": "AIGC 检测与降 AI",
+      "kind": "module",
+      "parent": "ai.detect",
+      "abstract": "判断机器文本，或把机器文本改得像人写",
+      "note": "检测靠统计特征（困惑度、句长方差、词频分布），所以改写确实能降分，但这是对抗而非真伪判断——同一段话换个模型重写，分数就变。产品上不能承诺「必过」，也不该把检测结果当学术不端证据。真正可持续的用法是「辅助自查」：给出可疑段落，让人判断。",
+      "io": {
+        "in": "文本",
+        "out": "可疑度评分 + 段落定位"
+      },
+      "providers": [
+        {
+          "id": "binoculars",
+          "name": "Binoculars",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "ahans30/Binoculars",
+          "note": "开源检测，需本地模型，可复现"
+        },
+        {
+          "id": "gptzero",
+          "name": "GPTZero / 睿信",
+          "kind": "commercial",
+          "note": "商用 API，各机构采信度不一"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "把「不确定」说清楚，比给一个 98% 更专业",
+          "effort": "5 天",
+          "tokens": "约 300 万",
+          "outline": [
+            "按段落打分而不是整篇，整篇分数没有指导意义",
+            "特征：困惑度、句长分布、连接词密度、重复 n-gram",
+            "给「可疑段落」并解释依据，不直接下结论",
+            "降 AI 走独立链路：改写 + 人工确认，明确告知不可保证"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.search.engine",
+      "name": "搜索聚合",
+      "kind": "module",
+      "parent": "ai.search",
+      "abstract": "元搜索、垂直检索、结果去重与排序",
+      "note": "三种做法：聚合别人的结果（快但受制于人）、自建索引（准但要养爬虫）、调商用 API（省事但贵）。产品上真正的差异在排序与去重：同一篇稿被十家转载，不合并等于只有一条结果。坑：中文不做分词与同义词，召回率会很难看。不需要它的场合：站内几百条内容，数据库 LIKE 就够。",
+      "io": {
+        "in": "查询",
+        "out": "排序后的结果 + 来源"
+      },
+      "providers": [
+        {
+          "id": "searxng",
+          "name": "SearXNG",
+          "kind": "oss",
+          "license": "AGPL-3.0",
+          "repo": "searxng/searxng",
+          "note": "元搜索，不依赖商业 API，结果要自己清洗"
+        },
+        {
+          "id": "meilisearch",
+          "name": "Meilisearch",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "meilisearch/meilisearch",
+          "note": "自建索引，中文需配分词器"
+        },
+        {
+          "id": "exa",
+          "name": "Exa / AlphaSense",
+          "kind": "commercial",
+          "note": "语义检索质量高，按次计费"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "去重与排序决定体感，抓取只是体力活",
+          "effort": "7 天",
+          "tokens": "约 500 万",
+          "outline": [
+            "抓取 → 正文提取 → 去重（SimHash）→ 建倒排",
+            "查询侧：分词 + 同义词扩展 + 拼写纠正",
+            "排序融合：BM25 + 向量 + 站点权重（RRF 合并）",
+            "聚合页做「同事件归并」，别让十条转载占满首屏"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.chat.persona",
+      "name": "角色与陪伴",
+      "kind": "module",
+      "parent": "ai.chat",
+      "abstract": "人设、语气、长期关系记忆",
+      "note": "和普通对话的差别是「不能出戏」：要稳定口吻、有边界（不越界、不崩人设）、跨会话记得关系进展。技术上靠系统提示 + 人设卡 + 记忆检索三件套。坑：过度顺从会让角色变成应声虫，必须写「拒绝与分歧」的规则，否则聊三天就腻。不需要它的场合：工具型对话，别加人设。",
+      "io": {
+        "in": "用户消息 + 人设 + 关系记忆",
+        "out": "符合人设的回复"
+      },
+      "providers": [
+        {
+          "id": "sillytavern-persona",
+          "name": "SillyTavern 角色卡",
+          "kind": "oss",
+          "license": "AGPL-3.0",
+          "repo": "SillyTavern/SillyTavern",
+          "note": "人设卡格式已成事实标准，可直接兼容"
+        },
+        {
+          "id": "replika",
+          "name": "Replika / 星野",
+          "kind": "commercial",
+          "note": "产品化最成熟，含情感设计"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "人设能不能立住，取决于它敢不敢说不",
+          "effort": "5 天",
+          "tokens": "约 350 万",
+          "outline": [
+            "人设卡结构化：身份、语气、禁忌、关系阶段",
+            "记忆分三层：事实、事件、情绪，分别检索",
+            "每轮取最相关的 3–5 条记忆，别全塞",
+            "写「拒绝与分歧」规则，避免变成应声虫"
+          ]
+        }
+      ]
     }
   ],
   "products": [
@@ -2943,6 +4487,5631 @@
         },
         {
           "component": "kb.rag",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab1295",
+      "name": "快文CopyDone",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/1295.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "writing"
+      ],
+      "note": "AIGC原创内容创作和营销文案生成（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.copy",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.chat.multimodal",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.translate",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab2388",
+      "name": "万彩AI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/2388.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "writing"
+      ],
+      "note": "全能型AI内容和文案创作助手（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.rewrite",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.copy",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.translate",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab56573",
+      "name": "沁言学术",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/56573.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "writing"
+      ],
+      "note": "AI科研写作平台，一站式文献管理（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.chat.memory",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.rewrite",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab66375",
+      "name": "Loomi",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/66375.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "writing"
+      ],
+      "note": "创作版Claude Code，AI原生写作工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.copy",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab913",
+      "name": "彩云小梦",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/913.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "writing"
+      ],
+      "note": "彩云科技推出的智能AI故事写作工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.chat.persona",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab22626",
+      "name": "笔灵AI小说",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/22626.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "writing"
+      ],
+      "note": "AI一键写全篇+爆文拆解，搞定大纲、素材，新手写作过稿神器！（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.rewrite",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.summary",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab36409",
+      "name": "稿易AI论文",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/36409.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "writing"
+      ],
+      "note": "AI论文写作助手，免费生成2000字大纲（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.rewrite",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.copy",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab65468",
+      "name": "量子探险",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/65468.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "writing"
+      ],
+      "note": "AI小说写作工具，长文本一键生成（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.chat.persona",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.rewrite",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab24575",
+      "name": "树熊写作",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/24575.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "writing"
+      ],
+      "note": "树熊AI推出的AI智能写作工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.copy",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.summary",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab23677",
+      "name": "Wordvice AI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/23677.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "writing"
+      ],
+      "note": "Wordvice推出的免费AI写作助手（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.rewrite",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.translate",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.summary",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab72610",
+      "name": "超级小说家",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/72610.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "writing"
+      ],
+      "note": "专为网文作家和短剧编剧打造的AI创作助手（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.rewrite",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab7244",
+      "name": "光速写作",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/7244.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "writing"
+      ],
+      "note": "AI写作、PPT生成工具，单篇最长15000字（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.rewrite",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.summary",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.translate",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.copy",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab49491",
+      "name": "稿定AI变清晰",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/49491.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "image"
+      ],
+      "note": "稿定设计推出的AI变清晰图像处理工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab60138",
+      "name": "insMind",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/60138.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "image"
+      ],
+      "note": "稿定面向全球市场推出的AI图片编辑工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.portrait",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab61891",
+      "name": "椒图AI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/61891.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "image"
+      ],
+      "note": "深度适配中文场景的AI图像工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.portrait",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab18104",
+      "name": "鲜艺AI抠图",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/18104.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "image"
+      ],
+      "note": "免费AI抠图工具，支持离线安装使用（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab86607",
+      "name": "SciDraw AI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/86607.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "image"
+      ],
+      "note": "AI 科研绘图平台，文字描述一键生成论文配图（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.doc",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab67092",
+      "name": "Style3D",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/67092.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "image"
+      ],
+      "note": "AI服装设计工具，将草图转为3D服装模型（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.3d",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab56061",
+      "name": "RunningHub",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/56061.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "image"
+      ],
+      "note": "基于云端ComfyUI的AI图像与视频创作平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.portrait",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab33694",
+      "name": "美图商拍",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/33694.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "image"
+      ],
+      "note": "美图设计室推出的AI商拍工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab1991",
+      "name": "美图抠图",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/1991.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "image"
+      ],
+      "note": "美图秀秀推出的AI智能抠图工具，一键移除背景（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.portrait",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab60471",
+      "name": "Tripo AI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/60471.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "image"
+      ],
+      "note": "AI 3D模型生成平台，文本、图像一键转3D模型（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.3d",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.avatar",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab79056",
+      "name": "GemHues",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/79056.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "image"
+      ],
+      "note": "AI 商品视觉内容生成平台，覆盖图 + 视频全链路（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.clip",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab32253",
+      "name": "Pic Copilot AI抠图",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/32253.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "image"
+      ],
+      "note": "Pic Copilot推出的AI抠图工具，支持批量抠图（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab25529",
+      "name": "美间AI商拍",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/25529.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "image"
+      ],
+      "note": "AI电商设计工具，一键生成高质量商品图（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.3d",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.media.doc",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab6590",
+      "name": "Remini",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/6590.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "image"
+      ],
+      "note": "AI智能将模糊照片变高清的图像修复工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab81048",
+      "name": "SkildArt",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/81048.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "image"
+      ],
+      "note": "一站式 AI 视觉创作平台，为商业营销而生（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.avatar",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab75762",
+      "name": "灵绘AI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/75762.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "video"
+      ],
+      "note": "专业级 AI 短剧漫剧视频创作平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.avatar",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.voice",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.deliver.channel",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.media.clip",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab84635",
+      "name": "造剧",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/84635.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "video"
+      ],
+      "note": "一站式 AI 短剧、AI 漫剧与 AI 视频制作平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.clip",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.3d",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab15664",
+      "name": "Vizard",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/15664.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "video"
+      ],
+      "note": "将长视频转为社交短视频的AI工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.clip",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.transcribe",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.copy",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab78606",
+      "name": "立刻MV",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/78606.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "video"
+      ],
+      "note": "一站式 AI 音乐视频（MV）创作工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.clip",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.music",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab58360",
+      "name": "Seko",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/58360.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "video"
+      ],
+      "note": "首个创编一体的AI视频创作Agent（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.music",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.portrait",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.voice",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab11382",
+      "name": "Captions",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/11382.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "video"
+      ],
+      "note": "AI驱动的视频剪辑和制作平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.avatar",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.clip",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.voice",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.translate",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.doc",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.copy",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab14162",
+      "name": "寻光",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/14162.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "video"
+      ],
+      "note": "阿里达摩院推出的全流程AI视频创作平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.clip",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab13049",
+      "name": "Magicam",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/13049.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "video"
+      ],
+      "note": "实时的AI直播/视频换脸工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.portrait",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab10195",
+      "name": "Gatekeep",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/10195.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "video"
+      ],
+      "note": "AI教学视频生成工具，可生成数学物理问题解释视频（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab9622",
+      "name": "Clipfly",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/9622.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "video"
+      ],
+      "note": "一站式AI长视频制作和编辑平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.clip",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab81461",
+      "name": "MVLAND",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/81461.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "video"
+      ],
+      "note": "美图旗下面向创作者的 AI 音乐视频创作平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.clip",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.music",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab81153",
+      "name": "TDream",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/81153.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "video"
+      ],
+      "note": "腾讯推出的AI互动内容创作平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.deliver.channel",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab83764",
+      "name": "知漫剧",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/83764.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "video"
+      ],
+      "note": "专注漫剧创作的一站式AI智能制作平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.clip",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.voice",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab13399",
+      "name": "MOKI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/13399.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "video"
+      ],
+      "note": "美图推出的AI视频短片创作平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.transcribe",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.clip",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.music",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab88365",
+      "name": "EveryGen AI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/88365.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "video"
+      ],
+      "note": "集故事短片、商品广告、原创短视频与参考视频再创作于一体的 AI 创作工作室。（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.clip",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.copy",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.voice",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab13802",
+      "name": "Duix",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/13802.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "video"
+      ],
+      "note": "硅基智能推出的AI数字人生成平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.avatar",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab76133",
+      "name": "Swishy",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/76133.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "AI 动态设计与动画生成平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.text.copy",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.office.sheet",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab14533",
+      "name": "轻云图",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/14533.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "必优科技推出的AI一键生成可视化云图工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.office.sheet",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.copy",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab62342",
+      "name": "牛面",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/62342.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "AI面试工具，专为互联网技术人员打造（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.office.resume",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.doc",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab81673",
+      "name": "千问AIPPT",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/81673.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "阿里千问推出的AI PPT创作工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.summary",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.media.doc",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab72334",
+      "name": "讯飞同传",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/72334.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "科大讯飞推出的专业AI同声传译平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.text.translate",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.office.meeting",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab84806",
+      "name": "XCell",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/84806.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "智能数据分析平台，专注 Excel 与 CSV 数据处理（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.office.sheet",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.copy",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab29253",
+      "name": "GAIPPT",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/29253.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "AI智能美化PPT工具，上传PPT一键美化（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.doc",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.office.meeting",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab952",
+      "name": "AmyMind",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/952.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "开箱即用的在线AI思维导图工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.office.meeting",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.office.mindmap",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.office.note",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.summary",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab11300",
+      "name": "影刀AI Power",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/11300.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "面向企业的无代码AI开发和集成平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.office.note",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.office.sheet",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.canvas",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab722",
+      "name": "讯飞会议",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/722.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "AI智能会议系统，实时字幕、实时翻译、自动生成会议记录（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.office.meeting",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.office.resume",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.translate",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab69545",
+      "name": "ChartGen",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/69545.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "AI图表生成工具，快速生成专业图表（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.office.sheet",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.media.doc",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab8353",
+      "name": "Quivr",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/8353.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "开源的知识库搭建工具，构建你的第二大脑（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.local",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab73154",
+      "name": "一点PPT",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/73154.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "一句话生成专业PPT，AI自动排版配图（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.doc",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.summary",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.office.sheet",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab2921",
+      "name": "象寄翻译",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/2921.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "AI图片和视频翻译神器，支持多种语言的翻译（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.text.translate",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.doc",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab73092",
+      "name": "智简简历",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/73092.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "免费AI在线简历制作工具，可视化编辑（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.office.resume",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.office.sheet",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.rewrite",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab1146",
+      "name": "Excelly-AI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/1146.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "将文本转换成Excel或Google Sheets公式（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.office.sheet",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.doc",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab16079",
+      "name": "Toby",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/16079.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "AI实时语音翻译工具，专为视频通话设计（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.text.translate",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.office.meeting",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab709",
+      "name": "Taskade",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/709.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "高颜值AI大纲和思维导图生成（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.office.meeting",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.trigger",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.office.mindmap",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.office.note",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab87921",
+      "name": "讯飞翻译",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/87921.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "科大讯飞推出的一站式翻译平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.text.translate",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.office.meeting",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.summary",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab82909",
+      "name": "纳米Work",
+      "category": "agent",
+      "homepage": "https://ai-bot.cn/sites/82909.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "agent"
+      ],
+      "note": "360旗下纳米团队推出的 AI 办公智能体（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.multi",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.skill",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.deliver.publish",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.research",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab86169",
+      "name": "nashnova",
+      "category": "agent",
+      "homepage": "https://ai-bot.cn/sites/86169.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "agent"
+      ],
+      "note": "面向个人投资者的 AI 投研工作台，覆盖 A 股、港股、美股，内置二十多种策略与近百个专家分身（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.research",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.deliver.publish",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.trigger",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab75096",
+      "name": "Panofy",
+      "category": "agent",
+      "homepage": "https://ai-bot.cn/sites/75096.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "agent"
+      ],
+      "note": "全球首个可训练 AI 智能体平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.research",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.skill",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.deliver.publish",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.trigger",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab50068",
+      "name": "讯飞星辰Agent",
+      "category": "agent",
+      "homepage": "https://ai-bot.cn/sites/50068.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "agent"
+      ],
+      "note": "科大讯飞推出的AI智能体开发平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.canvas",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.mcp",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.multi",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab73229",
+      "name": "AutoClaw",
+      "category": "agent",
+      "homepage": "https://ai-bot.cn/sites/73229.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "agent"
+      ],
+      "note": "智谱推出的国内首个一键安装本地版OpenClaw（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.browser",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.research",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.skill",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.deliver.channel",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.deliver.publish",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab79473",
+      "name": "TraeWork",
+      "category": "agent",
+      "homepage": "https://ai-bot.cn/sites/79473.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "agent"
+      ],
+      "note": "字节跳动推出的 AI 原生工作台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.search",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.canvas",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.mcp",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.skill",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.computer",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab85932",
+      "name": "文朵朵AI办公",
+      "category": "agent",
+      "homepage": "https://ai-bot.cn/sites/85932.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "agent"
+      ],
+      "note": "像聊天一样让 AI Agent 做 PPT/表格/文档（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.deliver.channel",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab72614",
+      "name": "Tabbit",
+      "category": "agent",
+      "homepage": "https://ai-bot.cn/sites/72614.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "agent"
+      ],
+      "note": "美团光年之外推出的AI原生浏览器（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.browser",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.research",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.support",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.canvas",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab80509",
+      "name": "Kevvee",
+      "category": "agent",
+      "homepage": "https://ai-bot.cn/sites/80509.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "agent"
+      ],
+      "note": "全球首个 AI 出海内容 GTM 策略 Agent（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab74636",
+      "name": "nexu",
+      "category": "agent",
+      "homepage": "https://ai-bot.cn/sites/74636.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "agent"
+      ],
+      "note": "免费开源的 OpenClaw 桌面客户端（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.deliver.channel",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.computer",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab85502",
+      "name": "AionClaw",
+      "category": "agent",
+      "homepage": "https://ai-bot.cn/sites/85502.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "agent"
+      ],
+      "note": "真正能动手交付成品的桌面 AI 智能体，每日登录送积分（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.deliver.channel",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.browser",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.computer",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.skill",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.trigger",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab75645",
+      "name": "AgentPolis",
+      "category": "agent",
+      "homepage": "https://ai-bot.cn/sites/75645.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "agent"
+      ],
+      "note": "专为AI Agent打造的交易、社交、协作平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.multi",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.skill",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab73722",
+      "name": "RedClaw",
+      "category": "agent",
+      "homepage": "https://ai-bot.cn/sites/73722.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "agent"
+      ],
+      "note": "百度推出的全球首款手机端 OpenClaw 应用（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.computer",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.agent.search",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab74722",
+      "name": "ColaOS",
+      "category": "agent",
+      "homepage": "https://ai-bot.cn/sites/74722.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "agent"
+      ],
+      "note": "首个有灵魂的 AI Agent 操作系统（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.plan",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.research",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.deliver.channel",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.trigger",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.browser",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab70852",
+      "name": "WorkAny",
+      "category": "agent",
+      "homepage": "https://ai-bot.cn/sites/70852.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "agent"
+      ],
+      "note": "本地运行的开源AI桌面智能体（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.skill",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.mcp",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.computer",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.flow.canvas",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab5533",
+      "name": "MChat",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/5533.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "chatbots"
+      ],
+      "note": "基于孟子GPT大模型的AI对话机器人（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.chat.core",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.research",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab6101",
+      "name": "ChitChop",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/6101.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "chatbots"
+      ],
+      "note": "字节旗下面向海外用户推出的免费大模型产品和AI助手工具箱（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.chat.core",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab9802",
+      "name": "阶跃AI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/9802.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "chatbots"
+      ],
+      "note": "阶跃星辰推出的支持多模态的AI聊天机器人（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.chat.core",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.chat.multimodal",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.search",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab16356",
+      "name": "Me.bot",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/16356.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "chatbots"
+      ],
+      "note": "心识宇宙推出的个性化AI伴侣产品（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.chat.core",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab14769",
+      "name": "逗逗AI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/14769.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "chatbots"
+      ],
+      "note": "AI游戏陪玩，支持原神、黑神话、LOL！（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.chat.core",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.chat.persona",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.chat.multimodal",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab138",
+      "name": "Replika",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/138.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "chatbots"
+      ],
+      "note": "Luka 公司推出的 AI 对话陪伴应用（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.chat.core",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.chat.memory",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.chat.persona",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab21956",
+      "name": "Saylo",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/21956.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "chatbots"
+      ],
+      "note": "AI驱动的故事角色扮演游戏应用，沉浸式的剧本互动体验（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.chat.core",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.chat.persona",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.skill",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab8874",
+      "name": "Le Chat",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/8874.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "chatbots"
+      ],
+      "note": "Mistral推出的AI对话聊天助手（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.chat.core",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.research",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.multi",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab53308",
+      "name": "书生大模型",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/53308.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "chatbots"
+      ],
+      "note": "上海人工智能实验室推出的系列AI模型（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.chat.core",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.search",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.chat.multimodal",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab60798",
+      "name": "Lovable",
+      "category": "devtool",
+      "homepage": "https://ai-bot.cn/sites/60798.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "programming"
+      ],
+      "note": "全栈AI编程工具，一句话构建网站应用（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "dev.code.edit",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab11414",
+      "name": "Duo Chat",
+      "category": "devtool",
+      "homepage": "https://ai-bot.cn/sites/11414.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "programming"
+      ],
+      "note": "GitLab推出的AI编程助手（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "dev.code.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "dev.code.complete",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.multi",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab79441",
+      "name": "MiMo Code",
+      "category": "devtool",
+      "homepage": "https://ai-bot.cn/sites/79441.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "programming"
+      ],
+      "note": "小米大模型团队开源的新一代 AI 编程助手（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab85038",
+      "name": "Agent.Space",
+      "category": "devtool",
+      "homepage": "https://ai-bot.cn/sites/85038.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "programming"
+      ],
+      "note": "面向 AI 编程 Agent 的云端工作空间（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.multi",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.browser",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab57086",
+      "name": "Kiro",
+      "category": "devtool",
+      "homepage": "https://ai-bot.cn/sites/57086.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "programming"
+      ],
+      "note": "亚马逊公司推出的 AI IDE（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.mcp",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.trigger",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.multi",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab4794",
+      "name": "v0.app",
+      "category": "devtool",
+      "homepage": "https://ai-bot.cn/sites/4794.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "programming"
+      ],
+      "note": "Vercel推出的AI全栈应用构建工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "dev.code.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.multi",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab65814",
+      "name": "TRAE-AI编程",
+      "category": "devtool",
+      "homepage": "https://ai-bot.cn/sites/65814.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "programming"
+      ],
+      "note": "新用户注册赠2500积分，管理项目，也交付成果（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.mcp",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.multi",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.plan",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "dev.code.complete",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "dev.code.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.computer",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab70432",
+      "name": "YouWare",
+      "category": "devtool",
+      "homepage": "https://ai-bot.cn/sites/70432.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "programming"
+      ],
+      "note": "一站式 AI 编程社区与开发平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab24811",
+      "name": "爱设计",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/24811.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "design"
+      ],
+      "note": "AI在线设计平台，提供多端在线拖拽设计工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.doc",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.media.portrait",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab4435",
+      "name": "Pixso AI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/4435.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "design"
+      ],
+      "note": "Pixso推出的AI设计工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab25213",
+      "name": "易可图",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/25213.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "design"
+      ],
+      "note": "免费的AI图片编辑和海报设计平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.avatar",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.music",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.clip",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab28903",
+      "name": "蚂上有创意",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/28903.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "design"
+      ],
+      "note": "支付宝推出的AI设计工具，面向商家提供电商设计服务（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.design.brand",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab83281",
+      "name": "妙呀",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/83281.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "design"
+      ],
+      "note": "阿里潮玩AI平台，一站式潮玩创作（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.3d",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab2048",
+      "name": "羚珑",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/2048.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "design"
+      ],
+      "note": "京东推出的商品图智能设计小工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.clip",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab63488",
+      "name": "Calicat",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/63488.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "design"
+      ],
+      "note": "ProcessOn团队推出的一站式产设研协作平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.doc",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab74421",
+      "name": "Miora",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/74421.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "design"
+      ],
+      "note": "腾讯推出的 AI 原生设计协作工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.design.brand",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab65752",
+      "name": "UXbot",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/65752.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "design"
+      ],
+      "note": "AI产品设计工具，一键生成UI与交互式原型（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab17815",
+      "name": "简单设计",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/17815.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "design"
+      ],
+      "note": "免费的在线设计、图片处理工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab61482",
+      "name": "星流AI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/61482.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "design"
+      ],
+      "note": "一站式 AI 设计与创作工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.design.brand",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.3d",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab14961",
+      "name": "Fryderyk",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/14961.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "audio"
+      ],
+      "note": "AI音乐创作工具，集成了多种乐器声音（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.music",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.voice",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab10631",
+      "name": "音虫",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/10631.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "audio"
+      ],
+      "note": "内置AI音乐编曲的音乐制作工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.music",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.voice",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab86692",
+      "name": "妙响",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/86692.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "audio"
+      ],
+      "note": "汽水音乐旗下 AI 音乐创作发行平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.music",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.clip",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.clean",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab64880",
+      "name": "Tunee",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/64880.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "audio"
+      ],
+      "note": "首个对话式音乐创作AI智能体（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.music",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.clean",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab4294",
+      "name": "ElevenLabs",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/4294.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "audio"
+      ],
+      "note": "AI文本转语音，支持包含中文在内的29种语言（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.voice",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.music",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.transcribe",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.translate",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab74132",
+      "name": "轻析 LiteSight",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/74132.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "audio"
+      ],
+      "note": "AI 视频内容提取工具，自动转文字（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.text.summary",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.transcribe",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.rewrite",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.text.copy",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab69537",
+      "name": "多维视界",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/69537.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "audio"
+      ],
+      "note": "一站式AI音视频智能分析平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.text.summary",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.transcribe",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.rewrite",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab1677",
+      "name": "Adobe Podcast",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/1677.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "audio"
+      ],
+      "note": "Adobe推出的在线AI音频录制和编辑工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.clip",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.transcribe",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.clean",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.text.translate",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab1396",
+      "name": "BGM猫",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/1396.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "audio"
+      ],
+      "note": "灵动音科技推出的AI智能生成BGM音乐（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.music",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.voice",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab6112",
+      "name": "大饼AI变声",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/6112.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "audio"
+      ],
+      "note": "免费专业的AI变声软件，一键实时语音变声（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.voice",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab119",
+      "name": "Audo Studio",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/119.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "audio"
+      ],
+      "note": "AI音频清洗工具（噪音消除、声音平衡、音量调节）（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.clean",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab89074",
+      "name": "MusicBuddy",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/89074.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "audio"
+      ],
+      "note": "腾讯音乐推出的 AI 音乐创作平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.music",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab16367",
+      "name": "Glean",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/16367.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "search-engines"
+      ],
+      "note": "专为职场人设计的AI搜索引擎（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.search.engine",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.multi",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab14411",
+      "name": "Exa AI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/14411.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "search-engines"
+      ],
+      "note": "专门为AI模型设计的搜索引擎平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.search.engine",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.browser",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab15220",
+      "name": "CuspAI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/15220.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "search-engines"
+      ],
+      "note": "剑桥大学推出的材料学专业AI搜索工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.search.engine",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.research",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab15233",
+      "name": "AlphaSense",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/15233.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "search-engines"
+      ],
+      "note": "专为金融专业人士设计的AI搜索工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.search.engine",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.research",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab88385",
+      "name": "CleverSee",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/88385.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "search-engines"
+      ],
+      "note": "阿里云推出的 AI 原生搜索与问答平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.search.engine",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.research",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.search",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.support",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.ingest",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab81286",
+      "name": "MaxAEO",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/81286.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "search-engines"
+      ],
+      "note": "AI 搜索可见度监测与优化工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.search.engine",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.browser",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab15865",
+      "name": "链企AI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/15865.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "search-engines"
+      ],
+      "note": "链企智能推出的AI商业搜索和AI标书写作工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.search.engine",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.search",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab80024",
+      "name": "蜜崽检索",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/80024.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "search-engines"
+      ],
+      "note": "AI 学术检索与研究辅助工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.search.engine",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.research",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab14712",
+      "name": "Adot",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/14712.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "search-engines"
+      ],
+      "note": "一个由AI驱动的 Web3 搜索引擎（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.search.engine",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.research",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab14871",
+      "name": "言犀智能体平台",
+      "category": "platform",
+      "homepage": "https://ai-bot.cn/sites/14871.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "frameworks"
+      ],
+      "note": "京东推出的一站式AI智能体开发平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.canvas",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab1430",
+      "name": "LangChain",
+      "category": "platform",
+      "homepage": "https://ai-bot.cn/sites/1430.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "frameworks"
+      ],
+      "note": "开发由语言模型驱动的应用程序的框架（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.canvas",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab58373",
+      "name": "OpenRouter",
+      "category": "platform",
+      "homepage": "https://ai-bot.cn/sites/58373.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "frameworks"
+      ],
+      "note": "AI 模型 API 聚合平台，一个接口调用500多个模型（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.mcp",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab50019",
+      "name": "阿里云百炼",
+      "category": "platform",
+      "homepage": "https://ai-bot.cn/sites/50019.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "frameworks"
+      ],
+      "note": "一站式大模型开发与应用构建平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.canvas",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.mcp",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.support",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab77337",
+      "name": "方舟 Agent Plan",
+      "category": "platform",
+      "homepage": "https://ai-bot.cn/sites/77337.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "frameworks"
+      ],
+      "note": "火山引擎推出的业界首个 Agent 套餐（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.search",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.research",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.flow.canvas",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab451",
+      "name": "Keras",
+      "category": "platform",
+      "homepage": "https://ai-bot.cn/sites/451.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "frameworks"
+      ],
+      "note": "Python版本的TensorFlow深度学习API（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab64715",
+      "name": "搭叩",
+      "category": "platform",
+      "homepage": "https://ai-bot.cn/sites/64715.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "frameworks"
+      ],
+      "note": "心流AI旗下异步AI智能体开发平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.research",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.mcp",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.canvas",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab67128",
+      "name": "APIMart",
+      "category": "platform",
+      "homepage": "https://ai-bot.cn/sites/67128.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "frameworks"
+      ],
+      "note": "一站式 AI API 平台，多主流模型统一访问（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.support",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab16414",
+      "name": "蚂蚁百宝箱Tbox",
+      "category": "platform",
+      "homepage": "https://ai-bot.cn/sites/16414.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "frameworks"
+      ],
+      "note": "让AI应用的创作像呼吸一样简单（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.support",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.mcp",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.skill",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.canvas",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab15446",
+      "name": "BigModel",
+      "category": "platform",
+      "homepage": "https://ai-bot.cn/sites/15446.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "frameworks"
+      ],
+      "note": "智谱推出的企业级大模型开放平台（MaaS）（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.plan",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.support",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.local",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab71659",
+      "name": "讯飞星辰MaaS",
+      "category": "model",
+      "homepage": "https://ai-bot.cn/sites/71659.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "models"
+      ],
+      "note": "一站式AI大模型体验、调用、部署、精调平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.host",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab1623",
+      "name": "AgentGPT",
+      "category": "model",
+      "homepage": "https://ai-bot.cn/sites/1623.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "models"
+      ],
+      "note": "在浏览器中组装、配置和部署自主人工智能的开源项目（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.host",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.plan",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.research",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.local",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.browser",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab7412",
+      "name": "Jan",
+      "category": "model",
+      "homepage": "https://ai-bot.cn/sites/7412.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "models"
+      ],
+      "note": "本地运行大模型并进行AI对话的工具，免费开源（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.host",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab1487",
+      "name": "魔搭社区",
+      "category": "model",
+      "homepage": "https://ai-bot.cn/sites/1487.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "models"
+      ],
+      "note": "阿里达摩院推出的AI模型社区，超过300+开源AI模型（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.host",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.mcp",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.local",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab71579",
+      "name": "睿信论文检测",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/71579.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "content-detection-and-optimization"
+      ],
+      "note": "中科睿鉴推出的一站式学术诚信检测系统（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.detect.aigc",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.local",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab407",
+      "name": "Writecream AI Content Detector",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/407.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "content-detection-and-optimization"
+      ],
+      "note": "Writecream推出的AI内容检测工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.detect.aigc",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.text.translate",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab67571",
+      "name": "Aibiye降AI率",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/67571.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "content-detection-and-optimization"
+      ],
+      "note": "专注降低AIGC的AI写作助手，精准定位问题段落（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.detect.aigc",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.rewrite",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab393",
+      "name": "AI Content Detector",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/393.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "content-detection-and-optimization"
+      ],
+      "note": "Writer推出的AI内容检测工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.detect.aigc",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.copy",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab47103",
+      "name": "挖错网",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/47103.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "content-detection-and-optimization"
+      ],
+      "note": "AI内容审核校对平台，一键检测内容自动纠错（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.detect.aigc",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab67460",
+      "name": "千笔降AI率",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/67460.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "content-detection-and-optimization"
+      ],
+      "note": "文本降AI率工具，适配知网、维普、万方检测系统（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.detect.aigc",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.rewrite",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.copy",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.translate",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab68915",
+      "name": "LocalBanana",
+      "category": "tool",
+      "homepage": "https://ai-bot.cn/sites/68915.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "prompt"
+      ],
+      "note": "专注于AI图像Prompt收集与结构化的平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.prompt.lib",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.prompt.optimize",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab767",
+      "name": "Stable Diffusion Prompt Book",
+      "category": "tool",
+      "homepage": "https://ai-bot.cn/sites/767.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "prompt"
+      ],
+      "note": "OpenArt平台推出的免费提示词指南手册（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.prompt.lib",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.prompt.optimize",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab23106",
+      "name": "AI Short",
+      "category": "tool",
+      "homepage": "https://ai-bot.cn/sites/23106.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "prompt"
+      ],
+      "note": "AI提示词管理和共享平台，多种场景的快捷指令（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.prompt.lib",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.prompt.optimize",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab23101",
+      "name": "LangGPT",
+      "category": "tool",
+      "homepage": "https://ai-bot.cn/sites/23101.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "prompt"
+      ],
+      "note": "LangGPT是什么 LangGPT是一种...（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.prompt.lib",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.chat.memory",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab749",
+      "name": "AIPRM",
+      "category": "tool",
+      "homepage": "https://ai-bot.cn/sites/749.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "prompt"
+      ],
+      "note": "AI 提示词库和提示词管理工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.prompt.lib",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.prompt.optimize",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab69602",
+      "name": "PromptPilot",
+      "category": "tool",
+      "homepage": "https://ai-bot.cn/sites/69602.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "prompt"
+      ],
+      "note": "火山方舟推出的AI提示词解决方案平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.prompt.lib",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.prompt.optimize",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab3044",
+      "name": "网易见外",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/3044.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "网易推出的AI智能翻译平台，支持音视频、文档、图片、字幕等翻译（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.text.translate",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.office.ocr",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.office.meeting",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab70208",
+      "name": "献丑AI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/70208.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "video"
+      ],
+      "note": "首个 AI 视频开源社区，支持一键Fork与共创（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.fiction",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.clip",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.music",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.transcribe",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab49506",
+      "name": "稿定AI消除",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/49506.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "image"
+      ],
+      "note": "AI图像杂物消除工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab199",
+      "name": "Grammarly",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/199.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "writing"
+      ],
+      "note": "AI英语语法和拼写检查写作助手（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.rewrite",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab73413",
+      "name": "AstronClaw",
+      "category": "agent",
+      "homepage": "https://ai-bot.cn/sites/73413.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "agent"
+      ],
+      "note": "科大讯飞推出的云端部署OpenClaw（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.deliver.channel",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.skill",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.multi",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.research",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab176",
+      "name": "illostrationAI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/176.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "design"
+      ],
+      "note": "AI插画生成，low poly、3D、矢量、logo、像素风、皮克斯等风格（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.design.layout",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.3d",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab89822",
+      "name": "气泡音扒谱",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/89822.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "audio"
+      ],
+      "note": "AI 辅助扒谱与音乐练习工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.transcribe",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.media.voice",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab53",
+      "name": "Codex",
+      "category": "devtool",
+      "homepage": "https://ai-bot.cn/sites/53.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "programming"
+      ],
+      "note": "OpenAI 推出的 AI 编程智能体（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.multi",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.browser",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.agent.computer",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab77621",
+      "name": "千问云",
+      "category": "platform",
+      "homepage": "https://ai-bot.cn/sites/77621.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "frameworks"
+      ],
+      "note": "阿里云推出的全新MaaS模型服务平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.skill",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.canvas",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab28907",
+      "name": "百度AI探索版",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/28907.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "search-engines"
+      ],
+      "note": "百度推出的深度AI搜索引擎（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.search.engine",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.research",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab64622",
+      "name": "百灵大模型",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/64622.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "chatbots"
+      ],
+      "note": "蚂蚁集团推出的 Ling-1T 大模型对话体验平台（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.chat.core",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.search",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.support",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.chat.multimodal",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.local",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab86673",
+      "name": "Jev",
+      "category": "model",
+      "homepage": "https://ai-bot.cn/sites/86673.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "models"
+      ],
+      "note": "TypeSafe AI 推出的 AI 结构化决策模型（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.host",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab795",
+      "name": "PublicPrompts",
+      "category": "tool",
+      "homepage": "https://ai-bot.cn/sites/795.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "prompt"
+      ],
+      "note": "PublicPrompts是什么 PublicP...（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.prompt.lib",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab67598",
+      "name": "茅茅虫降AI率",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/67598.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "content-detection-and-optimization"
+      ],
+      "note": "论文降AI率工具，支持多格式文档（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.detect.aigc",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.rewrite",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.summary",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.translate",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab5564",
+      "name": "星火文档问答",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/5564.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "office"
+      ],
+      "note": "基于讯飞星火大模型的AI文档和知识库问答助手（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.doc",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "ab20030",
+      "name": "Flow Studio",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/20030.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "video"
+      ],
+      "note": "FlowGPT推出的AI长视频生成工具（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.avatar",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.3d",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.text.copy",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab6575",
+      "name": "咻图AI",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/6575.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "image"
+      ],
+      "note": "面向影楼的摄影后期AI修图软件（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.finetune",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.edit",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ab23116",
+      "name": "有道翻译·AI写作",
+      "category": "app",
+      "homepage": "https://ai-bot.cn/sites/23116.html",
+      "license": "未核",
+      "tags": [
+        "aibot",
+        "writing"
+      ],
+      "note": "网易有道推出的智能写作辅助工具，支持100多种语言（模块按站方功能清单推断，未核源码与许可；来源 ai-bot.cn）",
+      "composes": [
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.copy",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.rewrite",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.text.long",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.text.summary",
           "provider": null,
           "role": "optional"
         }
