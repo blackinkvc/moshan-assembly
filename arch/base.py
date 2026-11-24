@@ -38,6 +38,27 @@ def implied(a, picks):
     return [c for c in out if c in a.idx]
 
 
+# 硬件格的展示顺序：选型顺序，不是命中顺序。
+# 从「传感」开始看，用户会先挑传感器，然后发现主控得反过来配——先定主控，其余围着它选。
+HW_ORDER = ["hw.mcu", "hw.sense", "hw.display", "hw.power", "hw.wireless",
+            "hw.firmware", "hw.pcb", "hw.enclosure", "hw.gateway", "hw.cert"]
+
+
+def _ord(a, ids):
+    """硬件格整体前置，并按选型顺序排；软件格按域顺序跟在后面。
+
+    为什么硬件要前置：这个需求用户最关心的是「这设备怎么做出来」，先给他看主控/传感/供电，
+    再讲数据存在哪。而且从「传感」开始看，用户会先挑传感器，然后发现主控得反过来配。
+    """
+    hw = [c for c in ids if c.startswith("hw.")]
+    rest = [c for c in ids if not c.startswith("hw.")]
+    rank = {c: i for i, c in enumerate(HW_ORDER)}
+    hw.sort(key=lambda c: rank.get(c, 99))
+    dom = {d: i for i, d in enumerate(match.DOM_ORDER)}
+    rest.sort(key=lambda c: dom.get(a.dom_of(c), 99))
+    return hw + rest
+
+
 def tier(a, cov):
     """把 must/pulled/opt 分成 必选/建议/看情况。"""
     core, rec, scene = [], [], []
@@ -45,12 +66,15 @@ def tier(a, cov):
         rec.append(cid)
     for cid in cov["must"]:
         if cid in cov["pulled"]:
-            # 网关是硬依赖：任何 AI 格没它都跑不了，不能算「建议」
-            (core if cid == "ai.model.gateway" else rec).append(cid)
+            # 硬依赖不算「建议」：网关没它任何 AI 格空转；硬件格没有「可选」一说——
+            # 打样、供电、主控不是「引擎顺手带的」，缺一块就做不出东西
+            hard = cid == "ai.model.gateway" or cid.startswith("hw.")
+            (core if hard else rec).append(cid)
         else:
             core.append(cid)
-    scene = [c for c in cov["opt"] if c not in cov["must"]]
-    return core, rec, scene
+    # 排除 rec：implied() 补的格（数据存储/界面）可能在 opt 里也出现一份，会显示两次
+    scene = [c for c in cov["opt"] if c not in cov["must"] and c not in rec]
+    return _ord(a, core), _ord(a, rec), _ord(a, scene)
 
 
 def io_cn(cid):
@@ -96,9 +120,13 @@ def check(a, picks):
 
     # 拓扑：每轮挑「输入已被已排格或外部源满足」的格
     done, order, pool = set(), [], list(picks)   # done 里存的是「已产出的类型」，不是格 id
+    placed = set()                                # 已排进 order 的格 id，给 wires.AFTER 用
     while pool:
         ready = []
         for cid in pool:
+            if cid in wires.AFTER and wires.AFTER[cid] in picks \
+                    and wires.AFTER[cid] not in placed:
+                continue
             if cid in wires.UI_FREE:
                 ready.append(cid)
                 continue
@@ -114,13 +142,16 @@ def check(a, picks):
             break
         # 同轮内：先做「源头格」（不需要输入的），再按域顺序
         def rank(c):
+            # 硬件先启动：打样两周、开模三周，软件可以并行写，硬件不先动就是纯等
+            hw = 0 if c.startswith("hw.") else 1
             # 「文本」是万能输入，谁都能吃，按它算依赖度会把所有给文本的格排到最前，失真
             outs = set(wires.WIRE[c][1]) - {"T", "S", "E"}
             used = sum(1 for o in picks if o != c and any(set(g) & outs for g in wires.WIRE[o][0]))
-            return (0 if not wires.WIRE[c][0] else 1, -used,
+            return (hw, 0 if not wires.WIRE[c][0] else 1, -used,
                     match.DOM_ORDER.index(a.dom_of(c)) if a.dom_of(c) in match.DOM_ORDER else 99)
         ready.sort(key=rank)
         order.extend(ready)
+        placed.update(ready)
         for c in ready:
             done |= set(wires.WIRE[c][1])
         pool = [c for c in pool if c not in ready]
@@ -242,7 +273,7 @@ def build_html(a):
         "trig": match.TRIG, "scen": match.SCEN, "req": match.REQ,
         "gap": match.GAP, "cons": match.CONS, "neg": list(match.NEG),
         "wire": wires.WIRE, "typeCn": wires.TYPE_CN, "ext": list(wires.EXT),
-        "patch": wires.PATCH,
+        "patch": wires.PATCH, "after": wires.AFTER,
     }
     js = json.dumps(data, ensure_ascii=False)
     with open(tmpl, encoding="utf-8") as f:

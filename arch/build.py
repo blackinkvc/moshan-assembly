@@ -235,7 +235,10 @@ def stats(db, idx, pidx, levels):
         join product pr on pr.id=p.product
         group by c.id order by n desc, c.id""").fetchall()
     covered = {r[0] for r in used}
-    leaves = [cid for cid in idx if idx[cid]["kind"] != "domain"]
+    # 引用率只算软件域：硬件格不该出现在「软件 = 若干模块的组装」里，
+    # 混进去会让引用率虚低（硬件本来就不是软件产品的一部分）
+    leaves = [cid for cid in idx
+              if idx[cid]["kind"] != "domain" and not cid.startswith("hw.")]
     # 子模块不必单独挂在产品上：父模块被选，它自然在里面
     def implied(cid):
         cur, hop = cid, 0
@@ -250,7 +253,8 @@ def stats(db, idx, pidx, levels):
           % (len(idx), n_by_kind.get("domain", 0), n_by_kind.get("module", 0),
              n_by_kind.get("part", 0), max(levels.values()) if levels else 0))
     print("方案 %d（开源 %d / 做法 %d / 闭源 %d / 自研 %d）" % (n_prov, n_oss, n_pat, n_com, n_build))
-    print("软件 %d" % len(pidx))
+    n_hw = sum(1 for cid in idx if cid.startswith("hw."))
+    print("软件 %d ／ 硬件格 %d（不进软件产品组合，单独一条线）" % (len(pidx), n_hw))
     if leaves:
         rate = len(covered & set(leaves)) / len(leaves) * 100
         print("模块被软件引用率 %.0f%%（%d/%d）" % (rate, len(covered & set(leaves)), len(leaves)))

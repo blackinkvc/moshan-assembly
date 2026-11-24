@@ -99,6 +99,7 @@
           <span class="chip" data-q="公司仓库管理：商品库存入库出库，扫码枪扫条码，库存低于阈值自动提醒补货，每月出报表，同事各自登录有权限">仓库管理</span>
           <span class="chip" data-q="我们做行业研究，要收集研报、公告和新闻，建成知识库能问答，自动写出带引用的行业分析报告，团队共享">行业研究</span>
           <span class="chip" data-q="局域网内手机和电脑互传文件，扫码就能传，不用登录，大文件也不卡">互传文件</span>
+          <span class="chip" data-q="做个室内蓝牙wifi温湿度计，墨水屏显示温湿度，电池供电，能连手机看历史曲线">温湿度计</span>
         </div>
       </div>
       <div class="stat" id="stat"></div>
@@ -139,6 +140,18 @@ function hit(t, w) {
   }
   return false;
 }
+/* 硬件格前置并按选型顺序排：用户最关心「这设备怎么做」，先给主控/传感/供电；
+   而且从传感开始看，会先挑传感器，然后发现主控得反过来配。软件格按域顺序跟在后面。 */
+const HW_ORDER = ["hw.mcu","hw.sense","hw.display","hw.power","hw.wireless",
+                  "hw.firmware","hw.pcb","hw.enclosure","hw.gateway","hw.cert"];
+function ord(ids){
+  const rk = c => { const i = HW_ORDER.indexOf(c); return i < 0 ? 99 : i; };
+  const hw = ids.filter(c => c.indexOf("hw.") === 0).sort((x, y) => rk(x) - rk(y));
+  const rest = ids.filter(c => c.indexOf("hw.") !== 0)
+    .sort((x, y) => D.domOrder.indexOf(byId[x].dom) - D.domOrder.indexOf(byId[y].dom));
+  return hw.concat(rest);
+}
+
 function matchNeed(need) {
   const t = norm(need), score = {}, why = {};
   const add = (cid, w, r) => {
@@ -173,7 +186,7 @@ function matchNeed(need) {
       must.push(dep); pulled[dep] = cid; q.push(dep);
     }
   }
-  const aiSelected = must.some(c => byId[c] && !["app", "ai.deliver", "ai.model"].includes(byId[c].dom));
+  const aiSelected = must.some(c => byId[c] && !["app", "ai.deliver", "ai.model", "hw"].includes(byId[c].dom));
   if (aiSelected && !must.includes("ai.model.gateway") && byId["ai.model.gateway"]) {
     must.push("ai.model.gateway"); pulled["ai.model.gateway"] = "AI 域兜底";
   }
@@ -185,14 +198,15 @@ function matchNeed(need) {
   if (giv.has("R") && !must.includes("app.data") && byId["app.data"]) rec.push("app.data");
   if ((giv.has("T") || giv.has("R") || giv.has("F")) && !giv.has("X") && !must.includes("app.ui") && byId["app.ui"]) rec.push("app.ui");
   must.forEach(cid => {
-    if (pulled[cid]) (cid === "ai.model.gateway" ? core : rec).push(cid);
-    else core.push(cid);
+    if (!pulled[cid]) return core.push(cid);
+    // 硬依赖不算「建议」：网关没它 AI 格空转；硬件格没有「可选」一说
+    (cid === "ai.model.gateway" || cid.indexOf("hw.") === 0 ? core : rec).push(cid);
   });
-  const scene = opt.slice(0, Math.max(0, 14 - core.length - rec.length));
+  const scene = opt.filter(c => !rec.includes(c)).slice(0, Math.max(0, 14 - core.length - rec.length));
   const uniq = a => [...new Set(a)];
   const gaps = [];
   D.gap.forEach(([words, name, how]) => { if (words.some(w => hit(t, w))) gaps.push([name, how]); });
-  return { core: uniq(core), rec: uniq(rec), scene: uniq(scene), scen, score, why, gaps, prefs };
+  return { core: ord(uniq(core)), rec: ord(uniq(rec)), scene: ord(uniq(scene)), scen, score, why, gaps, prefs };
 }
 
 /* ---------- 连通检查 ---------- */
@@ -213,23 +227,32 @@ function check(picks) {
     });
   });
   // 拓扑：每轮挑输入已满足的，同轮按「产出被依赖次数」降序
-  const done = new Set(), order = [];   // done 存类型
+  const done = new Set(), order = [], placed = new Set();   // done 存类型
   let pool = [...picks];
   while (pool.length) {
-    let ready = pool.filter(cid => cid === "app.ui" || (W[cid] || [[], []])[0].every(grp =>
-      grp.some(x => D.ext.includes(x) || done.has(x))));
+    let ready = pool.filter(cid => {
+      // 手工钉的前后关系：网关接的是主控吐出来的数据，必须等主控排上
+      const af = (D.after || {})[cid];
+      if (af && picks.indexOf(af) >= 0 && !placed.has(af)) return false;
+      return cid === "app.ui" || (W[cid] || [[], []])[0].every(grp =>
+        grp.some(x => D.ext.includes(x) || done.has(x)));
+    });
     if (!ready.length) { order.push(...pool); break; }
     const used = cid => {
       const outs = (W[cid] || [null, []])[1].filter(x => !["T", "S", "E"].includes(x));
       return picks.filter(o => o !== cid && (W[o] || [[], []])[0].some(g => g.some(x => outs.includes(x)))).length;
     };
     ready.sort((x, y) => {
+      // 硬件先启动：打样两周、开模三周，软件可以并行写
+      const hx = x.indexOf("hw.") === 0 ? 0 : 1, hy = y.indexOf("hw.") === 0 ? 0 : 1;
+      if (hx !== hy) return hx - hy;
       const a = (W[x] || [[], []])[0].length ? 1 : 0, b = (W[y] || [[], []])[0].length ? 1 : 0;
       if (a !== b) return a - b;
       const d = used(y) - used(x); if (d) return d;
       return D.domOrder.indexOf(byId[x].dom) - D.domOrder.indexOf(byId[y].dom);
     });
     order.push(...ready);
+    ready.forEach(c => placed.add(c));
     ready.forEach(c => (W[c] || [null, []])[1].forEach(x => done.add(x)));
     pool = pool.filter(c => !ready.includes(c));
   }

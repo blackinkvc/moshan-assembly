@@ -330,6 +330,18 @@ function hit(t, w){
   }
   return false;
 }
+/* 硬件格前置并按选型顺序排：用户最关心「这设备怎么做」，先给主控/传感/供电；
+   而且从传感开始看，会先挑传感器，然后发现主控得反过来配。软件格按域顺序跟在后面。 */
+const HW_ORDER = ["hw.mcu","hw.sense","hw.display","hw.power","hw.wireless",
+                  "hw.firmware","hw.pcb","hw.enclosure","hw.gateway","hw.cert"];
+function ord(ids){
+  const rk = c => { const i = HW_ORDER.indexOf(c); return i < 0 ? 99 : i; };
+  const hw = ids.filter(c => c.indexOf("hw.") === 0).sort((x, y) => rk(x) - rk(y));
+  const rest = ids.filter(c => c.indexOf("hw.") !== 0)
+    .sort((x, y) => D.domOrder.indexOf(byId[x].dom) - D.domOrder.indexOf(byId[y].dom));
+  return hw.concat(rest);
+}
+
 function matchNeed(need){
   const t = norm(need), score = {}, why = {};
   const add = (cid, w, r) => { if(!byId[cid]) return; score[cid] = (score[cid] || 0) + w; (why[cid] = why[cid] || []).push(r); };
@@ -360,7 +372,7 @@ function matchNeed(need){
       must.push(dep); pulled[dep] = cid; q.push(dep);
     }
   }
-  const aiSel = must.some(c => byId[c] && !["app","ai.deliver","ai.model"].includes(byId[c].dom));
+  const aiSel = must.some(c => byId[c] && !["app","ai.deliver","ai.model","hw"].includes(byId[c].dom));
   if(aiSel && !must.includes("ai.model.gateway") && byId["ai.model.gateway"]){
     must.push("ai.model.gateway"); pulled["ai.model.gateway"] = "AI 域兜底";
   }
@@ -370,12 +382,15 @@ function matchNeed(need){
   const giv = new Set(); must.forEach(c => (W[c] || [null, []])[1].forEach(x => giv.add(x)));
   if(giv.has("R") && !must.includes("app.data") && byId["app.data"]) rec.push("app.data");
   if((giv.has("T") || giv.has("R") || giv.has("F")) && !giv.has("X") && !must.includes("app.ui") && byId["app.ui"]) rec.push("app.ui");
-  must.forEach(cid => { if(pulled[cid]) (cid === "ai.model.gateway" ? core : rec).push(cid); else core.push(cid); });
-  const scene = opt.slice(0, Math.max(0, 14 - core.length - rec.length));
+  must.forEach(cid => {
+    if(!pulled[cid]) return core.push(cid);
+    (cid === "ai.model.gateway" || cid.indexOf("hw.") === 0 ? core : rec).push(cid);
+  });
+  const scene = opt.filter(c => !rec.includes(c)).slice(0, Math.max(0, 14 - core.length - rec.length));
   const uniq = a => [...new Set(a)];
   const gaps = [];
   D.gap.forEach(([words, name, how]) => { if(words.some(w => hit(t, w))) gaps.push({name, how}); });
-  return { core: uniq(core), rec: uniq(rec), scene: uniq(scene), scen, score, why, gaps, prefs };
+  return { core: ord(uniq(core)), rec: ord(uniq(rec)), scene: ord(uniq(scene)), scen, score, why, gaps, prefs };
 }
 
 /* ────────── 连通检查 ────────── */
@@ -394,22 +409,30 @@ function check(picks){
       }
     });
   });
-  const done = new Set(), order = [];
+  const done = new Set(), order = [], placed = new Set();
   let pool = [...picks];
   while(pool.length){
-    let ready = pool.filter(cid => cid === "app.ui" || (W[cid] || [[], []])[0].every(grp => grp.some(x => D.ext.includes(x) || done.has(x))));
+    let ready = pool.filter(cid => {
+      // 手工钉的前后关系：网关接的是主控吐出来的数据
+      const af = (D.after || {})[cid];
+      if(af && picks.indexOf(af) >= 0 && !placed.has(af)) return false;
+      return cid === "app.ui" || (W[cid] || [[], []])[0].every(grp => grp.some(x => D.ext.includes(x) || done.has(x)));
+    });
     if(!ready.length){ order.push(...pool); break; }
     const used = cid => {
       const outs = (W[cid] || [null, []])[1].filter(x => !["T","S","E"].includes(x));
       return picks.filter(o => o !== cid && (W[o] || [[], []])[0].some(g => g.some(x => outs.includes(x)))).length;
     };
     ready.sort((x, y) => {
+      const hx = x.indexOf("hw.") === 0 ? 0 : 1, hy = y.indexOf("hw.") === 0 ? 0 : 1;
+      if (hx !== hy) return hx - hy;
       const a = (W[x] || [[], []])[0].length ? 1 : 0, b = (W[y] || [[], []])[0].length ? 1 : 0;
       if(a !== b) return a - b;
       const d = used(y) - used(x); if(d) return d;
       return D.domOrder.indexOf(byId[x].dom) - D.domOrder.indexOf(byId[y].dom);
     });
     order.push(...ready);
+    ready.forEach(c => placed.add(c));
     ready.forEach(c => (W[c] || [null, []])[1].forEach(x => done.add(x)));
     pool = pool.filter(c => !ready.includes(c));
   }
@@ -573,14 +596,16 @@ function viewNew(){
     "我想做个个人生活助手，记录每天的饮食、睡眠和心情，到点提醒我喝水睡觉，每周给我一份总结",
     "公司仓库管理：商品库存入库出库，扫码枪扫条码，库存低于阈值自动提醒补货，每月出报表，同事各自登录有权限",
     "我们做行业研究，要收集研报、公告和新闻，建成知识库能问答，自动写出带引用的行业分析报告，团队共享",
-    "公司要做个内部知识库问答，把产品手册、售后工单和培训视频都灌进去，客服能直接问，答不出来转人工"
+    "公司要做个内部知识库问答，把产品手册、售后工单和培训视频都灌进去，客服能直接问，答不出来转人工",
+    "做个室内蓝牙wifi温湿度计，墨水屏显示温湿度，电池供电，能连手机看历史曲线"
+
   ];
   $("#view").innerHTML = `<div class="page" style="display:grid;grid-template-columns:minmax(0,1fr) 288px;gap:26px;align-items:start">
     <div class="askwrap">
       <h1>你要做个什么？</h1>
       <p class="sub">用大白话写。说清「拿什么进来、变成什么出去、什么时候发生」就够，不用写技术栈。</p>
       <textarea id="ta" placeholder="例：拍一张小票照片，自动识别金额，记到账本里，按月出统计">${esc(S.need)}</textarea>
-      <div class="chips">${eg.map((q, i) => `<span class="chip" data-q="${esc(q)}" data-i="${i}">${["拍照记账","生活助手","仓库管理","行业研究","内部知识库"][i]}</span>`).join("")}</div>
+      <div class="chips">${eg.map((q, i) => `<span class="chip" data-q="${esc(q)}" data-i="${i}">${["拍照记账","生活助手","仓库管理","行业研究","内部知识库","温湿度计"][i]}</span>`).join("")}</div>
       <div class="askfoot">
         <button class="btn primary lg" id="bGo">开始解析</button>
         <button class="btn ghost" id="bClear">清空</button>
@@ -836,7 +861,11 @@ function startBuild(){
   const r = check(S.picks);
   S.build = {order: r.order.filter(c => S.picks.includes(c)), i: 0, pct: 4, paused: false,
              busy: false, logs: [], t0: Date.now(), done: false};
-  S.build.logs.push({t: "0.0s", s: "→ 初始化工程骨架（package.json / src / .env.example）", c: "dim"});
+  const isHw = S.picks.some(c => c.indexOf("hw.") === 0);
+  S.build.isHw = isHw;
+  S.build.logs.push({t: "0.0s", c: "dim",
+    s: isHw ? "→ 建工程目录：原理图 / 结构 / 固件 / BOM 四套文件"
+            : "→ 初始化工程骨架（package.json / src / .env.example）"});
   renderBuild();
   setTimeout(tick, 500);
   save();
@@ -852,11 +881,21 @@ function tick(){
   if(b.i < b.order.length){
     const cid = b.order[b.i], c = byId[cid], p = prov(cid);
     const label = c.name + " · " + (p ? p.n : "默认方案");
-    b.logs.push({t: el(b.t0), s: "→ 安装 " + label, c: "now"});
+    // 硬件的「一步」不是装依赖：是打样、焊接、烧录、联调。同一套推进逻辑换个动词。
+    const HW_STEP = {
+      "hw.pcb": "出 Gerber，发去打样", "hw.enclosure": "出 STL，打首件",
+      "hw.power": "上电测电流", "hw.sense": "焊接传感器并标定",
+      "hw.mcu": "烧最小系统，自检", "hw.firmware": "编译固件并烧录",
+      "hw.display": "点亮屏，刷第一帧", "hw.wireless": "配网联调",
+      "hw.gateway": "打通一条数据到服务端", "hw.cert": "整理认证资料与送检样机"
+    };
+    const what = HW_STEP[cid] || ("安装 " + c.name);
+    b.logs.push({t: el(b.t0), s: "→ " + what, c: "now"});
     b.pct = Math.round(8 + (b.i / Math.max(1, b.order.length)) * 82);
     renderBuild();
     setTimeout(() => {
-      b.logs[b.logs.length - 1] = {t: el(b.t0), s: "✓ " + label + " 就绪", c: "ok"};
+      b.logs[b.logs.length - 1] = {t: el(b.t0), c: "ok",
+        s: "✓ " + what + (p ? "（" + p.n + "）" : "")};
       b.i++;
       b.pct = Math.round(8 + (b.i / Math.max(1, b.order.length)) * 82);
       b.busy = false; renderBuild();
@@ -865,12 +904,14 @@ function tick(){
     return;
   }
   if(b.pct < 92){
-    b.logs.push({t: el(b.t0), s: "→ 接线检查：按基板核对每格的进出", c: "dim"});
+    b.logs.push({t: el(b.t0), c: "dim",
+      s: b.isHw ? "→ 接线上电：每块板逐一通电，核对每格进出" : "→ 接线检查：按基板核对每格的进出"});
     b.pct = 94; b.busy = false; renderBuild();
     setTimeout(tick, 620); return;
   }
   if(b.pct < 99){
-    b.logs.push({t: el(b.t0), s: "→ 自检：类型检查 / 依赖锁版本", c: "dim"});
+    b.logs.push({t: el(b.t0), c: "dim",
+      s: b.isHw ? "→ 整机自检：连续跑 24 小时，看读数漂移与掉电" : "→ 自检：类型检查 / 依赖锁版本"});
     b.pct = 99; b.busy = false; renderBuild();
     setTimeout(tick, 620); return;
   }
@@ -895,7 +936,8 @@ function renderBuild(){
   const b = S.build; if(!b) return;
   const box = $("#bw"); if(!box) return;
   const stage = b.pct < 10 ? 0 : (b.pct < 92 ? 1 : (b.pct < 98 ? 2 : 3));
-  const names = ["脚手架", "逐格安装", "接线检查", "自检"];
+  const names = b.isHw ? ["建目录", "打样与烧录", "接线上电", "整机自检"]
+                       : ["脚手架", "逐格安装", "接线检查", "自检"];
   const C = 2 * Math.PI * 54;
   box.innerHTML = `
     <div class="ring">
@@ -937,7 +979,7 @@ function renderBuild(){
 
 /* ────────── 视图：完成 ────────── */
 function viewDone(){
-  const r = check(S.picks);
+  const r = check(S.picks), b = S.build;
   topbar(`工作台 <span>/</span> <b>完成</b>`, 4, "");
   const order = r.order.filter(c => S.picks.includes(c));
   const byDom = new Map();
@@ -947,14 +989,15 @@ function viewDone(){
     byDom.get(c.dom).push(c.name);
   });
   const files = [...byDom.entries()].map(([d, ns]) =>
-    `  ├─ src/${d.replace(/\./g, "-")}/   ${ns.join("、")}`).join("\n");
+    d === "hw" ? `  ├─ hardware/   ${ns.join("、")}`
+               : `  ├─ src/${d.replace(/\./g, "-")}/   ${ns.join("、")}`).join("\n");
   $("#view").innerHTML = `<div class="done">
     <div class="tick">✓</div>
     <h1>装配完成</h1>
     <p>${S.picks.length} 格全部就绪，${r.lines} 条连线已接通。</p>
-    <div class="tree">app/
+    <div class="tree">${b && b.isHw ? "device/" : "app/"}
 ${files}
-  ├─ <span class="d">src/wire.ts</span><span class="m">        ← 接口基板（10 种类型）</span>
+  ├─ <span class="d">${b && b.isHw ? "hardware/接口约定.md" : "src/wire.ts"}</span><span class="m">  ← 接口基板（${Object.keys(D.typeCn).length} 种类型）</span>
   ├─ <span class="d">.env.example</span><span class="m">      ← 商业服务的 key 占位</span>
   └─ <span class="d">README.md</span><span class="m">         ← 每格做什么、为什么选这个方案</span></div>
     <div class="donebtns">
