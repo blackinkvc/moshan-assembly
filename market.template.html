@@ -5,28 +5,48 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>墨山 · 插件仓库</title>
 <style>
+  /* ---------- 与画布页同一套令牌：两页是一套东西的两个面 ---------- */
   :root{
-    --bg:#f5f6f8; --panel:#fff; --ink:#171a1f; --muted:#666e7a;
-    --line:#dfe3e9; --line-2:#eef1f4; --accent:#0f766e; --accent-soft:#e6f4f1;
-    --warn:#b45309; --warn-soft:#fdf3e3; --err:#b42318; --err-soft:#fdeceb;
+    --bg:#f4f5f7; --bg-2:#e9ebef; --panel:#ffffff;
+    --ink:#15181d; --ink-2:#39404b; --muted:#697280;
+    --line:#e1e5eb; --line-2:#eef1f5;
+    --accent:#0f766e; --accent-soft:#e7f4f1; --accent-line:#b9e3dc;
+    --warn:#a85a0a; --warn-soft:#fdf4e5; --err:#b42318; --err-soft:#fdeceb;
     --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px -12px rgba(16,24,40,.18);
+    --r-lg:14px; --r-md:10px; --r-sm:7px;
+    --s1:0 1px 2px rgba(16,24,40,.05);
+    --s2:0 2px 4px rgba(16,24,40,.05),0 10px 24px -14px rgba(16,24,40,.28);
+    --s3:0 16px 34px -16px rgba(16,24,40,.34),0 2px 6px rgba(16,24,40,.06);
+    --shadow:var(--s2);
+    --ease:cubic-bezier(.2,.7,.3,1);
   }
   @media (prefers-color-scheme:dark){:root{
-    --bg:#101216; --panel:#181b20; --ink:#e8eaed; --muted:#98a1ad;
-    --line:#2a2f37; --line-2:#22262c; --accent:#2dd4bf; --accent-soft:#12312e;
+    --bg:#0f1115; --bg-2:#171a1f; --panel:#181b20;
+    --ink:#e9ebee; --ink-2:#c3c9d2; --muted:#98a1ad;
+    --line:#282d35; --line-2:#21252b;
+    --accent:#2dd4bf; --accent-soft:#0f2e2b; --accent-line:#1d4a45;
     --warn:#f0b357; --warn-soft:#2e2413; --err:#f07b72; --err-soft:#33191a;
-    --shadow:0 1px 2px rgba(0,0,0,.4),0 12px 32px -16px rgba(0,0,0,.7);
+    --s1:0 1px 2px rgba(0,0,0,.5);
+    --s2:0 2px 6px rgba(0,0,0,.45),0 12px 28px -16px rgba(0,0,0,.8);
+    --s3:0 18px 38px -18px rgba(0,0,0,.9),0 2px 8px rgba(0,0,0,.5);
+    --shadow:var(--s2);
   }}
   *{box-sizing:border-box}
   html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--ink);
     font:14px/1.55 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
     display:flex;flex-direction:column;overflow:hidden}
-  header{display:flex;align-items:center;gap:12px;padding:11px 16px;background:var(--panel);
-    border-bottom:1px solid var(--line);flex-wrap:wrap}
-  .brand{font-weight:650;letter-spacing:.2px}
-  .brand small{font-weight:400;color:var(--muted);margin-left:8px}
+  header{display:flex;align-items:center;gap:10px;padding:8px 16px;min-height:56px;
+    background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap;row-gap:7px;flex:none}
+  .mark{width:22px;height:22px;border-radius:7px;flex:none;
+    background:linear-gradient(150deg,var(--accent),#0b5f59);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+  @media (prefers-color-scheme:dark){.mark{background:linear-gradient(150deg,#2dd4bf,#0f766e)}}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:650;letter-spacing:.2px;white-space:nowrap}
+  .brand small{font-weight:400;color:var(--muted);font-size:12px;letter-spacing:0;margin:0}
+  a.jump{font-size:12.5px;color:var(--accent);background:var(--accent-soft);border-radius:999px;
+    padding:5px 12px;text-decoration:none;white-space:nowrap;transition:.14s var(--ease)}
+  a.jump:hover{background:var(--accent-line)}
   .tabs{display:flex;gap:3px;background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:2px}
   .tabs button{border:0;background:transparent;padding:5px 11px;border-radius:7px;font-size:13px;color:var(--muted)}
   .tabs button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(16,24,40,.08);font-weight:600}
@@ -177,7 +197,8 @@
 </head>
 <body>
 <header>
-  <div class="brand">墨山插件仓库<small>点开 → 勾模块 → 装上</small></div>
+  <div class="brand"><span class="mark"></span>墨山插件仓库<small>点开 → 勾模块 → 装上</small></div>
+  <a class="jump" href="canvas.html" title="还不知道要装什么？去画布摆格子">→ 搭建画布</a>
   <div class="tabs">
     <button data-tab="plugins">插件<span class="cnt"></span></button>
     <button data-tab="catalog" class="on">软件目录<span class="cnt"></span></button>
@@ -213,6 +234,52 @@ const CV = Object.fromEntries((CAT.categories||[]).map(c=>[c.id,c]));
 // 能力词表：模块 panel 里只写 id，中文名从这里取（kb.rag → 向量 RAG）
 const CAV = Object.fromEntries((CAT.capabilities||[]).map(c=>[c.id,c]));
 const capCN = id => (CAV[id]||{}).label || id;
+
+/* ---------- 共用关系（网）----------
+   三种「共用」各说一件事：
+   · 底座 built_on —— 我做在它里面（Electron 里跑着好几个 App）
+   · 接口 speaks   —— 我按它的标准跟外面讲话（MCP 被多个客户端说）
+   · 同格           —— 我们都供给同一条能力（十个模型都在 ai.model 这一格，互为替代）
+   前两种是显式声明的边，第三种从模块自动推出来。 */
+const REFS = {};      // entryId(被共用) -> [{id, rel}]  谁指向我
+for(const e of CAT.entries){
+  for(const b of (e.built_on||[])) (REFS[b] = REFS[b] || []).push({id:e.id, rel:'built-on'});
+  for(const b of (e.speaks||[]))   (REFS[b] = REFS[b] || []).push({id:e.id, rel:'speaks'});
+}
+
+const NET_BLOCKS = (() => {
+  const blocks = [];
+  // 显式关系：被指向的条目成为「底座 / 接口」块
+  for(const [id, refs] of Object.entries(REFS)){
+    const base = ENTRIES[id];
+    if(!base) continue;
+    const kind = refs.every(r=>r.rel==='speaks') ? 'speaks' : 'built-on';
+    blocks.push({key:'e:'+id, id, kind,
+      name: base.name || id,
+      type: kind==='speaks' ? '接口' : '底座',
+      hint: (base.notes||'').slice(0,110),
+      users: refs.map(r=>({id:r.id, name:(ENTRIES[r.id]||{}).name||r.id, rel:r.rel, note:((ENTRIES[r.id]||{}).built_on||[]).length ? '' : ''})),
+      count: refs.length});
+  }
+  // 自动关系：同一条能力有多个供给者 → 它们是同一格的候选，天然要并排看
+  const prov = {};
+  for(const e of CAT.entries) for(const m of e.modules) (prov[m.capability] = prov[m.capability] || new Set()).add(e.id);
+  for(const [cap, set] of Object.entries(prov)){
+    if(set.size < 2) continue;
+    const c = CAV[cap] || {};
+    blocks.push({key:'c:'+cap, id:cap, kind:'slot',
+      name: c.label || cap,
+      type: '同格',
+      hint: c.desc || '',
+      users: [...set].map(id=>({id, name:(ENTRIES[id]||{}).name||id, rel:'slot'})),
+      count: set.size});
+  }
+  // 有实际共用关系的排前面；同类里被用得多、名字短的在前面才扫得动
+  blocks.sort((a,b)=> b.count - a.count || (a.kind==='slot'?1:0) - (b.kind==='slot'?1:0) || a.name.length - b.name.length);
+  return blocks;
+})();
+const NET_BY_KEY = Object.fromEntries(NET_BLOCKS.map(b=>[b.key,b]));
+const REL_CN = {'built-on':'基于', speaks:'说', slot:'同格'};
 
 let tab = 'catalog';   // 目录是主体，插件才 4 个，别让人以为这里只有插件
 let q = '';
@@ -535,6 +602,83 @@ function renderPlugin(p){
 
 // 「重排与注入」和词表里的「重排注入」是一回事，别在同一行写两遍
 const sameWord = (a, b) => a === b || a.replace(/[与和]/g, '') === b.replace(/[与和]/g, '');
+
+// 共用关系的二分图：中间一个块，右边竖排所有共用它的条目，连线连过去。
+// 没做成力导向——这张网的用途是「看清谁跟谁共用」，不是看形状，竖排最不容易糊。
+function netSvg(block){
+  const us = block.users;
+  const rowH = 34, padTop = 16, W = 660;
+  const H = Math.max(150, padTop*2 + us.length*rowH);
+  const cx = 132, cy = H/2, r0 = 40;          // 中心块
+  const nx = 400, nr = 9;                      // 右侧节点
+  const stroke = block.kind==='speaks' ? 'var(--accent)' : (block.kind==='slot' ? 'var(--line)' : 'var(--accent)');
+  let g = '<svg viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" style="height:auto">';
+  us.forEach((u,i)=>{
+    const y = padTop + rowH*i + rowH/2;
+    // 连线先画，压在节点下面
+    g += '<path d="M '+(cx+r0)+' '+cy+' C '+(cx+r0+70)+' '+cy+', '+(nx-70)+' '+y+', '+(nx-nr)+' '+y+
+         '" fill="none" stroke="'+stroke+'" stroke-width="1.1" opacity="0.45"/>';
+  });
+  g += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r0+'" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.2"/>';
+  // 块名最多两行
+  const nm = block.name.length > 9 ? [block.name.slice(0,9), block.name.slice(9,18)] : [block.name];
+  g += '<text x="'+cx+'" y="'+(cy - (nm.length-1)*7 + 4)+'" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">'+
+       nm.map((t,i)=>'<tspan x="'+cx+'" dy="'+(i?14:0)+'">'+esc(t)+'</tspan>').join('')+'</text>';
+  us.forEach((u,i)=>{
+    const y = padTop + rowH*i + rowH/2;
+    g += '<circle cx="'+nx+'" cy="'+y+'" r="'+nr+'" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.2"/>';
+    g += '<text x="'+(nx+nr+8)+'" y="'+(y+4)+'" font-size="12" fill="var(--ink)">'+esc(u.name)+'</text>';
+    g += '<text x="'+(W-14)+'" y="'+(y+4)+'" text-anchor="end" font-size="10.5" fill="var(--muted)">'+esc(REL_CN[u.rel]||u.rel)+'</text>';
+  });
+  g += '</svg>';
+  return g;
+}
+
+// 条目详情里的「网位置」：上游（我基于谁）+ 下游（谁基于我）
+function netPos(e){
+  const up = [];
+  for(const b of (e.built_on||[])) up.push('<span class="nchip" data-goto="'+esc(b)+'">'+esc((ENTRIES[b]||{}).name||b)+'<i>基于</i></span>');
+  for(const b of (e.speaks||[])) up.push('<span class="nchip" data-goto="'+esc(b)+'">'+esc((ENTRIES[b]||{}).name||b)+'<i>说</i></span>');
+  const down = (REFS[e.id]||[]).map(r=>{
+    const nm = (ENTRIES[r.id]||{}).name || r.id;
+    return '<span class="nchip" data-goto="'+esc(r.id)+'">'+esc(nm)+'<i>'+esc(REL_CN[r.rel]||r.rel)+'</i></span>';
+  });
+  if(!up.length && !down.length) return '';
+  return '<h2>它在网里的位置</h2><div class="comp"><div class="bd">'+
+    (up.length?'<div class="nrow"><b>站在谁肩上</b>'+up.join('')+'</div>':'')+
+    (down.length?'<div class="nrow"><b>谁共用它</b>'+down.join('')+'</div>':'')+
+    (down.length>1?'<div class="kn" style="padding:0">这 '+down.length+' 个条目共用同一套东西——改一处（换内核、换协议版本）会同时影响它们。</div>':'')+
+    '</div></div>';
+}
+
+// 关系网页签的右栏
+function renderNet(b){
+  if(!b) return '<div class="empty">左边选一块。'+
+    '这里按「共用」排：同一个底座、同一套接口、同一条能力位，被哪些东西同时占着。</div>';
+  const isEntry = b.kind!=='slot';
+  const typeCN = b.kind==='speaks' ? '接口 · 多个条目按它通话' : (b.kind==='slot' ? '同一条能力位 · 互为替代' : '技术底座 · 建立在它上面');
+  let html = '<h1>'+esc(b.name)+'</h1>'+
+    '<div class="sub">'+esc(typeCN)+' · '+b.count+' 个条目'+(isEntry?' · 点圆点或行跳到条目详情':'')+'</div>'+
+    '<div class="netwrap">'+netSvg(b)+'</div>'+
+    '<h2>谁共用它</h2><div class="comp"><div class="bd">'+
+      b.users.map(u=>'<div class="nrel" data-goto="'+esc(u.id)+'">'+
+        '<span class="nn">'+esc(u.name)+'</span>'+
+        '<span class="nr">'+esc(REL_CN[u.rel]||u.rel)+'</span>'+
+        '<span class="nd">'+esc(((ENTRIES[u.id]||{}).notes||'').slice(0,78))+'</span></div>').join('')+
+    '</div></div>';
+  if(b.kind!=='slot'){
+    const base = ENTRIES[b.id] || {};
+    html += '<h2>这一块本身</h2><div class="comp"><div class="bd"><div class="note" style="padding:0">'+
+      esc(base.notes||'')+'</div></div></div>'+
+      '<div style="margin:10px 0 0"><button class="ghost" data-goto="'+esc(b.id)+'">看它的拆解 →</button></div>';
+  } else {
+    const c = CAV[b.id] || {};
+    html += '<h2>这一格是什么意思</h2><div class="comp"><div class="bd"><div class="note" style="padding:0">'+
+      esc((c.desc||'') + '　能力 id：' + b.id + '。同格的意思是「择一即可」——它们互相替代，选哪个看规模与运维成本，不是叠加。')+
+      '</div></div></div>';
+  }
+  return html;
+}
 
 // 一张卡内部：按阶段分组，模块带中文能力名与二级拆解（parts）
 function moduleCards(e){
