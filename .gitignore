@@ -16,3 +16,7 @@ __pycache__/
 
 # 架构库产物：由 arch/parts/*.py 生成，可随时重建
 arch/arch.db
+
+# 单文件产物：由 .template.html + arch/doc_img 生成，可随时重建
+arch/planner.html
+arch/guide.html

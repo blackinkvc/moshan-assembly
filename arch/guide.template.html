@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>需求 → 项目卡 · 使用说明</title>
+<style>
+  :root{
+    --bg:#fbfbfa; --panel:#fff; --line:#e6e4df; --ink:#1d1d1b; --dim:#6b6a66; --faint:#a3a099;
+    --must:#2f6f4e; --adv:#8a6d1f; --opt:#6b6a66; --bad:#b3261e; --soft:#f4f2ee; --brand:#3c3a35;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 26px 90px}
+
+  header.top{padding:46px 0 24px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:26px;letter-spacing:.3px;font-weight:650}
+  h1 span{color:var(--faint);font-weight:400;font-size:19px;margin:0 8px}
+  .lede{margin:10px 0 0;color:var(--dim);font-size:14.5px;max-width:760px}
+  .meta{margin:14px 0 0;font-size:12.5px;color:var(--faint)}
+  .meta code{background:var(--soft);border:1px solid var(--line);border-radius:5px;padding:1px 6px;
+    font:12px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;color:#4a4944}
+
+  nav.toc{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 0}
+  nav.toc a{font-size:12.5px;color:var(--dim);text-decoration:none;border:1px solid var(--line);
+    background:#fff;border-radius:20px;padding:3px 11px}
+  nav.toc a:hover{color:var(--ink);border-color:#ccc6ba}
+
+  figure{margin:26px 0 0}
+  figure img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:10px;
+    box-shadow:0 1px 2px rgba(0,0,0,.04),0 8px 26px rgba(0,0,0,.05)}
+  figcaption{font-size:12.5px;color:var(--faint);margin-top:8px}
+
+  section{margin:52px 0 0;scroll-margin-top:20px}
+  h2{font-size:18px;margin:0 0 6px;display:flex;align-items:baseline;gap:10px;font-weight:640}
+  h2 i{font-style:normal;font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#fff;
+    background:var(--brand);width:22px;height:22px;border-radius:6px;display:inline-flex;
+    align-items:center;justify-content:center;flex:0 0 auto;transform:translateY(-1px)}
+  h2 small{font-weight:400;font-size:13px;color:var(--dim)}
+  h3{font-size:15px;margin:26px 0 8px;font-weight:620}
+  p{margin:9px 0}
+  p.note{color:var(--dim);font-size:13.5px}
+  .lead{color:#4a4944;font-size:14.5px;max-width:800px}
+
+  /* 四分区 */
+  .zones{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0 0}
+  @media(max-width:860px){.zones{grid-template-columns:repeat(2,1fr)}}
+  .zone{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 14px}
+  .zone .n{font:11px/1 ui-monospace,Menlo,monospace;color:var(--faint)}
+  .zone b{display:block;font-size:13.5px;margin:5px 0 4px}
+  .zone p{margin:0;font-size:12.5px;color:var(--dim);line-height:1.6}
+  .zone .bar{height:3px;border-radius:2px;margin-top:10px;background:var(--soft)}
+  .zone.z1 .bar{background:#8f9bb3}.zone.z2 .bar{background:var(--must)}
+  .zone.z3 .bar{background:var(--bad)}.zone.z4 .bar{background:var(--adv)}
+
+  /* 图文两栏 */
+  .split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:24px;align-items:start;margin:20px 0 0}
+  @media(max-width:900px){.split{grid-template-columns:1fr}}
+  .split figure{margin:0}
+  .split.narrow{grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr)}
+  figure.solo{margin:22px 0 0}
+  figure.mid{max-width:480px;margin:22px auto 0}
+  .body{max-width:900px}
+  .twocol{columns:2;column-gap:40px}
+  .twocol li{break-inside:avoid}
+
+  ul.tight{margin:10px 0;padding-left:0;list-style:none}
+  ul.tight li{position:relative;padding-left:20px;margin:7px 0;font-size:13.8px;color:#3a3934}
+  ul.tight li:before{content:"";position:absolute;left:5px;top:10px;width:5px;height:5px;
+    border-radius:50%;background:#c3bfb4}
+  ul.tight li b{font-weight:620;color:var(--ink)}
+  ul.tight li code,td code{font:12px/1.5 ui-monospace,Menlo,monospace;color:#7a776f}
+
+  ol.read{margin:12px 0;padding:0;list-style:none;counter-reset:r}
+  ol.read li{counter-increment:r;position:relative;padding-left:30px;margin:10px 0;font-size:13.8px}
+  ol.read li:before{content:counter(r);position:absolute;left:0;top:1px;width:19px;height:19px;
+    border-radius:50%;background:var(--soft);border:1px solid var(--line);color:var(--dim);
+    font:11.5px/17px ui-monospace,Menlo,monospace;text-align:center}
+  ol.read li b{font-weight:620}
+
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13.5px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th:nth-child(3),td:nth-child(3){white-space:nowrap}
+  th{font-weight:600;font-size:12.5px;color:var(--dim);background:#faf9f7;border-top:1px solid var(--line)}
+  td:first-child{white-space:nowrap}
+
+  /* 状态卡 */
+  .states{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0 0}
+  @media(max-width:900px){.states{grid-template-columns:1fr}}
+  .state{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 14px}
+  .state .tag{display:inline-block;font-size:11.5px;border-radius:20px;padding:1px 9px;border:1px solid;margin-bottom:6px}
+  .tag.ok{color:var(--must);border-color:#bcd8c8;background:#eef6f1}
+  .tag.bad{color:var(--bad);border-color:#e8c3bf;background:#fcf0ef}
+  .tag.warn{color:#8a4a12;border-color:#f0e0c6;background:#fdf6ec}
+  .state b{display:block;font-size:13.5px;margin-bottom:3px}
+  .state p{margin:0;font-size:12.5px;color:var(--dim);line-height:1.6}
+
+  /* 六步 */
+  .steps{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:22px 0 0}
+  @media(max-width:900px){.steps{grid-template-columns:repeat(2,1fr)}}
+  .step{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 12px;position:relative}
+  .step .n{font:11px/1 ui-monospace,Menlo,monospace;color:#fff;background:var(--brand);border-radius:5px;
+    padding:3px 5px;display:inline-block;margin-bottom:7px}
+  .step b{display:block;font-size:13px;line-height:1.45}
+  .step p{margin:4px 0 0;font-size:11.8px;color:var(--dim);line-height:1.55}
+
+
+  .callout{border-left:3px solid var(--adv);background:#fdfaf3;border-radius:0 8px 8px 0;
+    padding:11px 15px;margin:16px 0;font-size:13.5px;color:#5c4a1c}
+  .callout.bad{border-left-color:#d8b4b0;background:#fdf4f3;color:#7a3a34}
+  .callout.plain{border-left-color:#cfccc2;background:#faf9f7;color:#4a4944}
+  .callout b{font-weight:640}
+
+  footer{margin-top:60px;padding-top:18px;border-top:1px solid var(--line);color:var(--faint);font-size:12px}
+  @media print{body{background:#fff}nav.toc,.step:after{display:none}section{page-break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top">
+  <h1>需求<span>→</span>项目卡<small style="font-size:13px;color:#a3a099;font-weight:400;margin-left:12px">使用说明</small></h1>
+  <p class="lede">你说一句大白话，它摊开「要哪几格」；你打钩挑方案，它检查能不能接上。看这份说明大概 5 分钟，之后你会知道每一处该点哪里、什么时候该停手。</p>
+  <p class="meta">打开方式 <code>open arch/planner.html</code> ／ 单文件、可离线、可直接发人</p>
+  <nav class="toc">
+    <a href="#zones">四处区域</a>
+    <a href="#ask">① 写需求</a>
+    <a href="#cards">② 读卡片</a>
+    <a href="#check">③ 看检查</a>
+    <a href="#seq">④ 照顺序做</a>
+    <a href="#flow">六步操作</a>
+    <a href="#pit">四个坑</a>
+  </nav>
+</header>
+
+<figure>
+  <img src="{{IMG_FULL}}" alt="界面首屏">
+  <figcaption>打开时的样子。默认已经填好「拍照记账」这个例子，所以一进来就有内容，不用先想需求。</figcaption>
+</figure>
+
+<section id="zones">
+  <h2><i>0</i> 界面分四块 <small>先认地方，再谈操作</small></h2>
+  <p class="lead">左边是你做决定的地方，右边是它给结论的地方。所有交互只有一种：<b>打钩</b>和<b>点方案</b>，其余都是只读。</p>
+  <div class="zones">
+    <div class="zone z1"><span class="n">01</span><b>输入区</b><p>一个大白话输入框 + 生成按钮 + 三个示例。改需求就在这里改。</p><div class="bar"></div></div>
+    <div class="zone z2"><span class="n">02</span><b>卡片区（左）</b><p>摊开的 7–14 格，按必选／建议／看情况分三档。勾选框和方案标签在这里。</p><div class="bar"></div></div>
+    <div class="zone z3"><span class="n">03</span><b>连通检查（右上）</b><p>能不能开工，只看这一块。红字就是不能开工。</p><div class="bar"></div></div>
+    <div class="zone z4"><span class="n">04</span><b>施工顺序 + 库外（右下）</b><p>先做什么；以及这个库管不到、得你自己找方案的部分。</p><div class="bar"></div></div>
+  </div>
+</section>
+
+<section id="ask">
+  <h2><i>1</i> 写需求 <small>一句话就够，别写成需求文档</small></h2>
+  <p class="lead">说「拿什么进来、变成什么出去、什么时候发生」。右侧虚线小标签是五个内置示例，点一下直接填进去。</p>
+  <figure class="solo">
+    <img src="{{IMG_ASK}}" alt="输入区">
+    <figcaption>输入区 + 统计行。统计行读法：<code>7 必选 · 0 建议 · 2 看情况</code>，后面跟「最少 7 格能跑 · 推荐 7 格」。</figcaption>
+  </figure>
+  <div class="body">
+    <ul class="tight twocol">
+      <li><b>怎么写</b>　拿什么进来、变成什么出去、什么时候发生。例如「拍小票 → 认出金额 → 记进账本 → 按月出统计」。</li>
+      <li><b>不用写</b>　技术栈、要不要用向量库、部署在哪。这些是后面挑方案时的事。</li>
+      <li><b>生成项目卡</b>　重新算一遍，也可按 <code>⌘/Ctrl + Enter</code>。</li>
+      <li><b>只留必选</b>　一键回到最小可跑，建议和看情况全部取消勾选。</li>
+      <li><b>全开</b>　全勾上，用来看「全量做会多出什么」。</li>
+      <li><b>示例</b>　拍照记账／生活助手／仓库管理／行业研究／互传文件，五个够覆盖常见类型。</li>
+    </ul>
+    <p class="note">需求写得长不会更准。它靠关键词命中，句子里塞太多东西反而会多勾出不相干的格子。</p>
+  </div>
+</section>
+
+<section id="cards">
+  <h2><i>2</i> 读卡片 <small>一张卡五层，从上往下读</small></h2>
+  <p class="lead">每格都是一张卡。能不能接上、该选哪个方案，答案全在卡上。以「文档识别」这张为例：</p>
+
+  <figure class="solo">
+    <img src="{{IMG_CARD}}" alt="一张模块卡">
+    <figcaption>一张卡。深色的方案标签是当前选中的，点另一个就换；灰字 <code>oss/commercial/build/pattern</code> 是方案类型。</figcaption>
+  </figure>
+  <div class="body" style="max-width:900px;margin:0 auto">
+    <ol class="read">
+      <li><b>勾选框</b>　这一格要不要。取消后卡片变灰，右侧立刻重算。</li>
+      <li><b>中文名 + 编号</b>　编号是库里的身份证，如 <code>ai.office.ocr</code>。跟人讨论用中文名，查资料用编号。</li>
+      <li><b>一句话说明</b>　这格到底干什么活 ——「扫描件、表格、公式、手写，把图变成结构化文本」。</li>
+      <li><b>进 / 出</b>　<span style="color:var(--must)">最重要的一行</span>。进＝它需要什么才能开工，出＝它交付什么。整张卡能不能连通，就是靠这一行连线。</li>
+      <li><b>方案标签</b>　每格 2–4 个候选，第一个默认选中。小字类型：<code>oss</code> 开源、<code>commercial</code> 商用、<code>build</code> AI 自研、<code>pattern</code> 零依赖做法。<code>+1</code> 表示还有 1 个没摊出来。</li>
+    </ol>
+  </div>
+
+  <h3>三档不是按重要程度分的，是按「去掉会怎样」分的</h3>
+  <table>
+    <thead><tr><th>档位</th><th>含义</th><th>默认</th><th>取消的后果</th></tr></thead>
+    <tbody>
+      <tr><td><b style="color:var(--must)">必选</b></td><td>需求直接推出来的格子</td><td>勾上</td><td>功能缺一块，右侧给黄字警告（<b>不一定报错</b>）</td></tr>
+      <tr><td><b style="color:var(--adv)">建议</b></td><td>引擎为了让线接上而自动带进来的依赖格，外加两条架构常识：产出了记录就得有人存，产出了内容就得有人看得见</td><td>勾上</td><td>多数会变成红字断点</td></tr>
+      <tr><td><b style="color:var(--opt)">看情况</b></td><td>只沾一点边，做不做由你定</td><td>不勾</td><td>不影响连通，只是少一项功能</td></tr>
+    </tbody>
+  </table>
+
+  <h3>「看情况」这一档长这样</h3>
+  <figure class="solo">
+    <img src="{{IMG_OPT}}" alt="看情况档">
+    <figcaption>仓库管理需求里的「看情况」组：只有一格，执行主循环。默认灰着不勾。</figcaption>
+  </figure>
+  <div class="body">
+    <p>判据是固定的：<b>弱词沾到</b>的进这一档，最多补几格，而且永远不会被升级成必选。它的作用是「你可能想要，但我不能替你决定」。</p>
+    <p class="note">拿不准就保持不勾。它能进这档，说明少了它这个项目也立得住。</p>
+  </div>
+</section>
+
+<section id="check">
+  <h2><i>3</i> 看检查 <small>三种状态，只有绿色能开工</small></h2>
+  <p class="lead">右上角这块是唯一的判断依据。它检查三件事：<b>每格要的输入有没有人产出</b>（断点）、<b>产出的东西有没有人去接</b>（白做）、<b>你取消的必选格</b>。下面三种状态，只有绿色能开工。</p>
+
+  <figure class="mid">
+    <img src="{{IMG_BREAK}}" alt="断点">
+    <figcaption>红色状态：行业研究需求里取消了「文档入库」，于是「向量检索」要的文本片段没人产出。</figcaption>
+  </figure>
+
+  <div class="states">
+    <div class="state">
+      <span class="tag ok">全通</span>
+      <b>可以开工</b>
+      <p>「✓ 7 格、11 条线都能接上」。数字是格数和接口连线数，不是工作量。</p>
+    </div>
+    <div class="state">
+      <span class="tag bad">N 处断点</span>
+      <b>不能开工</b>
+      <p>逐条写「谁需要什么、勾选里没人产出」，下面一行「补：」直接说该加哪几格。</p>
+    </div>
+    <div class="state">
+      <span class="tag warn">黄字警告</span>
+      <b>能跑，但缺功能</b>
+      <p>取消必选格不一定断线（内存里也能跑），所以单独报警 —— 这种缺口最难自己发现。</p>
+    </div>
+  </div>
+
+  <div class="callout">
+    <b>断点怎么读：</b>上图那条是「行业研究」需求里取消了「文档入库」，于是<b>向量检索</b>要的「文本片段」没人产出。
+    重点不是记住这个例子，而是习惯动作 —— <b>看到红字，只看「补：」后面那几格，加上就完了</b>，不用去理解为什么。
+  </div>
+
+  <h3>还有两种提示，都在同一块里</h3>
+  <ul class="tight">
+    <li><b>⚠ 有几样东西做出来没去处</b>　产出了结果，却既没有界面、也没有发布、也没有消息通道把它交出去。做了等于白做，通常补一格「界面呈现」就好。</li>
+    <li><b>0 格命中</b>　这句需求落在库的能力范围外，左侧不出卡。见下。</li>
+  </ul>
+
+  <div class="split narrow" style="margin-top:22px">
+    <figure>
+      <img src="{{IMG_ZERO}}" alt="0 格">
+      <figcaption>「局域网互传文件」这条需求不出任何卡 —— 库确实不管文件传输。</figcaption>
+    </figure>
+    <div>
+      <h3 style="margin-top:0">0 格不是故障，是边界</h3>
+      <p>本库只覆盖 AI 软件那一半：内容生成、知识库、智能体、文档处理，加上它们需要的地基（存数据、账号、界面）。</p>
+      <p class="note">判断方法：右侧「库外」如果写了这件事实在怎么做，就是真的不在范围；如果库外也是空的、只是关键词没被认出来，那换个说法就能出卡。</p>
+    </div>
+  </div>
+</section>
+
+<section id="seq">
+  <h2><i>4</i> 照顺序做 <small>右下的两块，一个管先后，一个管边界</small></h2>
+  <div class="split narrow">
+    <figure>
+      <img src="{{IMG_SIDE}}" alt="施工顺序与库外">
+      <figcaption>上半是施工顺序，下半是「库外」——这个库不管、要你自己找方案的事。</figcaption>
+    </figure>
+    <div>
+      <h3 style="margin-top:0">施工顺序</h3>
+      <p>按「输入是否就绪」排的，不是按重要性。拍照记账这一单是：</p>
+      <p style="font-size:13px;color:var(--dim);line-height:2">
+        文档识别 → 摘要与抽取 → 表格与数据 → 数据存储 → 对话内核 → 模型网关 → 界面呈现
+      </p>
+      <p class="note">先做能吃进原始数据的，再做要等上游的。跳过顺序做的代价是：你写的代码没有真数据可测。</p>
+
+      <h3>库外</h3>
+      <p>橙色块里的东西，本库<b>明确不管</b>，只给替代做法。上面这张卡里是「可视化图表 —— ECharts / 前端 BI；表格模块只到「出图」，到不了「看板」」。</p>
+      <p class="note">看到这块不要忽略：它决定了这个项目有多少工作量在库外。</p>
+    </div>
+  </div>
+</section>
+
+<section id="flow">
+  <h2><i>5</i> 六步操作 <small>大概十分钟走完一张卡</small></h2>
+  <div class="steps">
+    <div class="step"><span class="n">01</span><b>写一句需求</b><p>或点一个示例</p></div>
+    <div class="step"><span class="n">02</span><b>生成项目卡</b><p>看统计行的格数</p></div>
+    <div class="step"><span class="n">03</span><b>读必选，不动它</b><p>逐张读「干什么 / 进 / 出」</p></div>
+    <div class="step"><span class="n">04</span><b>挑「看情况」</b><p>想清楚再勾</p></div>
+    <div class="step"><span class="n">05</span><b>每格点一个方案</b><p>不点就是默认第一个</p></div>
+    <div class="step"><span class="n">06</span><b>等右侧变绿</b><p>红的就补，绿了就开工</p></div>
+  </div>
+  <p style="margin-top:18px;font-size:13.8px;color:#3a3934">
+    第 3 步是最值钱的一步。<b>把必选那几张卡的「干什么」连着读一遍，你会得到这个项目的骨架</b>——比看任何需求文档都快。
+    第 6 步是硬门槛：<b>只要还是红字，就不要动手写代码</b>。
+  </p>
+</section>
+
+<section id="pit">
+  <h2><i>6</i> 四个坑 <small>都是实测踩出来的</small></h2>
+
+  <div class="callout bad">
+    <b>① 它靠关键词，不是语义理解。</b>「仓库管理」曾经命中知识库的「库管理」；「图片」曾经被当成「生成图片」。
+    现在词表里换成了不歧义的长词，但同类问题还会出现。说法太偏就给 0 格 —— 这是匹配没中，不是做不了，换个说法重试。
+  </div>
+  <div class="callout bad">
+    <b>② 方案标签没标许可。</b><code>oss</code> 只代表「代码公开」，不代表能商用（有的项目是 Sustainable Use、AGPL、或者「开源核心 + 付费企业版」）。真上线前自己看一眼协议。
+  </div>
+  <div class="callout bad">
+    <b>③ 取消必选格，多数时候不报错。</b>它只是功能缺一块。所以别指望右侧拦你 —— 黄色那行字是唯一的提醒。
+  </div>
+  <div class="callout plain">
+    <b>④ 这里只管 AI 那一半。</b>仓库管理的进出存、财务对账、权限矩阵的细粒度，都不在这个库里。它给你的是「哪几格需要 AI、AI 接在哪」。
+  </div>
+
+  <h3>它不做什么</h3>
+  <ul class="tight">
+    <li>不生成代码。它出的是<b>格子清单 + 方案选型 + 接口连通性 + 施工顺序</b>。</li>
+    <li>不估算工期和成本。格数不等于人日，一格「账号与权限」可能比九格加起来都费劲。</li>
+    <li>不替你决定要不要做「看情况」那些格。</li>
+  </ul>
+</section>
+
+<footer>
+  需求 → 项目卡 · 说明页由 <code style="font-family:ui-monospace,Menlo,monospace">arch/make_guide.py</code> 从界面实拍生成，截图随版本更新。
+</footer>
+
+</div>
+</body>
+</html>
