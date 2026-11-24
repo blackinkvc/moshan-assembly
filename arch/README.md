@@ -27,7 +27,8 @@
 ## 两个方向
 
 - 拆：已知软件 → 拼了哪几格（`arch.json` 的 products）
-- 推：一句话需求 → 该拼哪几格（`match.py`，见 `MATCH.md`）
+- 推：一句话需求 → 该拼哪几格（`match.py`）→ 摊成三档让人挑、检查能不能接上（`base.py`）→ 网页版（`base.py --html`）
+  方法与实测见 `MATCH.md`，接口基板见 `wires.py`
 
 ## 200 个软件从哪来
 

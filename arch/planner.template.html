@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>墨山 · 需求 → 项目卡</title>
+<style>
+  :root{
+    --bg:#fbfbfa; --panel:#fff; --line:#e6e4df; --ink:#1d1d1b; --dim:#6b6a66;
+    --must:#2f6f4e; --adv:#8a6d1f; --opt:#6b6a66; --bad:#b3261e; --ok:#2f6f4e;
+    --soft:#f4f2ee; --brand:#3c3a35;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+  a{color:inherit}
+  header{padding:22px 26px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+  h1{margin:0;font-size:18px;letter-spacing:.2px}
+  h1 small{font-weight:400;font-size:12px;color:var(--dim);margin-left:10px}
+  .sub{margin:6px 0 0;color:var(--dim);font-size:12.5px;max-width:860px}
+  main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px;padding:18px 26px 60px;align-items:start}
+  @media (max-width:980px){main{grid-template-columns:1fr}}
+  .ask{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+  textarea{width:100%;min-height:76px;resize:vertical;border:1px solid var(--line);border-radius:8px;
+    padding:10px 12px;font:inherit;background:#fff;outline:none}
+  textarea:focus{border-color:#b9b5ab;box-shadow:0 0 0 3px #f0eee8}
+  .row{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+  button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--soft);
+    padding:6px 12px;color:var(--ink)}
+  button:hover{background:#eeece6}
+  button.main{background:var(--brand);color:#fff;border-color:var(--brand)}
+  button.main:hover{background:#2b2a26}
+  button.ghost{background:transparent}
+  .egs{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+  .egs span{font-size:12px;color:var(--dim)}
+  .chip{font-size:12px;border:1px dashed var(--line);border-radius:20px;padding:2px 9px;color:var(--dim);cursor:pointer;background:#fff}
+  .chip:hover{color:var(--ink);border-color:#ccc6ba}
+  .stat{display:flex;gap:16px;margin:14px 0 0;font-size:12.5px;color:var(--dim);flex-wrap:wrap}
+  .stat b{color:var(--ink);font-size:15px;margin-right:3px}
+  .stat .k1 b{color:var(--must)} .stat .k2 b{color:var(--adv)} .stat .k3 b{color:var(--opt)}
+  .group{margin-top:18px}
+  .gt{display:flex;align-items:baseline;gap:8px;margin:0 0 8px;font-size:13px;font-weight:600}
+  .gt i{font-style:normal;font-size:11.5px;font-weight:400;color:var(--dim)}
+  .gt .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;
+    display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px;transition:border-color .15s,background .15s}
+  .card:hover{border-color:#d5d1c7}
+  .card.off{background:#faf9f6;opacity:.62}
+  .card input{margin:3px 0 0;width:15px;height:15px;accent-color:#3c3a35}
+  .nm{font-weight:600;font-size:13.5px}
+  .cid{font:11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;color:#a3a099;margin-left:6px}
+  .ab{color:#4a4944;font-size:12.5px;margin-top:1px}
+  .io{font-size:11.5px;color:var(--dim);margin-top:4px}
+  .io b{font-weight:500;color:#57554f}
+  .prov{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
+  .pv{font-size:11.5px;border:1px solid var(--line);border-radius:6px;padding:1px 7px;color:#4a4944;background:#fff;cursor:pointer}
+  .pv:hover{border-color:#c3bfb4}
+  .pv.sel{border-color:var(--brand);background:var(--brand);color:#fff}
+  .pv.sel i{color:#c8c4ba}
+  .pv i{font-style:normal;color:#a3a099;margin-left:4px;font-size:10.5px}
+  aside{position:sticky;top:18px;display:flex;flex-direction:column;gap:12px}
+  .box{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .bh{font-size:12.5px;font-weight:600;letter-spacing:.3px;margin:0 0 8px;display:flex;align-items:center;gap:6px}
+  .badge{font-size:11.5px;border-radius:20px;padding:2px 9px;border:1px solid}
+  .badge.ok{color:var(--ok);border-color:#bcd8c8;background:#eef6f1}
+  .badge.bad{color:var(--bad);border-color:#e8c3bf;background:#fcf0ef}
+  .brk{border-left:2px solid #e8c3bf;padding:2px 0 2px 9px;margin:8px 0;font-size:12.5px}
+  .brk b{font-weight:600}
+  .brk .fix{color:var(--dim);font-size:12px;margin-top:2px}
+  .brk .fix em{font-style:normal;color:#2f6f4e}
+  ol.seq{margin:0;padding-left:20px;font-size:12.5px}
+  ol.seq li{margin:3px 0}
+  ol.seq li small{color:#a3a099;font-size:11px;margin-left:5px}
+  .gap{font-size:12px;color:#8a4a12;background:#fdf6ec;border:1px solid #f0e0c6;border-radius:8px;padding:7px 9px;margin-top:6px}
+  .warn{font-size:12px;color:#8a4a12;background:#fdf6ec;border:1px solid #f0e0c6;border-radius:8px;padding:7px 9px;margin:6px 0}
+  .empty{color:var(--dim);font-size:12.5px}
+  .hint{font-size:11.5px;color:#a3a099;margin-top:8px}
+  footer{padding:0 26px 40px;color:#a3a099;font-size:11.5px}
+</style>
+</head>
+<body>
+<header>
+  <h1>需求 → 项目卡 <small>说一句话，摊开要哪几格；勾完检查能不能接上</small></h1>
+  <p class="sub">每格都写清「干什么、吃什么、吐什么」。必选去掉就做不成，建议不勾某条线会断，看情况默认不勾。勾完看右边——断在哪、该补哪格、按什么顺序做。</p>
+</header>
+
+<main>
+  <section>
+    <div class="ask">
+      <textarea id="need" placeholder="用大白话说你想做什么。例：拍一张小票照片，自动识别金额，记到账本里，按月出统计"></textarea>
+      <div class="row">
+        <button class="main" id="go">生成项目卡</button>
+        <button class="ghost" id="onlyMust">只留必选</button>
+        <button class="ghost" id="allOn">全开</button>
+        <div class="egs">
+          <span>试试：</span>
+          <span class="chip" data-q="拍一张小票照片，自动识别金额和商品名，记到账本里，按月出统计图表，还能问这个月买菜花了多少">拍照记账</span>
+          <span class="chip" data-q="我想做个个人生活助手，记录每天的饮食、睡眠和心情，到点提醒我喝水睡觉，每周给我一份总结">生活助手</span>
+          <span class="chip" data-q="公司仓库管理：商品库存入库出库，扫码枪扫条码，库存低于阈值自动提醒补货，每月出报表，同事各自登录有权限">仓库管理</span>
+          <span class="chip" data-q="我们做行业研究，要收集研报、公告和新闻，建成知识库能问答，自动写出带引用的行业分析报告，团队共享">行业研究</span>
+          <span class="chip" data-q="局域网内手机和电脑互传文件，扫码就能传，不用登录，大文件也不卡">互传文件</span>
+        </div>
+      </div>
+      <div class="stat" id="stat"></div>
+    </div>
+    <div id="card"></div>
+  </section>
+
+  <aside>
+    <div class="box" id="checkBox">
+      <div class="bh">连通检查 <span id="badge"></span></div>
+      <div id="checkBody"><div class="empty">先在上面写一句需求。</div></div>
+    </div>
+    <div class="box">
+      <div class="bh">施工顺序</div>
+      <div id="seqBox"><div class="empty">—</div></div>
+    </div>
+    <div id="gapBox"></div>
+  </aside>
+</main>
+
+<footer>基板：10 种接口（文本 / 原始文件 / 片段 / 向量 / 记录 / 产物文件 / 事件 / 会话 / 界面 / 外部动作）。每格声明「要什么、给什么」，每一格要的输入必须有人产出，否则算断点。</footer>
+
+<script>
+const D = /*__DATA__*/null;
+const byId = {}; D.comps.forEach(c => byId[c.id] = c);
+const W = D.wire, TC = D.typeCn;
+const pad2 = n => (n < 10 ? "0" + n : "" + n);
+
+/* ---------- 需求解析（与 arch/match.py 同序） ---------- */
+const norm = s => s.toLowerCase().replace(/[\s,，。；;、！!？?（）()【】\[\]「」“”"'—\-]+/g, "");
+function hit(t, w) {
+  w = norm(w);
+  let i = t.indexOf(w);
+  while (i >= 0) {
+    const pre = t.slice(Math.max(0, i - 3), i);
+    if (!D.neg.some(n => pre.includes(n))) return true;
+    i = t.indexOf(w, i + 1);
+  }
+  return false;
+}
+function matchNeed(need) {
+  const t = norm(need), score = {}, why = {};
+  const add = (cid, w, r) => {
+    if (!byId[cid]) return;
+    score[cid] = (score[cid] || 0) + w;
+    (why[cid] = why[cid] || []).push(r);
+  };
+  for (const cid in D.trig) {
+    const [st, wk] = D.trig[cid];
+    const ns = st.filter(w => hit(t, w));
+    if (ns.length) { add(cid, 3 * Math.min(ns.length, 3), "命中「" + ns.slice(0, 3).join("、") + "」"); continue; }
+    const nw = wk.filter(w => hit(t, w));
+    if (nw.length) add(cid, 1, "沾到「" + nw.slice(0, 2).join("、") + "」");
+  }
+  const scen = [];
+  for (const [label, words, mods] of D.scen) {
+    const ns = words.filter(w => hit(t, w));
+    if (!ns.length) continue;
+    scen.push(label);
+    mods.forEach(c => add(c, 5, "场景「" + label + "」"));
+  }
+  const prefs = {};
+  for (const k in D.cons) { const v = D.cons[k].filter(w => hit(t, w)); if (v.length) prefs[k] = v; }
+
+  let must = [], opt = [];
+  for (const cid in score) (score[cid] >= 3 ? must : opt).push(cid);
+  const pulled = {}, q = [...must];
+  while (q.length) {
+    const cid = q.shift();
+    for (const dep of (D.req[cid] || [])) {
+      if (must.includes(dep) || !byId[dep]) continue;
+      must.push(dep); pulled[dep] = cid; q.push(dep);
+    }
+  }
+  const aiSelected = must.some(c => byId[c] && !["app", "ai.deliver", "ai.model"].includes(byId[c].dom));
+  if (aiSelected && !must.includes("ai.model.gateway") && byId["ai.model.gateway"]) {
+    must.push("ai.model.gateway"); pulled["ai.model.gateway"] = "AI 域兜底";
+  }
+  opt = opt.filter(c => !must.includes(c)).sort((x, y) => score[y] - score[x]);
+
+  // 三档（含「需求没明说但必然要有」的隐含格）
+  const core = [], rec = [], gapList = [];
+  const giv = new Set(); must.forEach(c => (W[c] || [null, []])[1].forEach(x => giv.add(x)));
+  if (giv.has("R") && !must.includes("app.data") && byId["app.data"]) rec.push("app.data");
+  if ((giv.has("T") || giv.has("R") || giv.has("F")) && !giv.has("X") && !must.includes("app.ui") && byId["app.ui"]) rec.push("app.ui");
+  must.forEach(cid => {
+    if (pulled[cid]) (cid === "ai.model.gateway" ? core : rec).push(cid);
+    else core.push(cid);
+  });
+  const scene = opt.slice(0, Math.max(0, 14 - core.length - rec.length));
+  const uniq = a => [...new Set(a)];
+  const gaps = [];
+  D.gap.forEach(([words, name, how]) => { if (words.some(w => hit(t, w))) gaps.push([name, how]); });
+  return { core: uniq(core), rec: uniq(rec), scene: uniq(scene), scen, score, why, gaps, prefs };
+}
+
+/* ---------- 连通检查 ---------- */
+function check(picks) {
+  const given = {};
+  picks.forEach(c => (W[c] || [null, []])[1].forEach(x => (given[x] = given[x] || []).push(c)));
+  const breaks = [];
+  picks.forEach(cid => {
+    if (cid === "app.ui") return;               // 界面自己就是入口
+    const needs = (W[cid] || [[], []])[0];
+    needs.forEach(grp => {
+      const ok = grp.some(x => D.ext.includes(x) || (given[x] || []).some(o => o !== cid));
+      if (!ok) {
+        const fix = [];
+        grp.forEach(x => (D.patch[x] || []).forEach(p => { if (!picks.includes(p) && byId[p]) fix.push(byId[p].name); }));
+        breaks.push({ who: byId[cid].name, cid, need: grp.map(x => TC[x]).join("或"), fix: fix.slice(0, 3) });
+      }
+    });
+  });
+  // 拓扑：每轮挑输入已满足的，同轮按「产出被依赖次数」降序
+  const done = new Set(), order = [];   // done 存类型
+  let pool = [...picks];
+  while (pool.length) {
+    let ready = pool.filter(cid => cid === "app.ui" || (W[cid] || [[], []])[0].every(grp =>
+      grp.some(x => D.ext.includes(x) || done.has(x))));
+    if (!ready.length) { order.push(...pool); break; }
+    const used = cid => {
+      const outs = (W[cid] || [null, []])[1].filter(x => !["T", "S", "E"].includes(x));
+      return picks.filter(o => o !== cid && (W[o] || [[], []])[0].some(g => g.some(x => outs.includes(x)))).length;
+    };
+    ready.sort((x, y) => {
+      const a = (W[x] || [[], []])[0].length ? 1 : 0, b = (W[y] || [[], []])[0].length ? 1 : 0;
+      if (a !== b) return a - b;
+      const d = used(y) - used(x); if (d) return d;
+      return D.domOrder.indexOf(byId[x].dom) - D.domOrder.indexOf(byId[y].dom);
+    });
+    order.push(...ready);
+    ready.forEach(c => (W[c] || [null, []])[1].forEach(x => done.add(x)));
+    pool = pool.filter(c => !ready.includes(c));
+  }
+  // 出口检查：产出的东西没有任何一格消费，也没有界面/文件/消息把它交出去
+  const dead = [];
+  picks.forEach(cid => {
+    if (cid.startsWith("ai.deliver") || cid === "app.ui") return;
+    (W[cid] || [null, []])[1].forEach(x => {
+      if (["X", "Q", "E", "S"].includes(x)) return;
+      const used = picks.some(o => o !== cid && (W[o] || [[], []])[0].some(g => g.includes(x)));
+      if (!used) dead.push({ who: byId[cid].name, type: TC[x] });
+    });
+  });
+  const lines = Object.values(given).reduce((n, v) => n + v.length, 0);
+  return { breaks, order, lines, dead };
+}
+
+/* ---------- 渲染 ---------- */
+let COV = null, SELS = {};
+const el = (t, cls, html) => { const n = document.createElement(t); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const ioOf = cid => {
+  const [needs, gives] = W[cid] || [[], []];
+  const ins = cid === "app.ui" ? "（自己就是入口）" : (!needs.length ? "（不需要输入）" :
+    needs.map(g => g.map(x => TC[x]).join("+")).join(" 或 "));
+  const outs = gives.length ? gives.map(x => TC[x]).join(" + ") : "（无产出）";
+  return [ins, outs];
+};
+
+function drawCard() {
+  const box = document.getElementById("card");
+  box.innerHTML = "";
+  if (!COV) return;
+  const tiers = [
+    ["必选", "去掉就做不成", COV.core, "var(--must)", true],
+    ["建议", "引擎为了让线通自动带的，不勾这条线会断", COV.rec, "var(--adv)", true],
+    ["看情况", "沾边，你要不要？默认不勾", COV.scene, "var(--opt)", false],
+  ];
+  tiers.forEach(([name, hint, ids, color, on]) => {
+    if (!ids.length) return;
+    const g = el("div", "group");
+    g.appendChild(el("div", "gt",
+      `<span class="dot" style="background:${color}"></span>${name}<i>${ids.length} 格 · ${hint}</i>`));
+    ids.forEach(cid => g.appendChild(cardOf(cid, on)));
+    box.appendChild(g);
+  });
+  if (!COV.core.length && !COV.rec.length && !COV.scene.length) {
+    const e = el("div", "box");
+    e.style.marginTop = "18px";
+    e.innerHTML = `<div class="bh">没有对应的能力格</div>
+      <div class="empty">这句需求落在库的能力范围外。先看右边「库外」——那里写了这类事通常怎么做；
+      如果关键词没被认出来（比如方言说法、行业内部叫法），把需求换成「要做什么 + 输入是什么 + 产出是什么」再试一次。</div>`;
+    box.appendChild(e);
+  }
+  const st = document.getElementById("stat");
+  if (!COV.core.length && !COV.rec.length && !COV.scene.length) { st.innerHTML = '<span>0 格命中</span>'; return; }
+  st.innerHTML = `<span class="k1"><b>${COV.core.length}</b>必选</span>
+    <span class="k2"><b>${COV.rec.length}</b>建议</span>
+    <span class="k3"><b>${COV.scene.length}</b>看情况</span>
+    <span>最少 <b>${COV.core.length}</b> 格能跑 · 推荐 <b>${COV.core.length + COV.rec.length}</b> 格</span>`;
+}
+
+function cardOf(cid, on) {
+  const c = byId[cid], [ins, outs] = ioOf(cid);
+  const wrap = el("div", "card" + (on ? "" : " off"));
+  const cb = el("input"); cb.type = "checkbox"; cb.checked = on; cb.dataset.cid = cid;
+  const body = el("div");
+  body.innerHTML = `<div><span class="nm">${esc(c.name)}</span><span class="cid">${cid}</span></div>
+    <div class="ab">${esc(c.abstract)}</div>
+    <div class="io"><b>进</b> ${esc(ins)} &nbsp;→&nbsp; <b>出</b> ${esc(outs)}</div>`;
+  const pv = el("div", "prov");
+  (c.providers || []).forEach((p, i) => {
+    const s = el("span", "pv" + (SELS[cid] === p.n || (!SELS[cid] && i === 0) ? " sel" : ""),
+      esc(p.n) + `<i>${esc(p.k)}</i>`);
+    s.onclick = () => { SELS[cid] = p.n; [...pv.children].forEach(x => x.classList.remove("sel")); s.classList.add("sel"); };
+    pv.appendChild(s);
+  });
+  if ((c.np || 0) > (c.providers || []).length) pv.appendChild(el("span", "pv", `+${c.np - c.providers.length}`));
+  body.appendChild(pv);
+  cb.onchange = () => { wrap.classList.toggle("off", !cb.checked); runCheck(); };
+  wrap.appendChild(cb); wrap.appendChild(body);
+  return wrap;
+}
+
+function runCheck() {
+  const picks = [...document.querySelectorAll("#card input:checked")].map(i => i.dataset.cid);
+  const badge = document.getElementById("badge"), body = document.getElementById("checkBody");
+  const seq = document.getElementById("seqBox");
+  if (!picks.length) {
+    badge.className = "badge"; badge.textContent = "";
+    body.innerHTML = '<div class="empty">没勾任何格。</div>'; seq.innerHTML = '<div class="empty">—</div>';
+    return;
+  }
+  const r = check(picks);
+  const offMust = COV ? COV.core.filter(c => !picks.includes(c)) : [];
+  badge.className = "badge " + (r.breaks.length ? "bad" : "ok");
+  badge.textContent = r.breaks.length ? `${r.breaks.length} 处断点` : "全通";
+  let html = "";
+  if (offMust.length) {
+    html += `<div class="warn">⚠ 你取消了必选格：<b>${offMust.map(c => esc(byId[c].name)).join("、")}</b>
+      ——它们不在，功能会缺一块，只是未必表现为「报错」。</div>`;
+  }
+  html += r.breaks.length
+    ? r.breaks.map(b => `<div class="brk"><b>${esc(b.who)}</b> 需要「${esc(b.need)}」，勾选里没人产出
+        ${b.fix.length ? `<div class="fix">补：<em>${b.fix.map(esc).join(" / ")}</em></div>` : ""}</div>`).join("")
+    : `<div class="empty" style="color:#2f6f4e">✓ ${picks.length} 格、${r.lines} 条线都能接上，可以开工。</div>`;
+  if (r.dead.length) {
+    const uniq = [...new Set(r.dead.map(d => d.who + " → " + d.type))];
+    html += `<div class="warn">⚠ 有几样东西做出来没去处：<b>${uniq.slice(0, 3).map(esc).join("、")}</b>
+      ${uniq.length > 3 ? "…" : ""}<br>加一格界面或发布，不然用户看不到。</div>`;
+  }
+  body.innerHTML = html;
+  seq.innerHTML = `<ol class="seq">` + r.order.map(cid =>
+    `<li>${esc(byId[cid].name)}<small>${cid}</small></li>`).join("") + `</ol>`;
+}
+
+function drawGaps() {
+  const box = document.getElementById("gapBox");
+  box.innerHTML = "";
+  if (!COV || !COV.gaps.length) return;
+  const d = el("div", "box");
+  d.appendChild(el("div", "bh", "库外（要自己找方案）"));
+  COV.gaps.forEach(([name, how]) => d.appendChild(el("div", "gap", `<b>${esc(name)}</b><br>${esc(how)}`)));
+  box.appendChild(d);
+}
+
+function go(q) {
+  if (q != null) document.getElementById("need").value = q;
+  const need = document.getElementById("need").value.trim();
+  if (!need) { document.getElementById("need").focus(); return; }
+  SELS = {};
+  COV = matchNeed(need);
+  drawCard(); drawGaps(); runCheck();
+  if (!COV.core.length && !COV.rec.length) {
+    document.getElementById("badge").className = "badge bad";
+    document.getElementById("badge").textContent = "0 格";
+    document.getElementById("checkBody").innerHTML =
+      '<div class="empty">这句需求不在本库能力范围内（本库只管 AI 软件）。看下面「库外」有没有你要的那件事。</div>';
+  }
+}
+
+document.getElementById("go").onclick = () => go();
+document.getElementById("need").addEventListener("keydown", e => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) go(); });
+document.getElementById("onlyMust").onclick = () => {
+  document.querySelectorAll("#card input").forEach(i => {
+    const on = COV && COV.core.includes(i.dataset.cid);
+    i.checked = on; i.closest(".card").classList.toggle("off", !on);
+  });
+  runCheck();
+};
+document.getElementById("allOn").onclick = () => {
+  document.querySelectorAll("#card input").forEach(i => {
+    i.checked = true; i.closest(".card").classList.remove("off");
+  });
+  runCheck();
+};
+document.querySelectorAll(".chip").forEach(c => c.onclick = () => go(c.dataset.q));
+go("拍一张小票照片，自动识别金额和商品名，记到账本里，按月出统计图表，还能问这个月买菜花了多少");
+</script>
+</body>
+</html>
