@@ -43,7 +43,7 @@ def payload(a):
     return {
         "comps": comps,
         "wire": wires.WIRE, "typeCn": wires.TYPE_CN, "ext": list(wires.EXT),
-        "patch": wires.PATCH,
+        "patch": wires.PATCH, "after": wires.AFTER,
         "doms": match.DOM_CN, "domOrder": match.DOM_ORDER, "kindCn": match.KIND_CN,
         "trig": match.TRIG, "scen": match.SCEN, "req": match.REQ,
         "gap": match.GAP, "cons": match.CONS, "neg": list(match.NEG),
