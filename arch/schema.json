@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "墨山架构库 schema（本体 → 模块 → 子模块）",
+  "type": "object",
+  "required": ["spec", "updated", "components", "products"],
+  "additionalProperties": false,
+  "properties": {
+    "spec": { "type": "string", "const": "moshan-arch/1" },
+    "updated": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "note": { "type": "string" },
+
+    "components": {
+      "type": "array",
+      "description": "可复用模块库。层级靠 parent 串起来，level 由 parent 推出来，不靠人填。",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "kind", "abstract", "note", "providers"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9.\\-]{1,48}$" },
+          "name": { "type": "string", "minLength": 2, "maxLength": 18 },
+          "kind": {
+            "enum": ["domain", "module", "part"],
+            "description": "domain=本体域（再往下就是模块）；module=可独立选型的模块；part=模块内部的一步"
+          },
+          "parent": { "type": ["string", "null"], "description": "上位 id；本体为 null" },
+          "abstract": { "type": "string", "minLength": 8, "maxLength": 60, "description": "一句话它是什么，控制在 60 字内" },
+          "note": { "type": "string", "minLength": 40, "description": "详细注释：解决什么问题、何时需要、何时不需要、常见坑。至少 40 字" },
+          "io": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "连线约定：这一环吃什么、吐什么。决定两个模块能不能接在一起",
+            "properties": {
+              "in": { "type": "string" },
+              "out": { "type": "string" }
+            }
+          },
+          "providers": {
+            "type": "array",
+            "minItems": 1,
+            "description": "这一格可以拿什么来填。必须含至少一个可得方案（开源或自研）",
+            "items": {
+              "type": "object",
+              "required": ["id", "name", "kind"],
+              "additionalProperties": false,
+              "properties": {
+                "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9.\\-]{1,48}$" },
+                "name": { "type": "string" },
+                "kind": { "enum": ["oss", "commercial", "build", "pattern"], "description": "oss=开源可自部署；commercial=闭源商用；build=AI 自己写；pattern=现成做法，不引依赖（如直接提示词、RRF 融合）" },
+                "license": { "type": "string" },
+                "repo": { "type": "string", "description": "GitHub 仓库 owner/name，没有就留空" },
+                "homepage": { "type": "string" },
+                "note": { "type": "string", "description": "选它的理由 / 代价" },
+                "effort": { "type": "string", "description": "kind=build：大概几天" },
+                "tokens": { "type": "string", "description": "kind=build：大概烧多少 token" },
+                "outline": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "kind=build：自研思路，每项一步"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "products": {
+      "type": "array",
+      "description": "软件 = 若干模块的组装。composes 里的每一项就是「这台机器装了哪些格子」",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "category", "composes"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9\\-]{1,48}$" },
+          "name": { "type": "string" },
+          "category": { "enum": ["app", "platform", "agent", "devtool", "model", "skill", "component"] },
+          "homepage": { "type": "string" },
+          "license": { "type": "string" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "note": { "type": "string", "description": "它凭什么值得单独存在：一句话差异点" },
+          "composes": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "required": ["component", "role"],
+              "additionalProperties": false,
+              "properties": {
+                "component": { "type": "string" },
+                "provider": { "type": "string", "description": "它实际用的那一款；留空表示没公开" },
+                "role": { "enum": ["must", "optional", "alt"], "description": "must=没有就不成立；optional=有则更好；alt=与其他条目互为替代" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

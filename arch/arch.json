@@ -1,0 +1,2952 @@
+{
+  "spec": "moshan-arch/1",
+  "updated": "2026-11-24",
+  "note": "本体 → 模块 → 子模块。层级靠 parent 串，level 由脚本推。providers 里必须有拿得到的方案。",
+  "components": [
+    {
+      "id": "ai.chat",
+      "name": "对话交互",
+      "kind": "domain",
+      "parent": null,
+      "abstract": "用户直接说话的那一层：输入、上下文、输出",
+      "note": "这是最容易被低估的一层。看起来只是「把消息发给模型」，实际上难在多轮上下文怎么裁、流式输出怎么断点续传、会话状态存哪。做小工具时可以直接调 API 不建这层；一旦要支持多轮、要能中断、要能回看历史，就必须单独抽出来，否则每个功能都会各写一套上下文拼接，最后对话一长就互相污染。",
+      "providers": []
+    },
+    {
+      "id": "ai.chat.core",
+      "name": "对话内核",
+      "kind": "module",
+      "parent": "ai.chat",
+      "abstract": "多轮上下文管理 + 流式输出 + 会话状态",
+      "note": "解决三件事：历史怎么裁（超长时丢头还是摘要）、流怎么推（SSE/WebSocket）、状态存哪（内存/Redis/SQLite）。常见坑：把整个历史每轮全量重发，token 成本随轮次平方涨——实测跑到第 30 轮，单轮成本是第 1 轮的 12 倍；正确做法是滑动窗口 + 关键事实摘要，或者干脆按任务切新会话。不需要它的场合：单轮问答、批处理脚本。",
+      "io": {
+        "in": "用户消息 + 会话 id",
+        "out": "流式增量文本 + 消息落库"
+      },
+      "providers": [
+        {
+          "id": "ollama-webui",
+          "name": "Open WebUI",
+          "kind": "oss",
+          "license": "BSD-3-Clause(需核)",
+          "repo": "open-webui/open-webui",
+          "note": "自带完整对话层，可直接当外壳用"
+        },
+        {
+          "id": "vercel-ai-sdk",
+          "name": "Vercel AI SDK",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "vercel/ai",
+          "note": "只做流式与状态编排，UI 自己写；TypeScript 生态最省事"
+        },
+        {
+          "id": "litellm",
+          "name": "LiteLLM",
+          "kind": "oss",
+          "license": "MIT(需核)",
+          "repo": "BerriAI/litellm",
+          "note": "入口统一，但会话层要自己补"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "轮子不复杂，难的是裁剪策略，适合自己写并沉淀成自己的风格",
+          "effort": "3–5 天",
+          "tokens": "约 300 万",
+          "outline": [
+            "Message 表 + 会话表，SQLite 存，按会话 id 取历史",
+            "上下文裁剪：保留最近 N 轮 + 早期摘要，摘要用便宜模型生成",
+            "输出走 SSE，前端用 ReadableStream 接；断线用 messageId 续传",
+            "加 usage 记账（token 与耗时），否则没法优化成本"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.chat.memory",
+      "name": "长期记忆",
+      "kind": "module",
+      "parent": "ai.chat",
+      "abstract": "跨会话记住用户偏好与事实",
+      "note": "和「对话历史」不是一回事：历史是原始流水，记忆是提炼后的结论。需要它的场景：用户反复说「我不吃香菜」却每次都要重说。不需要的场景：一次性任务。坑在于写入时机——每轮都写会污染，只在用户明确表达偏好时写又漏。主流做法是先抽取候选事实再让用户确认，或者设阈值只在重复出现时固化。",
+      "io": {
+        "in": "会话内容",
+        "out": "可检索的事实条目"
+      },
+      "providers": [
+        {
+          "id": "mem0",
+          "name": "Mem0",
+          "kind": "oss",
+          "license": "Apache-2.0(需核)",
+          "repo": "mem0ai/mem0",
+          "note": "专门做记忆层，抽取+去重+检索一条龙"
+        },
+        {
+          "id": "letta",
+          "name": "Letta (MemGPT)",
+          "kind": "oss",
+          "license": "Apache-2.0(需核)",
+          "repo": "letta-ai/letta",
+          "note": "把记忆做成可编辑的内存块，思路值得抄"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "逻辑简单，关键在「什么时候不该记」",
+          "effort": "2–3 天",
+          "tokens": "约 150 万",
+          "outline": [
+            "事实表：subject / predicate / object / 来源消息 / 时间",
+            "抽取：每轮结束让便宜模型抽「值得记的事实」，宁少勿多",
+            "写入前查重，冲突时以时间新的为准并保留旧的",
+            "检索：按当前对话做向量召回，拼进 system prompt 前 300 字"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.chat.multimodal",
+      "name": "多模态输入",
+      "kind": "module",
+      "parent": "ai.chat",
+      "abstract": "图片、文件、语音进入对话",
+      "note": "不是「支持上传」这么简单，核心是分流：图片走视觉模型还是先 OCR、PDF 先解析还是直塞、语音先转录还是原样喂给支持音频的模型。选错分流，成本差十倍（一张图直接喂视觉模型约 1000+ token，OCR 后可能只有 200）。不需要的场合：纯文本工具。坑：大文件不切块直接塞上下文，一次就爆窗口。",
+      "io": {
+        "in": "文件/图片/音频",
+        "out": "结构化文本或视觉 token"
+      },
+      "providers": [
+        {
+          "id": "docling",
+          "name": "Docling",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "docling-project/docling",
+          "note": "PDF/Office 解析，版面与表格都保得住"
+        },
+        {
+          "id": "markitdown",
+          "name": "MarkItDown",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "microsoft/markitdown",
+          "note": "最轻的转 Markdown，复杂版式会丢结构"
+        },
+        {
+          "id": "tesseract",
+          "name": "Tesseract",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "tesseract-ocr/tesseract",
+          "note": "纯图 PDF 的兜底 OCR"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "分流规则比代码重要，先写一张判定表",
+          "effort": "2 天",
+          "tokens": "约 120 万",
+          "outline": [
+            "按 MIME 分流：文本直读、PDF 走解析、图片走 OCR 或视觉模型",
+            "超过阈值先摘要再入上下文，原文落盘保留引用",
+            "统一成 [{type, content, source}] 的结构，后面接什么都行"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.agent",
+      "name": "智能体执行",
+      "kind": "domain",
+      "parent": null,
+      "abstract": "模型自己决定下一步做什么，并把事做成",
+      "note": "区和「对话」划开：对话是一问一答，智能体是要多步、要用工具、要能失败重试。这一域是当前所有 AI 产品的主战场，也是最容易做成玩具的地方——大部分「Agent」其实只是加了工具调用的对话，真正的差别在失败恢复和上下文管理，不在循环本身。",
+      "providers": []
+    },
+    {
+      "id": "ai.agent.loop",
+      "name": "执行主循环",
+      "kind": "module",
+      "parent": "ai.agent",
+      "abstract": "想—做—看，直到完成或放弃",
+      "note": "整个 Agent 的心脏。必须有的三件：最大步数（防死循环）、每步的结果回灌（否则模型不知道成没成）、失败的重试与放弃判定。实测最常见的坑是没有步数上限，遇到工具一直报错就无限重试烧 token。另一个坑是把所有工具结果原样塞回上下文，几轮就把窗口撑满——要做摘要或截断。",
+      "io": {
+        "in": "目标 + 可用工具",
+        "out": "执行轨迹 + 最终结果"
+      },
+      "providers": [
+        {
+          "id": "langgraph",
+          "name": "LangGraph",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "langchain-ai/langgraph",
+          "note": "图式编排，状态与分支显式，适合复杂流程"
+        },
+        {
+          "id": "pydantic-ai",
+          "name": "PydanticAI",
+          "kind": "oss",
+          "license": "MIT(需核)",
+          "repo": "pydantic/pydantic-ai",
+          "note": "类型安全，循环逻辑藏在框架里，改起来快"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "两百行能跑通，但要做好失败恢复和轨迹记录才可用",
+          "effort": "4–6 天",
+          "tokens": "约 350 万",
+          "outline": [
+            "定义 Step{thought, tool, args, observation} 与最大步数",
+            "循环：调模型 → 解析工具调用 → 执行 → 结果截断后回灌",
+            "失败处理：同工具连续失败 2 次换策略，3 次则终止并报告",
+            "轨迹落库，便于回放与调参（这一步不做，后面无法优化）"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.agent.plan",
+      "name": "任务规划",
+      "kind": "module",
+      "parent": "ai.agent",
+      "abstract": "把一句话需求拆成可执行步骤",
+      "note": "规划与执行分开做的好处：可以先让人确认计划再动手，避免跑偏烧钱。需要它的场合：跨多文件、跨多系统的任务。不需要：单步能完成的事，硬加规划只是多花一次调用。坑是规划粒度过细——拆成 20 步反而每步都在丢上下文；经验是 3–7 步最稳。",
+      "io": {
+        "in": "自然语言目标",
+        "out": "有序步骤清单"
+      },
+      "providers": [
+        {
+          "id": "llm-planner",
+          "name": "直接提示词规划",
+          "kind": "pattern",
+          "note": "不引依赖：让强模型输出 JSON 步骤数组，最省"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "核心不是拆得细，是「完成判据」写清楚",
+          "effort": "2–3 天",
+          "tokens": "约 180 万",
+          "outline": [
+            "先用强模型出计划（JSON：steps[{goal, done_when}]）",
+            "人工确认环节可选，命令行里按 y 继续",
+            "执行中每步回报实际结果，允许重规划（最多 2 次）",
+            "计划与偏差都落库，用于后面调提示词"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.agent.tool",
+      "name": "工具调用",
+      "kind": "module",
+      "parent": "ai.agent",
+      "abstract": "把外部能力包成模型能调的接口",
+      "note": "本质是「函数签名 + 参数校验 + 结果裁剪」三件事。坑极多：参数不做类型校验，模型传个字符串数字就崩；结果不做裁剪，一次 grep 返回 5000 行直接爆窗口；错误信息不回传，模型不知道错在哪只能瞎试。不需要的场合：模型只用来生成文本。",
+      "io": {
+        "in": "工具描述 + 模型意图",
+        "out": "结构化结果"
+      },
+      "providers": [
+        {
+          "id": "mcp",
+          "name": "MCP 标准",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "modelcontextprotocol/servers",
+          "note": "协议层已标准化，现成 server 最多"
+        },
+        {
+          "id": "openai-fc",
+          "name": "OpenAI Function Calling",
+          "kind": "pattern",
+          "note": "事实标准，各家模型都兼容这种 schema"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "协议用现成的，执行层自己写更可控",
+          "effort": "3 天",
+          "tokens": "约 200 万",
+          "outline": [
+            "工具注册表：name / 描述 / JSON Schema 参数 / 执行函数",
+            "参数先过 pydantic 校验，失败把错误原文回给模型让它改",
+            "结果统一截断到 N 字符，超出部分落盘给路径",
+            "加超时与并发上限，防止某个工具把进程挂住"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.agent.mcp",
+      "name": "MCP 接入",
+      "kind": "module",
+      "parent": "ai.agent",
+      "abstract": "按统一协议挂外部工具与数据源",
+      "note": "MCP 的价值在于「一次实现，所有客户端能用」。选型判断：只在自家产品里用的工具，自己写工具调用更省；要被 Claude Code / Cursor / 自家客户端同时用，就值得包成 MCP server。坑：server 的生命周期管理（stdio 还是 SSE）、权限边界（给了文件系统就等于给了全部）。",
+      "io": {
+        "in": "MCP server 配置",
+        "out": "可调用工具列表"
+      },
+      "providers": [
+        {
+          "id": "mcp-python",
+          "name": "MCP Python SDK",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "modelcontextprotocol/python-sdk",
+          "note": "写 server 最直接"
+        },
+        {
+          "id": "mcp-servers",
+          "name": "官方 servers 合集",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "modelcontextprotocol/servers",
+          "note": "文件/数据库/搜索都有现成的，别重写"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "协议实现别自己写，用 SDK",
+          "effort": "2 天",
+          "tokens": "约 130 万",
+          "outline": [
+            "先定 server 的 3–5 个工具，别一上来铺开",
+            "stdio 传输最简单，远程再考虑 SSE",
+            "每个工具加白名单与路径校验，禁止越界读",
+            "写一份 tools 清单文档，客户端才能正确路由"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.agent.skill",
+      "name": "技能沉淀",
+      "kind": "module",
+      "parent": "ai.agent",
+      "abstract": "把一次做成的流程固定成可复用的技能",
+      "note": "这是「越用越顺手」的关键：同样的活做第二次不该从头教。形态可以是提示词模板、脚本、或带前置条件的说明文件。坑：技能没有触发条件就永远不会被用上；没有版本就会互相覆盖。需要它的场合：重复性任务（周报、发布、数据清洗）。不需要：一次性探索。",
+      "io": {
+        "in": "成功的执行轨迹",
+        "out": "可复用的技能条目"
+      },
+      "providers": [
+        {
+          "id": "claude-skills",
+          "name": "Claude Skills 格式",
+          "kind": "oss",
+          "repo": "anthropics/skills",
+          "note": "目录约定 + SKILL.md，跨客户端通用（该仓无 LICENSE，需留意）"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "格式很简单，难在写得让人（和模型）都能读懂触发条件",
+          "effort": "2 天",
+          "tokens": "约 110 万",
+          "outline": [
+            "技能目录：name / 何时用 / 步骤 / 依赖 / 示例",
+            "触发条件写成可判断的描述，别写「需要时」",
+            "从成功轨迹里自动抽取初稿，人再删改",
+            "加版本号，改了就升版，避免静默失效"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.model",
+      "name": "模型供给",
+      "kind": "domain",
+      "parent": null,
+      "abstract": "谁来算、算什么、算不起时怎么办",
+      "note": "所有 AI 产品最终都要落到「调哪个模型」。这一域决定成本结构：同一个任务换模型能差 10 倍价格，本地跑和云调用差的是隐私与延迟。别把它当配置项，它是架构的一部分。",
+      "providers": []
+    },
+    {
+      "id": "ai.model.gateway",
+      "name": "模型网关",
+      "kind": "module",
+      "parent": "ai.model",
+      "abstract": "一个入口对接多家，屏蔽协议差异",
+      "note": "需要它的信号：代码里出现第二个 `if provider ==`。网关做三件事：协议转换（OpenAI/Anthropic/Gemini 格式互转）、密钥与配额管理、用量记账。坑：流式输出的格式各家不同，转换时最容易丢 tool_call 分片；还有重试策略，一个供应商 429 要能自动切下一个。",
+      "io": {
+        "in": "统一格式请求",
+        "out": "统一格式响应 + 用量"
+      },
+      "providers": [
+        {
+          "id": "litellm",
+          "name": "LiteLLM",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "BerriAI/litellm",
+          "note": "100+ 供应商统一成 OpenAI 格式，事实标准"
+        },
+        {
+          "id": "one-api",
+          "name": "One API / New API",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "songquanpeng/one-api",
+          "note": "带配额和渠道管理，适合多人共用"
+        },
+        {
+          "id": "openrouter",
+          "name": "OpenRouter",
+          "kind": "commercial",
+          "note": "省事但要抽成，数据出境需评估"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "两家以内不用写网关，直接 if/else 更省",
+          "effort": "4 天",
+          "tokens": "约 280 万",
+          "outline": [
+            "统一请求/响应模型，先把 OpenAI 格式当基准",
+            "适配器模式：每供应商一个 adapter，只做格式转换",
+            "流式转发按 chunk 透传，不要攒完整再发",
+            "记账：token、耗时、失败原因，按 task 聚合"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.model.local",
+      "name": "本地推理",
+      "kind": "module",
+      "parent": "ai.model",
+      "abstract": "在自己机器上跑权重，不联网",
+      "note": "选它的理由只有三个：数据不出门、无按量费用、离线可用。代价是显存/内存与速度。判断标准：模型参数量 × 量化位数要能塞进显存，塞不进就吃内存、速度掉一个量级。坑：以为装了 Ollama 就能跑一切——大模型在 8G 显存上基本只能跑 7B 量化版。",
+      "io": {
+        "in": "模型文件 + 提示",
+        "out": "推理结果"
+      },
+      "providers": [
+        {
+          "id": "ollama",
+          "name": "Ollama",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "ollama/ollama",
+          "note": "一条命令跑起来，生态最全"
+        },
+        {
+          "id": "llamacpp",
+          "name": "llama.cpp",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "ggml-org/llama.cpp",
+          "note": "底层引擎，量化格式多，适合嵌进自己的程序"
+        },
+        {
+          "id": "vllm",
+          "name": "vLLM",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "vllm-project/vllm",
+          "note": "要并发吞吐时用它，单机交互反而重"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "这一格自研没有意义，用它包一层管理界面就够",
+          "effort": "不建议",
+          "tokens": "—",
+          "outline": [
+            "推理引擎不要自研，量化与 kernel 优化是专业活",
+            "自己写只做「启动/停止/健康检查」的进程管理壳"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.model.route",
+      "name": "路由与降级",
+      "kind": "module",
+      "parent": "ai.model",
+      "abstract": "按任务难度选模型，贵的只在难的地方用",
+      "note": "省钱的最大杠杆，比任何提示词优化都有效。做法：先按任务类型分档（分类/摘要用小模型，写代码/推理用大模型），再按失败升级（小模型答不出来或格式不对就换大的）。坑：级联重试会让延迟翻倍，交互场景要设总超时；还有缓存，相同前缀的请求命中缓存能省 10 倍——实测缓存命中 99% 时，一亿 token 只花 60 积分。",
+      "io": {
+        "in": "任务类型 + 预算",
+        "out": "选定模型 + 调用结果"
+      },
+      "providers": [
+        {
+          "id": "litellm-router",
+          "name": "LiteLLM Router",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "BerriAI/litellm",
+          "note": "自带 fallback 与负载均衡"
+        },
+        {
+          "id": "route-llm",
+          "name": "RouteLLM",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "lm-sys/RouteLLM",
+          "note": "按难度自动分流，学术实现的工程版"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "规则分类比模型分类更稳，先写规则",
+          "effort": "2 天",
+          "tokens": "约 120 万",
+          "outline": [
+            "任务分类器：规则优先（长度、是否含代码、是否要推理），规则不行再上小模型判",
+            "价目表配置化，别硬编码在代码里",
+            "失败升级链：小 → 中 → 大，最多两次",
+            "打日志记录每次选择与结果质量，否则无法调参"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kb",
+      "name": "知识库",
+      "kind": "domain",
+      "parent": null,
+      "abstract": "让模型答得出它没训练过的东西",
+      "note": "几乎所有「企业 AI」最终都落到这一域。核心不是向量库选哪个，而是「切得对不对」——切片错了，再好的检索也召回不到。这也是为什么解析层比检索层更值得投入。",
+      "providers": []
+    },
+    {
+      "id": "kb.ingest",
+      "name": "文档入库",
+      "kind": "module",
+      "parent": "kb",
+      "abstract": "把各种格式变成干净的、可切片的文本",
+      "note": "流水线的第一段，也是决定上限的一段。质量差的表现：双栏 PDF 读成一行、表格变成乱码、扫描件直接空白。需要它的场合：资料以 PDF/Office 为主。不需要：纯网页或纯 Markdown 语料。坑：以为解析是小事，实际 60% 的问答失败追根溯源都在这。",
+      "io": {
+        "in": "原始文件",
+        "out": "结构化文本 + 元数据"
+      },
+      "providers": [
+        {
+          "id": "docling",
+          "name": "Docling",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "docling-project/docling",
+          "note": "版面、表格、阅读顺序都处理得最好，速度一般"
+        },
+        {
+          "id": "unstructured",
+          "name": "Unstructured",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "Unstructured-IO/unstructured",
+          "note": "格式覆盖最广，复杂版式精度不如 Docling"
+        },
+        {
+          "id": "mineru",
+          "name": "MinerU",
+          "kind": "oss",
+          "license": "AGPL-3.0(需核)",
+          "repo": "opendatalab/MinerU",
+          "note": "中文 PDF 与公式识别强"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "调度层可以自己写，解析内核必须用现成的",
+          "effort": "不建议",
+          "tokens": "—",
+          "outline": [
+            "解析器不要自研：PDF 的坑是十年积累出来的",
+            "自己写只做「格式判定 + 调用哪个解析器 + 结果规范化」的调度层"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kb.parse",
+      "name": "格式解析",
+      "kind": "part",
+      "parent": "kb.ingest",
+      "abstract": "把 PDF/Word/网页拆成阅读顺序正确的文本",
+      "note": "子模块存在的意义：它是最常被单独替换的一环。判断解析好不好，看三件事——双栏有没有串行、表格有没有散架、页眉页脚有没有混进正文。三者都过才叫能用。",
+      "io": {
+        "in": "文件字节流",
+        "out": "带页码/坐标的文本块"
+      },
+      "providers": [
+        {
+          "id": "docling",
+          "name": "Docling",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "docling-project/docling",
+          "note": "首选"
+        },
+        {
+          "id": "pymupdf",
+          "name": "PyMuPDF",
+          "kind": "oss",
+          "license": "AGPL-3.0",
+          "repo": "pymupdf/PyMuPDF",
+          "note": "快，但商业闭源项目要买授权——AGPL 是最容易踩的坑"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "只写校验不写解析",
+          "effort": "不建议",
+          "tokens": "—",
+          "outline": [
+            "解析内核别自研",
+            "自己写只做格式嗅探与结果校验（比如检测乱序）"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kb.chunk",
+      "name": "切块",
+      "kind": "part",
+      "parent": "kb.ingest",
+      "abstract": "把长文本切成适合检索的片段",
+      "note": "最被低估的一环。切太大：召回一段里一半是废话，浪费上下文还干扰判断；切太小：语义不完整，答非所问。经验值 300–800 token，按结构切（章节/段落）优于按字数切。坑：中文按字符数切会把句子拦腰截断；要按句子边界做。",
+      "io": {
+        "in": "结构化文本",
+        "out": "带元数据的切片"
+      },
+      "providers": [
+        {
+          "id": "langchain-splitter",
+          "name": "LangChain Splitter",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "langchain-ai/langchain",
+          "note": "各种切法都有，按标题切最实用"
+        },
+        {
+          "id": "chonkie",
+          "name": "Chonkie",
+          "kind": "oss",
+          "license": "Apache-2.0(需核)",
+          "repo": "chonkie-inc/chonkie",
+          "note": "轻量专用，语义切块效果好"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "结构切 + 句子边界就够了，语义切块收益有限",
+          "effort": "1–2 天",
+          "tokens": "约 80 万",
+          "outline": [
+            "先按结构切（Markdown 标题 / PDF 段落），保留层级路径",
+            "超长段落再按句子边界二次切，目标 500 token、重叠 50",
+            "每片带上「来自哪个文件、第几节」，供引用回溯",
+            "切完抽样人看 10 条，切歪了立刻能发现"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kb.rag",
+      "name": "向量检索",
+      "kind": "module",
+      "parent": "kb",
+      "abstract": "按语义找相关片段，换个说法也能搜到",
+      "note": "它的长处在「模糊匹配」，短处恰恰也是——型号、编号、专有名词这些精确串经常搜不准。所以真实系统几乎都是向量 + 关键词混检。需要它的场合：语料超过几十页、问题用词与原文不一致。不需要：库小到能整篇塞上下文，或者问题就是要精确匹配。",
+      "io": {
+        "in": "查询文本",
+        "out": "相关片段 + 相似度"
+      },
+      "providers": [
+        {
+          "id": "chroma",
+          "name": "Chroma",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "chroma-core/chroma",
+          "note": "原型期最省事，单机一把梭"
+        },
+        {
+          "id": "qdrant",
+          "name": "Qdrant",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "qdrant/qdrant",
+          "note": "过滤条件强的场景更合适"
+        },
+        {
+          "id": "lancedb",
+          "name": "LanceDB",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "lancedb/lancedb",
+          "note": "列存，多模态数据一起存"
+        },
+        {
+          "id": "pgvector",
+          "name": "pgvector",
+          "kind": "oss",
+          "license": "PostgreSQL",
+          "repo": "pgvector/pgvector",
+          "note": "已有 Postgres 就别再引一个库"
+        },
+        {
+          "id": "sqlite-vec",
+          "name": "sqlite-vec",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "asg017/sqlite-vec",
+          "note": "单文件零服务，桌面端首选"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "自己写会得到一个又慢又不准的索引",
+          "effort": "不建议",
+          "tokens": "—",
+          "outline": [
+            "向量索引与 ANN 算法不要自研",
+            "自己写只做「选库 + 建索引 + 查询封装」"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kb.embed",
+      "name": "嵌入",
+      "kind": "part",
+      "parent": "kb.rag",
+      "abstract": "把一段文字压成固定长度的向量",
+      "note": "选嵌入模型的第一原则：换了就要全量重建索引，所以一开始就要选稳的。中文场景别直接用英文模型。坑：同一个库混用两个嵌入模型（比如中途升级），向量空间不一致，检索结果会莫名其妙地差。",
+      "io": {
+        "in": "文本",
+        "out": "定长向量"
+      },
+      "providers": [
+        {
+          "id": "bge-m3",
+          "name": "BGE-M3",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "FlagOpen/FlagEmbedding",
+          "note": "中文强，支持多语言与长文本"
+        },
+        {
+          "id": "nomic-embed",
+          "name": "Nomic Embed",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "nomic-ai/nomic-embed-text-v1.5",
+          "note": "英文场景性价比高"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "训模型不在这个任务范围内",
+          "effort": "不建议",
+          "tokens": "—",
+          "outline": [
+            "嵌入模型不要自己训，直接用现成权重",
+            "自己写只做「批量调用 + 缓存 + 维度校验」的封装"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kb.recall",
+      "name": "召回",
+      "kind": "part",
+      "parent": "kb.rag",
+      "abstract": "从索引里取出候选片段",
+      "note": "注意它是「取候选」不是「定结果」——召回要给得多一点（top 20），后面再靠重排收敛。坑：只取 top 3 又不重排，答错率很高；相似度阈值设太高会完全没有召回，模型就开始编。",
+      "io": {
+        "in": "查询向量",
+        "out": "候选片段列表"
+      },
+      "providers": [
+        {
+          "id": "hybrid",
+          "name": "向量 + BM25 混检",
+          "kind": "pattern",
+          "note": "不引额外依赖：两路各取 10 条按倒数排名融合"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "RRF 融合二十行代码，效果稳定",
+          "effort": "1 天",
+          "tokens": "约 60 万",
+          "outline": [
+            "向量召回 top 15 + 关键词召回 top 15",
+            "用 RRF（倒数排名融合）合并，不用调权重",
+            "去重后交给重排",
+            "记录每次召回了什么，便于事后归因"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kb.rerank",
+      "name": "重排",
+      "kind": "part",
+      "parent": "kb.rag",
+      "abstract": "把真正相关的那条顶到最前",
+      "note": "投入产出比最高的一环：加个重排，问答准确率常有明显提升，代价只是一次小模型推理。不需要的场合：召回本身就很准、或者延迟极敏感。坑：把重排模型跑在 CPU 上，一次几百毫秒，交互体验直接崩。",
+      "io": {
+        "in": "候选片段 + 查询",
+        "out": "排好序的片段"
+      },
+      "providers": [
+        {
+          "id": "bge-reranker",
+          "name": "BGE Reranker",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "FlagOpen/FlagEmbedding",
+          "note": "中文场景首选，小模型也能跑"
+        },
+        {
+          "id": "cohere-rerank",
+          "name": "Cohere Rerank",
+          "kind": "commercial",
+          "note": "效果稳，但是按次收费且数据出境"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "只写降级逻辑",
+          "effort": "不建议",
+          "tokens": "—",
+          "outline": [
+            "重排模型不要自研",
+            "自己写只做「批大小调节 + 超时降级（超时就不重排）」"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kb.fulltext",
+      "name": "关键词检索",
+      "kind": "module",
+      "parent": "kb",
+      "abstract": "精确串匹配：型号、编号、法规条号",
+      "note": "向量检索的死角由它补。需要它的信号：用户搜「RTX4090」「GB/T 1234」这类词，向量给出的是「语义相近」的废话。中文要分词，分词器选错会把专有名词拆碎。坑：只上向量不上全文，用户搜精确编号永远搜不到。",
+      "io": {
+        "in": "查询串",
+        "out": "匹配片段 + BM25 分"
+      },
+      "providers": [
+        {
+          "id": "meilisearch",
+          "name": "Meilisearch",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "meilisearch/meilisearch",
+          "note": "开箱即用，中文分词需配"
+        },
+        {
+          "id": "tantivy",
+          "name": "Tantivy",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "quickwit-oss/tantivy",
+          "note": "Rust 的 Lucene，嵌进程序里"
+        },
+        {
+          "id": "sqlite-fts",
+          "name": "SQLite FTS5",
+          "kind": "oss",
+          "license": "Public Domain",
+          "repo": "sqlite/sqlite",
+          "note": "零依赖，小库够用；中文要自己接分词"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "FTS5 + 分词器最省，自己写 BM25 也不难",
+          "effort": "2 天",
+          "tokens": "约 90 万",
+          "outline": [
+            "建倒排：词 → 片段 id 列表，中文先过分词",
+            "BM25 打分，参数用默认值起步",
+            "与向量结果做 RRF 融合",
+            "高频词做停用，否则全被「的」占满"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kb.manage",
+      "name": "库管理",
+      "kind": "module",
+      "parent": "kb",
+      "abstract": "多库隔离、增删改、重建索引",
+      "note": "看着无聊但必踩：文档一更新，旧的切片还在库里，检索就会召回过期内容。要处理的是增量与版本，不是简单的 insert。坑：改了嵌入模型却没重建，库就半废了；删文档只删了原文没删切片。",
+      "io": {
+        "in": "文档变更事件",
+        "out": "一致的索引状态"
+      },
+      "providers": [
+        {
+          "id": "ragflow-manage",
+          "name": "RAGFlow 的管理层",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "infiniflow/ragflow",
+          "note": "切片可视化并可手工改，这点比多数产品实在"
+        },
+        {
+          "id": "anythingllm-ws",
+          "name": "AnythingLLM 工作区",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "Mintplex-Labs/anything-llm",
+          "note": "一工作区一库，隔离干净"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "切片可视化界面比算法更值得先做",
+          "effort": "3 天",
+          "tokens": "约 200 万",
+          "outline": [
+            "文档表 + 切片表，切片带 doc_id 与版本号",
+            "更新走「先标旧版本失效，再插新版本」，不做原地改",
+            "换嵌入模型时全库重建，用任务队列跑",
+            "提供切片浏览界面，能看能删——这是排障的命门"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.media",
+      "name": "内容生成",
+      "kind": "domain",
+      "parent": null,
+      "abstract": "图、视频、声音、音乐这些非文本产物",
+      "note": "和文本生成的根本差别：产物大、要存储与转码、要版本管理。架构上必须有对象存储，不能塞数据库。另外这一域的商业 API 基本全闭源，成本按次计，必须做配额。",
+      "providers": []
+    },
+    {
+      "id": "ai.media.image",
+      "name": "图像生成",
+      "kind": "module",
+      "parent": "ai.media",
+      "abstract": "文字或参考图变成图片",
+      "note": "两条路：调商业 API（质量稳、按张收费）或本地跑（免费但要显卡、要调参）。判断标准：出图量。月出图几百张用 API 更划算；上千张且要批量试，本地更省。坑：本地模型的显存要求比宣传高，SDXL 至少 8G，Flux 建议 16G 起。",
+      "io": {
+        "in": "提示词 / 参考图",
+        "out": "图片文件 + 元数据"
+      },
+      "providers": [
+        {
+          "id": "comfyui",
+          "name": "ComfyUI",
+          "kind": "oss",
+          "license": "GPL-3.0",
+          "repo": "comfyanonymous/ComfyUI",
+          "note": "节点式，可控性最强，学习曲线陡"
+        },
+        {
+          "id": "sd-webui",
+          "name": "SD WebUI",
+          "kind": "oss",
+          "license": "AGPL-3.0",
+          "repo": "AUTOMATIC1111/stable-diffusion-webui",
+          "note": "上手最快，插件生态老"
+        },
+        {
+          "id": "fal",
+          "name": "Fal / Replicate",
+          "kind": "commercial",
+          "note": "按张付费，免运维，适合先验证"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "自研=写调度与归档，不是写模型",
+          "effort": "不建议",
+          "tokens": "—",
+          "outline": [
+            "生成模型不训，只做调用与编排",
+            "自己写的是「提示词模板 + 批量队列 + 结果归档」这一层"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.media.video",
+      "name": "视频生成",
+      "kind": "module",
+      "parent": "ai.media",
+      "abstract": "文字或图变成视频片段",
+      "note": "目前全部依赖闭源模型（可灵、即梦、Runway、Veo），没有可用的开源权重能本地跑出可用质量。工程重点是「编排」：分镜、逐段生成、拼接、配音、字幕。坑：成本按秒计且很贵，一个 30 秒片试十次就是几百块；必须做预演和分镜确认。",
+      "io": {
+        "in": "脚本 / 分镜",
+        "out": "视频片段"
+      },
+      "providers": [
+        {
+          "id": "kling",
+          "name": "可灵 API",
+          "kind": "commercial",
+          "note": "国内可用，按秒计费"
+        },
+        {
+          "id": "jimeng",
+          "name": "即梦 API",
+          "kind": "commercial",
+          "note": "与字节生态打通"
+        },
+        {
+          "id": "veo",
+          "name": "Veo / Runway",
+          "kind": "commercial",
+          "note": "质量好，需处理数据出境"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写（编排层）",
+          "kind": "build",
+          "note": "自研边界：编排、重试、拼接、字幕；生成靠 API",
+          "effort": "5–8 天",
+          "tokens": "约 400 万",
+          "outline": [
+            "模型本身无开源可用，必须买 API——这里自研的是编排",
+            "分镜结构：scene[{prompt, duration, ref_image}]",
+            "逐段生成后 ffmpeg 拼接，音轨对齐",
+            "失败段单独重试，不要整片重跑（成本差十倍）"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.media.voice",
+      "name": "语音合成",
+      "kind": "module",
+      "parent": "ai.media",
+      "abstract": "文字变人声，或人声转文字",
+      "note": "TTS 与 ASR 常被混为一谈，其实是两个方向。选型看：要不要克隆音色（要则商业为主）、要不要离线（要则本地）。坑：中文多音字与英文混读，本地模型经常读错；ASR 对环境噪声极敏感，先降噪再说。",
+      "io": {
+        "in": "文本 / 音频",
+        "out": "音频 / 文本"
+      },
+      "providers": [
+        {
+          "id": "gpt-sovits",
+          "name": "GPT-SoVITS",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "RVC-Boss/GPT-SoVITS",
+          "note": "少样本克隆音色，中文效果好"
+        },
+        {
+          "id": "whisper",
+          "name": "Whisper",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "openai/whisper",
+          "note": "ASR 事实标准，本地可跑"
+        },
+        {
+          "id": "faster-whisper",
+          "name": "faster-whisper",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "SYSTRAN/faster-whisper",
+          "note": "同质量快 4 倍，工程上更实用"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "ASR 用 faster-whisper，TTS 用现成模型",
+          "effort": "不建议",
+          "tokens": "—",
+          "outline": [
+            "语音模型不训",
+            "自己写只做「分段、静音切分、并发转录、结果合并」"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.media.music",
+      "name": "音乐生成",
+      "kind": "module",
+      "parent": "ai.media",
+      "abstract": "按风格描述生成一段配乐",
+      "note": "需求集中在短视频与游戏。开源权重（MusicGen 系）质量可用但节奏感一般；商业 API 明显更好。坑：版权——生成音乐的商用授权各家条款不同，做产品前必须先看条款。",
+      "io": {
+        "in": "风格描述 / 时长",
+        "out": "音频文件"
+      },
+      "providers": [
+        {
+          "id": "musicgen",
+          "name": "MusicGen",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "facebookresearch/audiocraft",
+          "note": "本地可跑，30 秒片段质量够用"
+        },
+        {
+          "id": "suno",
+          "name": "Suno",
+          "kind": "commercial",
+          "note": "质量最好，商用授权需细读"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "编排层为主",
+          "effort": "不建议",
+          "tokens": "—",
+          "outline": [
+            "模型不训",
+            "自己写只做「按场景选风格 + 批量生成 + 淡入淡出裁剪」"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dev.code",
+      "name": "编程辅助",
+      "kind": "domain",
+      "parent": null,
+      "abstract": "让 AI 参与写代码的各个环节",
+      "note": "这一域的产品形态差异极大（IDE、CLI、网页），但内部拆开是同一套：索引 → 补全 → 改写 → 审查。难的不是生成，是「知道该改哪」——这全靠索引质量。",
+      "providers": []
+    },
+    {
+      "id": "dev.code.index",
+      "name": "代码索引",
+      "kind": "module",
+      "parent": "dev.code",
+      "abstract": "让模型知道这个仓库里有什么、在哪",
+      "note": "所有代码 Agent 的地基。做不好就表现为「改了不相关的文件」或「重复实现已有函数」。两种做法：全文 grep（简单、准、但上下文占得多）与向量索引（省 token、但会漏）。实测两者结合最好：先用结构信息（文件树、符号表）定位，再按需读片段。坑：大仓不做增量索引，每次全量 embed 要几十分钟。",
+      "io": {
+        "in": "仓库文件",
+        "out": "可检索的代码表示"
+      },
+      "providers": [
+        {
+          "id": "tree-sitter",
+          "name": "tree-sitter",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "tree-sitter/tree-sitter",
+          "note": "按语法解析，符号与调用关系都拿得到"
+        },
+        {
+          "id": "ctags",
+          "name": "universal-ctags",
+          "kind": "oss",
+          "license": "GPL-2.0",
+          "repo": "universal-ctags/ctags",
+          "note": "最轻，几秒建完符号表"
+        },
+        {
+          "id": "sourcegraph",
+          "name": "Sourcegraph / Zoekt",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "sourcegraph/zoekt",
+          "note": "大仓搜索的工业级方案"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "「先定位再读」比整仓向量化省一个数量级",
+          "effort": "5 天",
+          "tokens": "约 400 万",
+          "outline": [
+            "先建符号表：文件 → 函数/类 + 起止行（ctags 或 tree-sitter）",
+            "检索分两步：先按关键词/符号名定位文件，再按行范围读",
+            "需要语义时才对函数级 embed，别整仓 embed",
+            "增量：按文件 mtime + hash 判断是否重解析"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dev.code.complete",
+      "name": "行内补全",
+      "kind": "module",
+      "parent": "dev.code",
+      "abstract": "光标处的下几个 token",
+      "note": "要求延迟极低（<300ms），所以用小模型、本地优先。坑：上下文给太多反而慢且不准——给前后各 50 行 + 相关符号就够。另一个坑是「接受率」：补全太啰嗦会被忽略，宁可短而准。",
+      "io": {
+        "in": "光标上下文",
+        "out": "补全片段"
+      },
+      "providers": [
+        {
+          "id": "continue",
+          "name": "Continue",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "continuedev/continue",
+          "note": "开源补全插件，可换模型"
+        },
+        {
+          "id": "fim",
+          "name": "FIM 小模型（如 Qwen2.5-Coder）",
+          "kind": "pattern",
+          "note": "专用 fill-in-middle 模型，本地跑得快"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "防抖与取消比模型选择更影响体验",
+          "effort": "3 天",
+          "tokens": "约 220 万",
+          "outline": [
+            "上下文组装：前 50 行 + 后 20 行 + 同文件符号",
+            "请求做防抖（150ms）+ 取消旧请求，否则打字时全是废请求",
+            "输出截断到单行或单块，多了没人看",
+            "记录接受率，用来调上下文长度"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dev.code.edit",
+      "name": "批量改写",
+      "kind": "module",
+      "parent": "dev.code",
+      "abstract": "按需求跨文件修改并自验",
+      "note": "和补全的区别：要规划、要读写多文件、要能验证。核心是「改完怎么知道对」——必须跑测试或类型检查，否则只是在猜。坑：直接覆盖整文件会丢掉用户未提交的改动；应该用精确 patch。",
+      "io": {
+        "in": "需求描述",
+        "out": "补丁 + 验证结果"
+      },
+      "providers": [
+        {
+          "id": "aider",
+          "name": "Aider",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "Aider-AI/aider",
+          "note": "diff 式改写 + git 提交，工程上最成熟"
+        },
+        {
+          "id": "cline",
+          "name": "Cline",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "cline/cline",
+          "note": "IDE 内的编辑 Agent，能看到每一步"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "diff + 验证闭环是这一格的全部价值",
+          "effort": "5 天",
+          "tokens": "约 380 万",
+          "outline": [
+            "先让模型输出 unified diff，不要整文件重写",
+            "应用 patch 前先 dry-run，冲突就回退并要求重出",
+            "改完立刻跑 lint/test，把结果回灌给模型",
+            "每步落 git stash 或分支，方便人对比与回滚"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dev.code.review",
+      "name": "代码审查",
+      "kind": "module",
+      "parent": "dev.code",
+      "abstract": "找出改动里的问题",
+      "note": "价值在于「只看 diff 不看全仓」，否则上下文费用爆炸。坑：泛泛地说「建议加注释」毫无价值；有效的审查要绑定具体行号与具体风险（空指针、并发、SQL 注入）。",
+      "io": {
+        "in": "diff + 上下文",
+        "out": "带行号的问题清单"
+      },
+      "providers": [
+        {
+          "id": "reviewdog",
+          "name": "reviewdog",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "reviewdog/reviewdog",
+          "note": "把结果写回 PR，工程流水线用"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "约束输出格式比换模型更有效",
+          "effort": "3 天",
+          "tokens": "约 200 万",
+          "outline": [
+            "输入只给 diff + 被改函数的完整定义",
+            "提示词要求「每条必须带行号 + 风险类型 + 修复建议」",
+            "按严重度分级，只报高置信的",
+            "接 CI，输出统一 JSON 便于 reviewdog 消费"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.flow",
+      "name": "流程编排",
+      "kind": "domain",
+      "parent": null,
+      "abstract": "把多个步骤连成一条能自动跑的流水线",
+      "note": "从「聊天」到「系统」的分水岭。有了它，用户不用写代码就能把模型、工具、判断串起来。难点在状态与错误处理，不在画布好不好看。",
+      "providers": []
+    },
+    {
+      "id": "ai.flow.canvas",
+      "name": "可视化画布",
+      "kind": "module",
+      "parent": "ai.flow",
+      "abstract": "拖节点、连线、试跑",
+      "note": "它解决的是「让非程序员也能改流程」。坑：画布好做、调试难做——没有单步执行与节点级日志，用户只能整条重跑，体验极差。做产品时优先做「单节点试跑 + 看输入输出」，比动画炫酷重要得多。",
+      "io": {
+        "in": "节点定义",
+        "out": "可执行图"
+      },
+      "providers": [
+        {
+          "id": "reactflow",
+          "name": "React Flow",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "xyflow/xyflow",
+          "note": "前端画布事实标准，自己接后端"
+        },
+        {
+          "id": "langflow",
+          "name": "Langflow",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "langflow-ai/langflow",
+          "note": "画布 + 执行一体，可直接当产品壳"
+        },
+        {
+          "id": "flowise",
+          "name": "Flowise",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "FlowiseAI/Flowise",
+          "note": "偏 LLM 场景，开箱节点多"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "画布本身一周，值得花的是调试体验",
+          "effort": "7–10 天",
+          "tokens": "约 600 万",
+          "outline": [
+            "图结构：nodes[] / edges[]，节点带 inputSchema",
+            "前端用 React Flow，后端只存 JSON 图",
+            "执行器把图拓扑排序后逐节点跑，节点间传 JSON",
+            "必须做单节点试跑与断点，否则调试等于盲跑"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.flow.node",
+      "name": "节点与连接器",
+      "kind": "module",
+      "parent": "ai.flow",
+      "abstract": "预置的集成：数据库、HTTP、各家 SaaS",
+      "note": "节点数量决定「能接什么」，是这类产品最重的运营工作。判断标准：常见 20 个够用，剩下靠自定义 HTTP。坑：每个节点都写一套认证，重复且易泄露密钥；应统一凭证管理。",
+      "io": {
+        "in": "节点配置",
+        "out": "可复用的集成"
+      },
+      "providers": [
+        {
+          "id": "n8n-nodes",
+          "name": "n8n 节点生态",
+          "kind": "oss",
+          "license": "Sustainable-Use(非OSI)",
+          "repo": "n8n-io/n8n",
+          "note": "400+ 集成，注意它不是真开源，商用托管受限"
+        },
+        {
+          "id": "activepieces",
+          "name": "Activepieces",
+          "kind": "oss",
+          "license": "MIT(需核)",
+          "repo": "activepieces/activepieces",
+          "note": "节点开源且许可更宽松，可作替代"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "节点是体力活，按需长，别一次铺满",
+          "effort": "按节点数递增",
+          "tokens": "每节点约 60 万",
+          "outline": [
+            "统一节点规范：认证、输入 schema、执行、输出 schema",
+            "先做 5 个最常用的（HTTP / 数据库 / 文件 / 邮件 / Webhook）",
+            "凭证统一进 vault，节点里只引用 id",
+            "每个节点配一个最小可跑示例，否则用户不会用"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.flow.trigger",
+      "name": "触发",
+      "kind": "module",
+      "parent": "ai.flow",
+      "abstract": "什么时候开始跑：定时、事件、Webhook",
+      "note": "没有它，流程只能手动点。三类触发各有坑：定时要考虑时区与错过补跑；事件要幂等（重复通知会跑两遍）；Webhook 要验签（否则谁都能触发你的流程）。",
+      "io": {
+        "in": "触发配置",
+        "out": "执行请求"
+      },
+      "providers": [
+        {
+          "id": "cron",
+          "name": "系统 cron / APScheduler",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "agronholm/apscheduler",
+          "note": "单机最省，复杂调度再上队列"
+        },
+        {
+          "id": "webhook",
+          "name": "Webhook + HMAC 验签",
+          "kind": "pattern",
+          "note": "自己实现十行，必须验签"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "轮询式调度最皮实",
+          "effort": "2 天",
+          "tokens": "约 120 万",
+          "outline": [
+            "触发器表：类型、表达式、下次执行时间、上次结果",
+            "定时用轮询而非常驻定时器，重启不丢",
+            "事件加幂等键，同键 5 分钟内只跑一次",
+            "Webhook 校验签名与时间戳，防重放"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.flow.run",
+      "name": "执行引擎",
+      "kind": "module",
+      "parent": "ai.flow",
+      "abstract": "真正把图跑起来：并发、重试、状态",
+      "note": "这类系统出问题九成在这里：并发跑同一流程导致数据错乱、失败没有重试、跑到一半重启就丢状态。最低要求：执行实例有 id 与状态机，每步落库，能从中断处续跑。",
+      "io": {
+        "in": "可执行图 + 触发",
+        "out": "执行记录"
+      },
+      "providers": [
+        {
+          "id": "temporal",
+          "name": "Temporal",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "temporalio/temporal",
+          "note": "持久化工作流，崩了能续，工业级但重"
+        },
+        {
+          "id": "bullmq",
+          "name": "BullMQ",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "taskforcesh/bullmq",
+          "note": "Redis 队列，中小规模够用"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "状态落库是核心，队列用现成的",
+          "effort": "6 天",
+          "tokens": "约 450 万",
+          "outline": [
+            "执行表：run_id / 节点 / 状态 / 输入 / 输出 / 错误",
+            "每节点跑完立即落库，重启按 status=running 续跑",
+            "失败重试带退避，同节点最多 3 次",
+            "加并发锁：同一流程同一 key 不并行"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.deliver",
+      "name": "交付与接入",
+      "kind": "domain",
+      "parent": null,
+      "abstract": "把做好的东西送到用户手上、看得见、管得住",
+      "note": "最容易被忽略但决定产品能不能用：没有通道，Agent 只能待在终端里；没有可观测，出了问题无从查起。",
+      "providers": []
+    },
+    {
+      "id": "ai.deliver.channel",
+      "name": "消息通道",
+      "kind": "module",
+      "parent": "ai.deliver",
+      "abstract": "从微信/飞书/钉钉/Telegram 收发消息",
+      "note": "让 Agent 长在用户已有的沟通工具里，而不是要求用户打开一个新 App。各家协议差异大：企业微信要自建应用、飞书有事件订阅、Telegram 最开放。坑：消息去重（平台会重推）、长任务超时（要分片回）、权限（谁能唤起 bot）。",
+      "io": {
+        "in": "平台事件",
+        "out": "统一消息 + 回复"
+      },
+      "providers": [
+        {
+          "id": "openclaw-gw",
+          "name": "OpenClaw 网关",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "openclaw/openclaw",
+          "note": "现成的多平台网关，直接复用"
+        },
+        {
+          "id": "chatgpt-on-wechat",
+          "name": "chatgpt-on-wechat",
+          "kind": "oss",
+          "license": "MIT(需核)",
+          "repo": "zhayujie/chatgpt-on-wechat",
+          "note": "微信生态最成熟，注意合规风险"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "adapter 模式，先在 Telegram 上跑通再扩",
+          "effort": "4 天/平台",
+          "tokens": "约 300 万",
+          "outline": [
+            "统一 Message 结构：平台、会话、发送者、内容、原始事件",
+            "每平台一个 adapter，只做收发与签名",
+            "幂等：按平台消息 id 去重",
+            "长任务先回「收到」，完成后主动推送"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.deliver.publish",
+      "name": "发布托管",
+      "kind": "module",
+      "parent": "ai.deliver",
+      "abstract": "把应用变成别人能打开的链接或 API",
+      "note": "从「本机能跑」到「别人能用」的那一步。需要处理：鉴权（不能裸奔）、配额（防被刷）、HTTPS、域名。坑：把 API Key 写进前端；没有限流，被爬一次就破产。",
+      "io": {
+        "in": "应用 / 构建产物",
+        "out": "可访问的 URL"
+      },
+      "providers": [
+        {
+          "id": "docker",
+          "name": "Docker + Caddy 反代",
+          "kind": "pattern",
+          "note": "自托管最标准，配 Caddy 自动 HTTPS"
+        },
+        {
+          "id": "vercel",
+          "name": "Vercel / Cloudflare",
+          "kind": "commercial",
+          "note": "静态与边缘函数最省事"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "发布本身不难，难在别把密钥漏出去",
+          "effort": "2–3 天",
+          "tokens": "约 150 万",
+          "outline": [
+            "容器化：一个 Dockerfile，环境变量注入密钥",
+            "反代用 Caddy，自动证书",
+            "加鉴权中间件（token 或 basic auth）与限流",
+            "部署脚本一键化，别手敲命令"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.deliver.ops",
+      "name": "可观测",
+      "kind": "module",
+      "parent": "ai.deliver",
+      "abstract": "日志、用量、错误、成本",
+      "note": "AI 应用的特点是「同样的输入不同输出」，所以传统日志不够，要记下每次调用的输入摘要、模型、token、耗时、结果质量。没有这层，优化成本和质量都是瞎猜——实测里积分失控的根因几乎都能在这里找到。",
+      "io": {
+        "in": "调用事件",
+        "out": "指标与告警"
+      },
+      "providers": [
+        {
+          "id": "langfuse",
+          "name": "Langfuse",
+          "kind": "oss",
+          "license": "MIT(需核)",
+          "repo": "langfuse/langfuse",
+          "note": "专为 LLM 应用做的追踪，能看到完整链路"
+        },
+        {
+          "id": "otel",
+          "name": "OpenTelemetry",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "open-telemetry/opentelemetry-python",
+          "note": "通用标准，接 Grafana 生态"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "先做记账，追踪框架后面再上",
+          "effort": "3 天",
+          "tokens": "约 200 万",
+          "outline": [
+            "每次调用记一行：task / model / in_tokens / out_tokens / 耗时 / 状态",
+            "按 task 聚合出成本表，这是优化的入口",
+            "记录输入摘要与输出摘要，便于抽样评估质量",
+            "设阈值告警：单任务超预算、失败率突增"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.agent.search",
+      "name": "联网检索",
+      "kind": "module",
+      "parent": "ai.agent",
+      "abstract": "把外部实时信息拉进来，突破训练截止",
+      "note": "判断要不要它：答案需要「今天」的信息就必须有。做法分两类——自带索引的搜索引擎 API（贵但准），或自己抓（省但脏）。坑：抓回来的网页不截断直接塞上下文，一次就爆；还有去重，同一篇稿子被多家转载会重复占位。给模型看之前一定要先摘成 3–5 条要点。",
+      "io": {
+        "in": "查询词",
+        "out": "带来源的摘要"
+      },
+      "providers": [
+        {
+          "id": "searxng",
+          "name": "SearXNG",
+          "kind": "oss",
+          "license": "AGPL-3.0",
+          "repo": "searxng/searxng",
+          "note": "自建元搜索，不依赖商业 API，结果要自己清洗"
+        },
+        {
+          "id": "tavily",
+          "name": "Tavily / Brave Search API",
+          "kind": "commercial",
+          "note": "专为 LLM 优化，返回已摘好的片段"
+        },
+        {
+          "id": "metaso",
+          "name": "秘塔搜索",
+          "kind": "commercial",
+          "note": "中文语境好，有 API"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "检索质量八成靠查询改写，不是靠换搜索源",
+          "effort": "3 天",
+          "tokens": "约 200 万",
+          "outline": [
+            "查询改写：把口语问题变成 2–3 个检索式",
+            "抓取后正文提取（readability 算法），丢导航与广告",
+            "按域名去重 + 按内容相似度去重",
+            "每条摘成 80 字要点并保留 URL，供引用"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.media.doc",
+      "name": "文档生成",
+      "kind": "module",
+      "parent": "ai.media",
+      "abstract": "生成 PPT、Word、表格这类结构化文件",
+      "note": "和「生成一段文字」的差别：要套模板、要排版、要素材位置正确。技术路线是「先出结构化大纲，再套模板渲染」，不要让模型直接吐 HTML/XML——格式必崩。坑：中文字体在服务端渲染经常缺字，必须预装字体；表格里的数字要能回溯来源，否则没法用。",
+      "io": {
+        "in": "主题 + 素材",
+        "out": "pptx / docx 文件"
+      },
+      "providers": [
+        {
+          "id": "python-pptx",
+          "name": "python-pptx / docxtpl",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "scanny/python-pptx",
+          "note": "模板占位符替换，最稳，样式由模板控制"
+        },
+        {
+          "id": "marp",
+          "name": "Marp",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "marp-team/marp",
+          "note": "Markdown 转幻灯片，写起来快，样式受限"
+        },
+        {
+          "id": "gamma",
+          "name": "Gamma API",
+          "kind": "commercial",
+          "note": "排版好看，但可控性差、按次收费"
+        },
+        {
+          "id": "ai-write",
+          "name": "AI 自己写",
+          "kind": "build",
+          "note": "大纲与渲染必须分开，混在一起必然返工",
+          "effort": "4 天",
+          "tokens": "约 300 万",
+          "outline": [
+            "第一步只出大纲 JSON：章节、每页标题、要点、需要的图",
+            "渲染层用 python-pptx 按模板填，不生成 XML",
+            "图片走占位框，尺寸按版式算好再插",
+            "导出后回读校验页数与字号，渲染崩了能发现"
+          ]
+        }
+      ]
+    }
+  ],
+  "products": [
+    {
+      "id": "dify",
+      "name": "Dify",
+      "category": "platform",
+      "homepage": "https://dify.ai",
+      "license": "Other（Apache-2.0 加附加条款）",
+      "tags": [
+        "ai",
+        "selfhost"
+      ],
+      "note": "开源应用平台的代表：把「编排、Agent、RAG、发布」四件事装进一个界面。差异点是它真的能自部署且功能齐，代价是重",
+      "composes": [
+        {
+          "component": "ai.flow.canvas",
+          "provider": "reactflow",
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.run",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.ingest",
+          "provider": "docling",
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": "chroma",
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": "litellm",
+          "role": "must"
+        },
+        {
+          "component": "ai.deliver.publish",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "n8n",
+      "name": "n8n",
+      "category": "platform",
+      "homepage": "https://n8n.io",
+      "license": "Sustainable Use（非 OSI 开源）",
+      "tags": [
+        "automation",
+        "selfhost"
+      ],
+      "note": "自动化工作流的标杆。注意它的许可限制商业托管，看着开源实则不是；节点生态是它真正的护城河",
+      "composes": [
+        {
+          "component": "ai.flow.canvas",
+          "provider": "reactflow",
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.node",
+          "provider": "n8n-nodes",
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.trigger",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.run",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ragflow",
+      "name": "RAGFlow",
+      "category": "app",
+      "homepage": "https://ragflow.io",
+      "license": "Apache-2.0",
+      "tags": [
+        "ai",
+        "rag",
+        "selfhost"
+      ],
+      "note": "知识库的重工业版：力气全在解析与混检，还能看见切片长什么样。2C 内存起步，装它等于上个完整服务",
+      "composes": [
+        {
+          "component": "kb.parse",
+          "provider": "docling",
+          "role": "alt"
+        },
+        {
+          "component": "kb.ingest",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.fulltext",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rerank",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "kb.manage",
+          "provider": "ragflow-manage",
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "openclaw",
+      "name": "OpenClaw",
+      "category": "agent",
+      "homepage": "https://clawd.bot",
+      "license": "MIT",
+      "tags": [
+        "ai",
+        "agent",
+        "local"
+      ],
+      "note": "真开源的本地 Agent，把「聊天软件当入口 + 本机执行 + 持久记忆」做通了。风险点是它与你同级权限",
+      "composes": [
+        {
+          "component": "ai.deliver.channel",
+          "provider": "openclaw-gw",
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.skill",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.chat.memory",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "anythingllm",
+      "name": "AnythingLLM",
+      "category": "app",
+      "homepage": "https://anythingllm.com",
+      "license": "MIT",
+      "tags": [
+        "ai",
+        "rag",
+        "desktop"
+      ],
+      "note": "桌面一键装好的知识库全家桶，价值在「四段全接通还能换件」，当对照组最省事",
+      "composes": [
+        {
+          "component": "kb.rag",
+          "provider": "lancedb",
+          "role": "must"
+        },
+        {
+          "component": "kb.manage",
+          "provider": "anythingllm-ws",
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.agent.mcp",
+          "provider": "mcp-servers",
+          "role": "optional"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "cherry-studio",
+      "name": "Cherry Studio",
+      "category": "app",
+      "homepage": "https://cherry-ai.com",
+      "license": "Apache-2.0(需核)",
+      "tags": [
+        "ai",
+        "desktop",
+        "mcp"
+      ],
+      "note": "多模型桌面客户端，差异点是 MCP 与知识库都有，适合当日常前台",
+      "composes": [
+        {
+          "component": "ai.chat.core",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.agent.mcp",
+          "provider": "mcp-servers",
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "cursor",
+      "name": "Cursor",
+      "category": "devtool",
+      "homepage": "https://cursor.com",
+      "license": "闭源",
+      "tags": [
+        "ai",
+        "coding"
+      ],
+      "note": "闭源商业 IDE 的标杆，护城河在自研补全模型与索引速度，不在功能列表",
+      "composes": [
+        {
+          "component": "dev.code.index",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "dev.code.complete",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "dev.code.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "claude-code",
+      "name": "Claude Code",
+      "category": "devtool",
+      "homepage": "https://www.anthropic.com/claude-code",
+      "license": "闭源",
+      "tags": [
+        "ai",
+        "coding",
+        "cli"
+      ],
+      "note": "CLI 形态的编程 Agent，把「技能与 MCP」做成了生态，是最值得抄结构的闭源产品",
+      "composes": [
+        {
+          "component": "dev.code.index",
+          "provider": "tree-sitter",
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.plan",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.mcp",
+          "provider": "mcp-python",
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.skill",
+          "provider": "claude-skills",
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "chatgpt",
+      "name": "ChatGPT",
+      "category": "app",
+      "homepage": "https://chatgpt.com",
+      "license": "闭源",
+      "tags": [
+        "ai",
+        "chat"
+      ],
+      "note": "对话产品的事实标准：多模态、记忆、工具在一轮里做完，其它产品基本都在对标它的功能表",
+      "composes": [
+        {
+          "component": "ai.chat.core",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.chat.multimodal",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.chat.memory",
+          "provider": "mem0",
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "doubao",
+      "name": "豆包",
+      "category": "app",
+      "homepage": "https://www.doubao.com",
+      "license": "闭源",
+      "tags": [
+        "ai",
+        "chat",
+        "cn"
+      ],
+      "note": "国内助手代表：把写作、生图、音乐、文档阅读全塞进一个入口，差异点是中文语境与免费额度",
+      "composes": [
+        {
+          "component": "ai.chat.core",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.music",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "kb.parse",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.chat.memory",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "jimeng",
+      "name": "即梦AI",
+      "category": "app",
+      "homepage": "https://jimeng.jianying.com",
+      "license": "闭源",
+      "tags": [
+        "ai",
+        "image",
+        "video",
+        "cn"
+      ],
+      "note": "图像视频一体化的国产代表，把一个创意从图做到短片；差异点是中文提示词理解与价格",
+      "composes": [
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.video",
+          "provider": "jimeng",
+          "role": "must"
+        },
+        {
+          "component": "ai.media.voice",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.media.music",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.flow.canvas",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "midjourney",
+      "name": "Midjourney",
+      "category": "app",
+      "homepage": "https://www.midjourney.com",
+      "license": "闭源",
+      "tags": [
+        "ai",
+        "image"
+      ],
+      "note": "审美上限的标杆。架构上最值得学的是它早期用 Discord 当交互层——没有前端也能做产品",
+      "composes": [
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.video",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.chat.core",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "xfyun-spark",
+      "name": "讯飞星火",
+      "category": "app",
+      "homepage": "https://xinghuo.xfyun.cn",
+      "license": "闭源",
+      "tags": [
+        "ai",
+        "chat",
+        "cn",
+        "voice"
+      ],
+      "note": "语音是它的护城河——国内少数把 ASR/TTS 做到能直接商用的团队，其它功能属跟随",
+      "composes": [
+        {
+          "component": "ai.chat.core",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.voice",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.media.doc",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.ingest",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.chat.memory",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.agent.search",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "gamma",
+      "name": "Gamma",
+      "category": "app",
+      "homepage": "https://gamma.app",
+      "license": "闭源",
+      "tags": [
+        "ai",
+        "ppt"
+      ],
+      "note": "PPT 生成里排版最像人的一个。它的做法是「先定版式再填内容」，不是让模型自由发挥",
+      "composes": [
+        {
+          "component": "ai.media.doc",
+          "provider": "gamma",
+          "role": "must"
+        },
+        {
+          "component": "ai.media.image",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.deliver.publish",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "metaso",
+      "name": "秘塔搜索",
+      "category": "app",
+      "homepage": "https://metaso.cn",
+      "license": "闭源",
+      "tags": [
+        "ai",
+        "search",
+        "cn"
+      ],
+      "note": "中文检索增强的代表，差异点是「给来源」而不是给结论——这一点比多数产品诚实",
+      "composes": [
+        {
+          "component": "ai.agent.search",
+          "provider": "metaso",
+          "role": "must"
+        },
+        {
+          "component": "kb.fulltext",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rerank",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.chat.core",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "coze",
+      "name": "扣子 Coze",
+      "category": "platform",
+      "homepage": "https://www.coze.cn",
+      "license": "闭源",
+      "tags": [
+        "ai",
+        "agent",
+        "cn"
+      ],
+      "note": "把做 Bot 的门槛降到零的代表：拖几个节点就能发到微信。代价是深度受平台限制",
+      "composes": [
+        {
+          "component": "ai.flow.canvas",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.run",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.deliver.publish",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "fastgpt",
+      "name": "FastGPT",
+      "category": "platform",
+      "homepage": "https://fastgpt.io",
+      "license": "其他（需核，有商用限制）",
+      "tags": [
+        "ai",
+        "rag",
+        "selfhost"
+      ],
+      "note": "国产知识库 + 工作流的常见组合，比 Dify 轻，落地案例多",
+      "composes": [
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.ingest",
+          "provider": "docling",
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.canvas",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": "litellm",
+          "role": "must"
+        },
+        {
+          "component": "kb.manage",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "flowise",
+      "name": "Flowise",
+      "category": "platform",
+      "homepage": "https://flowiseai.com",
+      "license": "Apache-2.0",
+      "tags": [
+        "ai",
+        "workflow",
+        "selfhost"
+      ],
+      "note": "LLM 场景的画布，节点偏「模型与提示词」而不是「API 集成」，适合做原型",
+      "composes": [
+        {
+          "component": "ai.flow.canvas",
+          "provider": "flowise",
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.node",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": "chroma",
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "ollama",
+      "name": "Ollama",
+      "category": "model",
+      "homepage": "https://ollama.com",
+      "license": "MIT",
+      "tags": [
+        "ai",
+        "local"
+      ],
+      "note": "本地跑模型的事实标准。真正让它赢的不是性能而是「一条命令」——降低门槛本身就是产品力",
+      "composes": [
+        {
+          "component": "ai.model.local",
+          "provider": "ollama",
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.deliver.ops",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "comfyui",
+      "name": "ComfyUI",
+      "category": "app",
+      "homepage": "https://github.com/comfyanonymous/ComfyUI",
+      "license": "GPL-3.0",
+      "tags": [
+        "ai",
+        "image",
+        "local"
+      ],
+      "note": "把图像生成做成节点图，可控性天花板。它的存在证明「工作流画布」不只服务文本",
+      "composes": [
+        {
+          "component": "ai.media.image",
+          "provider": "comfyui",
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.canvas",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.run",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.node",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "lmstudio",
+      "name": "LM Studio",
+      "category": "model",
+      "homepage": "https://lmstudio.ai",
+      "license": "闭源（免费）",
+      "tags": [
+        "ai",
+        "local",
+        "desktop"
+      ],
+      "note": "把本地模型做成消费级软件的样板：图形界面、模型市场、一键下载。闭源但免费，靠生态站位",
+      "composes": [
+        {
+          "component": "ai.model.local",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.chat.core",
+          "provider": "ollama-webui",
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "cline",
+      "name": "Cline",
+      "category": "devtool",
+      "homepage": "https://cline.bot",
+      "license": "Apache-2.0",
+      "tags": [
+        "ai",
+        "coding",
+        "vscode"
+      ],
+      "note": "IDE 里的开源编程 Agent。差异点是「每一步都摊开给你看」，比黑箱式 Agent 更适合学",
+      "composes": [
+        {
+          "component": "dev.code.edit",
+          "provider": "cline",
+          "role": "must"
+        },
+        {
+          "component": "dev.code.index",
+          "provider": "tree-sitter",
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.mcp",
+          "provider": "mcp-servers",
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.plan",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "opencode",
+      "name": "OpenCode",
+      "category": "devtool",
+      "homepage": "https://opencode.ai",
+      "license": "MIT(需核)",
+      "tags": [
+        "ai",
+        "coding",
+        "cli"
+      ],
+      "note": "Claude Code 的开源平替，卖点是「用哪家模型都行」——把模型选择权还给用户",
+      "composes": [
+        {
+          "component": "dev.code.index",
+          "provider": "tree-sitter",
+          "role": "must"
+        },
+        {
+          "component": "dev.code.complete",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": "litellm",
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "lobe-chat",
+      "name": "LobeChat",
+      "category": "app",
+      "homepage": "https://lobehub.com",
+      "license": "Apache-2.0(需核)",
+      "tags": [
+        "ai",
+        "chat",
+        "selfhost"
+      ],
+      "note": "开源聊天客户端里最像产品的一个：插件、MCP、知识库、语音都有，前端体验接近商业品",
+      "composes": [
+        {
+          "component": "ai.chat.core",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.agent.mcp",
+          "provider": "mcp-servers",
+          "role": "must"
+        },
+        {
+          "component": "ai.media.voice",
+          "provider": "whisper",
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "open-webui",
+      "name": "Open WebUI",
+      "category": "app",
+      "homepage": "https://openwebui.com",
+      "license": "BSD-3-Clause(需核)",
+      "tags": [
+        "ai",
+        "chat",
+        "selfhost"
+      ],
+      "note": "本地模型的通用前台。它的定位很聪明：自己不做模型，只做最好用的那一层壳",
+      "composes": [
+        {
+          "component": "ai.chat.core",
+          "provider": "ollama-webui",
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": "chroma",
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.deliver.ops",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "maxkb",
+      "name": "MaxKB",
+      "category": "platform",
+      "homepage": "https://maxkb.cn",
+      "license": "GPL-3.0(需核)",
+      "tags": [
+        "ai",
+        "rag",
+        "cn",
+        "selfhost"
+      ],
+      "note": "国产知识库问答的开箱方案，强项是「嵌到已有系统里」——企业微信、钉钉都能挂",
+      "composes": [
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "kb.ingest",
+          "provider": "docling",
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.canvas",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.deliver.channel",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": "litellm",
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        }
+      ]
+    },
+    {
+      "id": "sd-webui",
+      "name": "Stable Diffusion WebUI",
+      "category": "app",
+      "homepage": "https://github.com/AUTOMATIC1111/stable-diffusion-webui",
+      "license": "AGPL-3.0",
+      "tags": [
+        "ai",
+        "image",
+        "local"
+      ],
+      "note": "本地出图的开山之作。它的遗产不是界面，是 ControlNet / LoRA 这套插件范式",
+      "composes": [
+        {
+          "component": "ai.media.image",
+          "provider": "sd-webui",
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.node",
+          "provider": null,
+          "role": "optional"
+        },
+        {
+          "component": "ai.deliver.publish",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "trae",
+      "name": "Trae",
+      "category": "devtool",
+      "homepage": "https://www.trae.ai",
+      "license": "闭源",
+      "tags": [
+        "ai",
+        "coding",
+        "ide"
+      ],
+      "note": "国产 AI IDE 的代表，走「IDE 内建 Agent」路线，与 Cursor 同构但更依赖国产模型",
+      "composes": [
+        {
+          "component": "dev.code.complete",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "dev.code.index",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "dev.code.edit",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.mcp",
+          "provider": "mcp-servers",
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "vllm",
+      "name": "vLLM",
+      "category": "model",
+      "homepage": "https://docs.vllm.ai",
+      "license": "Apache-2.0",
+      "tags": [
+        "ai",
+        "inference",
+        "selfhost"
+      ],
+      "note": "自建推理服务的工业标准。PagedAttention 让它能扛并发，代价是比 llama.cpp 重",
+      "composes": [
+        {
+          "component": "ai.model.local",
+          "provider": "vllm",
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.deliver.ops",
+          "provider": "otel",
+          "role": "optional"
+        }
+      ]
+    },
+    {
+      "id": "langflow",
+      "name": "Langflow",
+      "category": "platform",
+      "homepage": "https://langflow.org",
+      "license": "MIT",
+      "tags": [
+        "ai",
+        "workflow",
+        "selfhost"
+      ],
+      "note": "把 LangChain 的积木摊到画布上。适合调流程，不适合直接当生产平台——状态管理偏弱",
+      "composes": [
+        {
+          "component": "ai.flow.canvas",
+          "provider": "langflow",
+          "role": "must"
+        },
+        {
+          "component": "ai.flow.run",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.loop",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.agent.tool",
+          "provider": null,
+          "role": "must"
+        },
+        {
+          "component": "ai.model.gateway",
+          "provider": "litellm",
+          "role": "must"
+        },
+        {
+          "component": "kb.rag",
+          "provider": null,
+          "role": "optional"
+        }
+      ]
+    }
+  ]
+}
