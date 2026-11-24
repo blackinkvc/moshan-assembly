@@ -417,7 +417,7 @@
         groups[g].map(c=>'<button data-addcap="'+esc(c.id)+'" style="font-size:11.5px;padding:4px 8px">'+esc(c.label)+'</button>').join('')+'</div>';
     }
     h+='<h4>目录里的软件</h4><ul class="mods">'+CAT.entries.map(e=>
-      '<li><b>'+esc(e.name)+'</b> <span class="tag">'+esc(e.modules.map(m=>m.capability.split('.').pop()).join('/'))+'</span></li>').join('')+'</ul>';
+      '<li><b>'+esc(e.name)+'</b> <span class="tag">'+esc(e.kind==='existing'?'只登记':e.modules.map(m=>m.capability.split('.').pop()).join('/'))+'</span></li>').join('')+'</ul>';
     return h;
   }
   function bindOverview(){

@@ -111,6 +111,24 @@
       "label": "胶水逻辑",
       "group": "自定义",
       "desc": "把上面这些接起来的那几十行代码，通常没有现成软件"
+    },
+    {
+      "id": "dev.runtime",
+      "label": "桌面运行时",
+      "group": "基座",
+      "desc": "把 Web 或原生代码跑成桌面 / 本地应用的那一层"
+    },
+    {
+      "id": "dev.build",
+      "label": "语言与构建",
+      "group": "基座",
+      "desc": "决定二进制体积、启动速度与分发方式的底层选择"
+    },
+    {
+      "id": "ai.protocol",
+      "label": "Agent 互联协议",
+      "group": "协议",
+      "desc": "Agent 与工具、Agent 与 Agent、Agent 与界面之间的标准接口"
     }
   ],
   "entries": [
@@ -229,7 +247,7 @@
           "config": {
             "JELLYFIN_HWACCEL": "vaapi"
           },
-          "note": "默认关闭：需要 /dev/dri 透传，且会多占 300MB 内存",
+          "note": "默认关闭。启用需透传 /dev/dri，镜像整体换成 -vaapi 变体（约 490MB，替换而非叠加）",
           "artifact": {
             "kind": "none",
             "variant": "vaapi",
@@ -671,6 +689,248 @@
           "artifact": {
             "kind": "none",
             "note": "本地已有该进程，无外部依赖"
+          }
+        }
+      ]
+    },
+    {
+      "id": "electron",
+      "name": "Electron",
+      "repo": "electron/electron",
+      "kind": "existing",
+      "homepage": "https://electronjs.org",
+      "license": "MIT",
+      "tier": "official",
+      "notes": "用 Web 技术写桌面应用的运行时。VS Code、Obsidian、Cursor 都建在它上面。代价是包体 100MB 起、内存吃紧，但生态与调试工具最全——要做一个中台外壳，这是最省事的路。",
+      "modules": [
+        {
+          "id": "base",
+          "label": "桌面运行时",
+          "capability": "dev.runtime",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tauri",
+      "name": "Tauri",
+      "repo": "tauri-apps/tauri",
+      "kind": "existing",
+      "homepage": "https://tauri.app",
+      "license": "Apache-2.0",
+      "tier": "official",
+      "notes": "Electron 的轻量替代：壳用系统 WebView，不打包 Chromium，安装包常只有几 MB。代价是各平台渲染有差异，重型前端库要自己测。",
+      "modules": [
+        {
+          "id": "base",
+          "label": "桌面运行时",
+          "capability": "dev.runtime",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          }
+        }
+      ]
+    },
+    {
+      "id": "chromium",
+      "name": "Chromium",
+      "repo": "chromium/chromium",
+      "kind": "existing",
+      "homepage": "https://www.chromium.org/Home",
+      "license": "BSD-3-Clause",
+      "tier": "official",
+      "notes": "Chromium 系浏览器的内核，也是 Electron 与 Playwright 的渲染底座。需要统一渲染行为、或者要无人值守跑真实浏览器时，最后都会落到它身上。",
+      "modules": [
+        {
+          "id": "base",
+          "label": "渲染内核",
+          "capability": "dev.runtime",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          }
+        }
+      ]
+    },
+    {
+      "id": "rust",
+      "name": "Rust",
+      "repo": "rust-lang/rust",
+      "kind": "existing",
+      "homepage": "https://www.rust-lang.org",
+      "license": "MIT OR Apache-2.0",
+      "tier": "official",
+      "notes": "系统级语言，近两年 AI 工具链的事实选择：uv、ruff、ripgrep、Zed、ACP 的参考实现都是它。插件想长期跑在用户机器上、又要单文件分发和低内存，这是最省事的答案。",
+      "modules": [
+        {
+          "id": "build",
+          "label": "语言与工具链",
+          "capability": "dev.build",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          }
+        }
+      ]
+    },
+    {
+      "id": "nodejs",
+      "name": "Node.js",
+      "repo": "nodejs/node",
+      "kind": "existing",
+      "homepage": "https://nodejs.org",
+      "license": "MIT",
+      "tier": "official",
+      "notes": "前端与 CLI 生态的运行时。npx 一行拉起一个 MCP server，是当下 AI 工具分发的默认通道——这也是为什么目录里的「胶水」大多用 JS/Python 写。",
+      "modules": [
+        {
+          "id": "build",
+          "label": "运行时",
+          "capability": "dev.build",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          }
+        }
+      ]
+    },
+    {
+      "id": "mcp",
+      "name": "MCP",
+      "repo": "modelcontextprotocol/modelcontextprotocol",
+      "kind": "existing",
+      "homepage": "https://modelcontextprotocol.io",
+      "license": "MIT",
+      "tier": "official",
+      "notes": "Model Context Protocol，模型调工具的通用接口，相当于 AI 时代的 LSP。现在主流 Agent 客户端与工具都认它；本目录里任何插件想被 Agent 操作，接它比自己发明接口划算。",
+      "modules": [
+        {
+          "id": "spec",
+          "label": "规范",
+          "capability": "ai.protocol",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          }
+        }
+      ]
+    },
+    {
+      "id": "a2a",
+      "name": "A2A",
+      "repo": "a2aproject/A2A",
+      "kind": "existing",
+      "homepage": "https://a2a-protocol.org/",
+      "license": "Apache-2.0",
+      "tier": "official",
+      "notes": "Agent2Agent，让不同厂商的 Agent 互相通信，已捐给 Linux 基金会。分工很清楚：MCP 管「Agent 调工具」，A2A 管「Agent 找 Agent」。",
+      "modules": [
+        {
+          "id": "spec",
+          "label": "规范",
+          "capability": "ai.protocol",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          }
+        }
+      ]
+    },
+    {
+      "id": "acp",
+      "name": "ACP",
+      "repo": "agentclientprotocol/agent-client-protocol",
+      "kind": "existing",
+      "homepage": "https://agentclientprotocol.com",
+      "license": "Apache-2.0",
+      "tier": "official",
+      "notes": "Agent Client Protocol，编辑器与 Agent 之间的标准接口，Zed 发起。想让自己的 Agent 被各种 IDE 接进去，接这一个比逐个适配省事。",
+      "modules": [
+        {
+          "id": "spec",
+          "label": "规范",
+          "capability": "ai.protocol",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ag-ui",
+      "name": "AG-UI",
+      "repo": "ag-ui-protocol/ag-ui",
+      "kind": "existing",
+      "homepage": "https://ag-ui.com",
+      "license": "MIT",
+      "tier": "official",
+      "notes": "Agent-User Interaction Protocol，把 Agent 的流式输出映射成前端事件，解决「Agent 怎么驱动界面」这一段。要页面里嵌一个会动的 Agent，先看它。",
+      "modules": [
+        {
+          "id": "spec",
+          "label": "规范",
+          "capability": "ai.protocol",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          }
+        }
+      ]
+    },
+    {
+      "id": "a2ui",
+      "name": "A2UI",
+      "repo": "a2ui-project/a2ui",
+      "kind": "existing",
+      "homepage": "https://a2ui.org/",
+      "license": "Apache-2.0",
+      "tier": "official",
+      "notes": "Agent-to-UI，让 Agent 直接吐可渲染的界面描述，客户端用自己的原生组件画出来，而不是塞一段 HTML。和 AG-UI 的方向相反：它给数据，你给组件。",
+      "modules": [
+        {
+          "id": "spec",
+          "label": "规范",
+          "capability": "ai.protocol",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ap2",
+      "name": "AP2",
+      "repo": "google-agentic-commerce/AP2",
+      "kind": "existing",
+      "homepage": "https://ap2-protocol.org/",
+      "license": "Apache-2.0",
+      "tier": "official",
+      "notes": "Agent Payments Protocol，Agent 代付时的授权与凭证标准，Google 牵头。做「Agent 帮你下单」迟早要碰，现在先登记着。",
+      "modules": [
+        {
+          "id": "spec",
+          "label": "规范",
+          "capability": "ai.protocol",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
           }
         }
       ]
