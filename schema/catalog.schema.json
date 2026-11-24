@@ -81,6 +81,18 @@
             "description": "本条目所属的标签 id，必须在顶层 tags 词表里。第一个会被当作主动标签用于列表展示。",
             "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,23}$" }
           },
+          "built_on": {
+            "type": "array",
+            "description": "这条东西站在谁的肩上：技术底座（Electron / Chromium / Rust / Node.js 这类）。与 capability 不同——capability 说「它能供给什么」，built_on 说「它内部是拿什么做的」。多条目的 built_on 指向同一个条目，就形成共用底座，也就是「网状」的边。",
+            "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,48}$" },
+            "uniqueItems": true
+          },
+          "speaks": {
+            "type": "array",
+            "description": "它说哪几套接口协议（MCP / A2A / ACP…）。与 built_on 的区别：底座是「我做在里面」，协议是「我按这个标准跟外面讲话」——两者都形成共用关系，但含义不同，界面上要分开画。",
+            "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,48}$" },
+            "uniqueItems": true
+          },
           "image": { "type": "string", "description": "kind=container：镜像仓库名，不含 tag" },
           "sample_tag": { "type": "string", "description": "示例 tag。安装时必须用 registry API 取当期稳定版再写死，禁止 latest 漂移" },
           "license": { "type": "string" },

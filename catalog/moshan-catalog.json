@@ -586,6 +586,9 @@
         "ui",
         "desktop",
         "selfhost"
+      ],
+      "built_on": [
+        "electron"
       ]
     },
     {
@@ -630,6 +633,9 @@
         "backend",
         "native",
         "selfhost"
+      ],
+      "built_on": [
+        "rust"
       ]
     },
     {
@@ -798,6 +804,9 @@
         "web",
         "backend",
         "selfhost"
+      ],
+      "built_on": [
+        "nodejs"
       ]
     },
     {
@@ -841,6 +850,9 @@
         "backend",
         "native",
         "selfhost"
+      ],
+      "built_on": [
+        "rust"
       ]
     },
     {
@@ -884,6 +896,9 @@
         "download",
         "backend",
         "selfhost"
+      ],
+      "built_on": [
+        "nodejs"
       ]
     },
     {
@@ -1006,6 +1021,10 @@
         "ui",
         "frontend",
         "native"
+      ],
+      "built_on": [
+        "chromium",
+        "nodejs"
       ]
     },
     {
@@ -1035,6 +1054,9 @@
         "ui",
         "frontend",
         "native"
+      ],
+      "built_on": [
+        "rust"
       ]
     },
     {
@@ -1394,6 +1416,9 @@
         "network",
         "ui",
         "selfhost"
+      ],
+      "built_on": [
+        "rust"
       ]
     },
     {
@@ -1762,6 +1787,12 @@
         "desktop",
         "ui",
         "frontend"
+      ],
+      "built_on": [
+        "electron"
+      ],
+      "speaks": [
+        "mcp"
       ]
     },
     {
@@ -2755,6 +2786,9 @@
         "ai",
         "data",
         "native"
+      ],
+      "built_on": [
+        "rust"
       ]
     },
     {
@@ -3118,6 +3152,13 @@
             }
           ]
         }
+      ],
+      "built_on": [
+        "nodejs",
+        "electron"
+      ],
+      "speaks": [
+        "mcp"
       ]
     }
   ],

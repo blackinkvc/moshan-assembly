@@ -265,6 +265,8 @@ def validate_catalog(d, name="<catalog>"):
     if not cat_ids:
         e.add("categories", "品类词表为空；筛选界面靠它分段，没有词表就无法分组")
 
+    # 先收全 id：共用关系可以指向后面才定义的条目，不能边校验边判
+    entry_ids = {x.get("id") for x in (d.get("entries") or []) if isinstance(x, dict)}
     eids = set()
     for i, ent in enumerate(d.get("entries") or []):
         w = "entries[%d]" % i
@@ -302,6 +304,21 @@ def validate_catalog(d, name="<catalog>"):
                 else:
                     seen_t.add(t)
                     tag_used.add(t)
+        # 共用关系的边：指向的条目必须真实存在，且不能指向自己（自环只说明写错了）
+        for field in ("built_on", "speaks"):
+            refs = ent.get(field)
+            if refs is None:
+                continue
+            if not isinstance(refs, list):
+                e.add(w + "." + field, "必须是数组（条目 id 列表）")
+                continue
+            for r in refs:
+                if not isinstance(r, str):
+                    e.add(w + "." + field, "元素必须是条目 id 字符串")
+                elif r == ent.get("id"):
+                    e.add(w + "." + field, "指向了自己 %r" % r)
+                elif r not in entry_ids:
+                    e.add(w + "." + field, "引用了不存在的条目 %r（先把那个条目录进来）" % r)
         if kind == "container":
             if not ent.get("image"):
                 e.add(w + ".image", "容器条目缺少镜像")
