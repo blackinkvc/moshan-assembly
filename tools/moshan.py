@@ -880,7 +880,7 @@ def main(argv):
     p = sub.add_parser("catalog", help="列出能力目录（拆解知识，不含下载）")
     p.add_argument("--cap", help="只看某条能力")
     p.add_argument("--tag", help="只看某个标签（如 ui、network、protocol）")
-    p.add_argument("--category", help="只看某个品类（model / mcp / skill / agent-plugin / app / framework）")
+    p.add_argument("--category", help="只看某个品类（hardware / component / model / mcp / skill / agent-plugin / app / framework）")
     p.add_argument("--json", action="store_true")
     p.set_defaults(fn=cmd_catalog)
 
