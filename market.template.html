@@ -35,7 +35,7 @@
   .tabs button.on .cnt{background:var(--accent);border-color:var(--accent);color:#fff}
   /* 目录列表的分区标题：51 条不分段就没法看 */
   .sec{display:flex;align-items:center;gap:7px;padding:11px 13px 5px;font:11px/1 var(--mono);
-    color:var(--muted);letter-spacing:.04em;text-transform:uppercase;position:sticky;top:0;
+    color:var(--muted);letter-spacing:.04em;position:sticky;top:0;
     background:var(--panel);z-index:2;border-bottom:1px solid var(--line-2)}
   .sec:first-child{padding-top:5px}
   .sec b{color:var(--ink);font-weight:600;font-size:11px}
@@ -74,6 +74,17 @@
   .tagbar{display:flex;align-items:center;gap:5px;padding:7px 16px;background:var(--panel);
     border-bottom:1px solid var(--line);overflow-x:auto;flex-wrap:wrap}
   .tagbar[hidden]{display:none}
+  /* 品类：与标签正交的第二套分类。tag 回答「什么领域」（多个），品类回答「这是哪一种东西」（唯一） */
+  .catbar{display:flex;align-items:center;gap:6px;padding:9px 16px;background:var(--bg);
+    border-bottom:1px solid var(--line);overflow-x:auto;flex-wrap:wrap}
+  .catbar[hidden]{display:none}
+  .cchip{font:12px/1.6 inherit;border:1px solid var(--line);background:var(--bg);color:var(--ink);
+    border-radius:8px;padding:3px 10px;cursor:pointer;white-space:nowrap;
+    display:inline-flex;align-items:center;gap:6px}
+  .cchip:hover{border-color:var(--accent);color:var(--accent)}
+  .cchip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .cchip .n{font:10.5px/1 var(--mono);opacity:.65}
+  .cchip .lb{font-size:10.5px;color:var(--muted);margin-right:2px}
   .tchip{font:11.5px/1.5 inherit;border:1px solid var(--line);background:var(--bg);color:var(--muted);
     border-radius:999px;padding:2px 9px;cursor:pointer;white-space:nowrap;
     display:inline-flex;align-items:center;gap:5px}
@@ -129,10 +140,11 @@
   @media (max-width:820px){
     header{gap:8px;padding:10px 12px}
     #q{order:9;flex:1 1 100%;max-width:none;min-width:0}
-    .tagbar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding:7px 12px}
-    .tagbar::-webkit-scrollbar{height:4px}
-    .tagbar::-webkit-scrollbar-thumb{background:var(--line);border-radius:2px}
-    .tchip{flex:0 0 auto}
+    .tagbar,.catbar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding:7px 12px}
+    .tagbar::-webkit-scrollbar,.catbar::-webkit-scrollbar{height:4px}
+    .tagbar::-webkit-scrollbar-thumb,.catbar::-webkit-scrollbar-thumb{background:var(--line);border-radius:2px}
+    .tchip,.cchip{flex:0 0 auto}
+    .catbar .lb{display:none}
     main{flex-direction:column}
     .list{width:auto;max-height:44%;border-right:0;border-bottom:1px solid var(--line)}
     .detail{padding:14px 14px 96px}
@@ -151,6 +163,7 @@
   <input id="q" placeholder="搜插件、软件、能力…（中文也行）">
   <div class="stats" id="stats"></div>
 </header>
+<div class="catbar" id="catbar" hidden></div>
 <div class="tagbar" id="tagbar" hidden></div>
 <main>
   <section class="list" id="list"></section>
@@ -173,10 +186,13 @@ const CAT = JSON.parse(document.getElementById('catalog').textContent);
 const ENTRIES = Object.fromEntries(CAT.entries.map(e=>[e.id,e]));
 // 标签词表：条目只存 id，展示名与分组都从词表取，改词表一处即可全站生效
 const TV = Object.fromEntries((CAT.tags||[]).map(t=>[t.id,t]));
+// 品类词表：第二套分类，条目上只存 id
+const CV = Object.fromEntries((CAT.categories||[]).map(c=>[c.id,c]));
 
 let tab = 'catalog';   // 目录是主体，插件才 4 个，别让人以为这里只有插件
 let q = '';
 let activeTag = null;   // 当前筛选的标签 id；null=全部
+let activeCat = null;   // 当前筛选的品类 id；null=全部（与标签 AND，互不替代）
 let selId = null;
 let sel = {};        // { [manifestId]: { [compId]: [moduleId,...] } }  显式勾选，空对象=用默认
 
@@ -290,6 +306,29 @@ function tagText(it){
   return ((it&&it.tags)||[]).map(t=>(TV[t]||{}).label||t).join(' ');
 }
 
+// 品类栏：只在目录页出现。插件页所有插件都是 agent-plugin，摆一行只有一项的筛选没意义
+function renderCatbar(){
+  const bar = $('#catbar');
+  if(tab!=='catalog' || !(CAT.categories||[]).length){ bar.hidden = true; return; }
+  bar.hidden = false;
+  const base = CAT.entries.filter(e=>!q || matchEntry(e, q));
+  const cnt = {};
+  for(const e of base) cnt[e.category] = (cnt[e.category]||0)+1;
+  let h = '<button class="cchip'+(activeCat?'':' on')+'" data-cat="">全部品类<span class="n">'+base.length+'</span></button>';
+  for(const c of CAT.categories){
+    const n = cnt[c.id]||0;
+    if(!n) continue;                   // 空品类不上栏（搜索时某类可能整段消失）
+    h += '<button class="cchip'+(activeCat===c.id?' on':'')+'" data-cat="'+esc(c.id)+
+         '" title="'+esc(c.hint||'')+'">'+esc(c.label)+'<span class="n">'+n+'</span></button>';
+  }
+  // 命中的总数旁边给一句解释，说清这套分类和标签不是一回事
+  h += '<span class="lb" style="margin-left:4px">品类 · 一种东西只能是一类</span>';
+  bar.innerHTML = h;
+  bar.querySelectorAll('[data-cat]').forEach(el=>{
+    el.onclick = () => { activeCat = el.dataset.cat || null; renderAll(); };
+  });
+}
+
 function renderTagbar(){
   const bar = $('#tagbar');
   const items = tab==='plugins' ? REG.plugins : CAT.entries;
@@ -298,7 +337,7 @@ function renderTagbar(){
   bar.hidden = false;
   const cnt = {};
   for(const e of items) for(const t of (e.tags||[])) cnt[t] = (cnt[t]||0)+1;
-  let h = '<button class="tchip'+(activeTag?'':' on')+'" data-tag="">全部<span class="n">'+items.length+'</span></button>';
+  let h = '<button class="tchip'+(activeTag?'':' on')+'" data-tag="">全部标签<span class="n">'+items.length+'</span></button>';
   let grp = null;
   for(const t of (CAT.tags||[])){
     const n = cnt[t.id]||0;
@@ -323,20 +362,13 @@ function renderStats(){
     '<div class="stat">能力 <b>'+caps+'</b></div>';
 }
 
-// 目录分区：51 条平铺看不出层次。判定只用三个信号（标签 model / kind / 模块能力），
-// 不新增字段，避免 catalog 里维护两份真相。
-const BASE_CAPS = ['dev.runtime','dev.build','ai.protocol'];
-const SEC_ORDER = ['bin','model','base','tool'];
-const SEC_META = {
-  bin:   {label:'可安装',       hint:'勾模块进蓝图，才算进下载集'},
-  model: {label:'开放权重模型', hint:'只登记权重、许可与体量'},
-  base:  {label:'技术基座与协议', hint:'只登记，不下载'},
-  tool:  {label:'桌面与系统工具', hint:'只登记，不下载'},
-};
-function catSection(e){
-  if((e.tags||[]).includes('model')) return 'model';
-  if(e.kind!=='existing') return 'bin';
-  return e.modules.every(m=>BASE_CAPS.includes(m.capability)) ? 'base' : 'tool';
+// 品类取值：插件存在 catalog_category（它的 category 是给自己看的中文短分类），目录条目直接用 category
+const catOf = x => x.catalog_category || x.category || 'agent-plugin';
+
+function matchEntry(e, needle){
+  return match([e.id, e.name, (e.repo||''), e.kind, e.category||'', e.tier||'', (e.license||''), tagText(e),
+    e.modules.map(m=>m.capability+' '+(m.label||'')+' '+((m.artifact||{}).note||'')).join(' '),
+    (e.notes||''), ((CV[e.category]||{}).label||'')].join(' '), needle);
 }
 
 function renderList(){
@@ -344,6 +376,7 @@ function renderList(){
   if(tab==='plugins'){
     const rows = REG.plugins
       .filter(p=>!activeTag || (p.tags||[]).includes(activeTag))
+      .filter(p=>!activeCat || catOf(p)===activeCat)
       .filter(p=>!q || match([p.id,p.name,p.summary,(p.keywords||[]).join(' '),(p.aliases||[]).join(' '),p.category||'',tagText(p)].join(' '), q));
     // 筛掉当前选中项时，右栏不能还挂着列表里看不到的东西
     if(rows.length && !rows.some(p=>p.id===selId)) selId = rows[0].id;
@@ -355,14 +388,18 @@ function renderList(){
         '<div class="sum">'+esc(p.summary||'')+'</div>'+
         tagRow(p)+
         ((p.keywords||[]).length?'<div class="kw">'+esc(p.keywords.join(' · '))+'</div>':'')+
-      '</div>').join('') : '<div class="empty">'+(activeTag?'这个标签下没有插件，点「全部」看看。':'没有匹配的插件。')+'</div>';
+      '</div>').join('') : '<div class="empty">'+(activeTag||activeCat?'当前筛选下没有插件，点「全部」看看。':'没有匹配的插件。')+'</div>';
   } else {
     const rows = CAT.entries
       .filter(e=>!activeTag || (e.tags||[]).includes(activeTag))
-      .filter(e=>!q || match([e.id,e.name,(e.repo||''),e.kind,e.tier||'',(e.license||''),tagText(e),
-        e.modules.map(m=>m.capability+' '+(m.label||'')+' '+((m.artifact||{}).note||'')).join(' '),
-        (e.notes||'')].join(' '), q));
-    if(rows.length && !rows.some(e=>e.id===selId)) selId = rows[0].id;
+      .filter(e=>!activeCat || e.category===activeCat)
+      .filter(e=>!q || matchEntry(e, q));
+    // 分段顺序决定「第一条」是谁：按品类顺序 + 段内能装优先排一遍，默认选中取它
+    const ordered = [];
+    for(const c of (CAT.categories||[]))
+      ordered.push(...rows.filter(x=>x.category===c.id)
+        .sort((a,b)=>(a.kind==='existing'?1:0)-(b.kind==='existing'?1:0)));
+    if(ordered.length && !ordered.some(e=>e.id===selId)) selId = ordered[0].id;
     const itemHTML = e=>{
       const def = e.modules.filter(m=>m.default!==false).reduce((n,m)=>n+((m.artifact||{}).size_mb||0),0);
       const isRef = e.kind==='existing';
@@ -374,17 +411,17 @@ function renderList(){
         (isRef?'':'<div class="kw">'+esc(e.modules.map(m=>m.capability).join(' · '))+'</div>')+
         '</div>';
     };
-    // 51 条不分段就没法找：按「能不能装 / 是什么」切四段
+    // 按品类分段：段内能装的排前面，「它是什么」比「怎么拿到」更需要先回答
     let out = '';
-    for(const s of SEC_ORDER){
-      const grp = rows.filter(x=>catSection(x)===s);
+    for(const c of (CAT.categories||[])){
+      const grp = rows.filter(x=>x.category===c.id)
+        .sort((a,b)=>(a.kind==='existing'?1:0)-(b.kind==='existing'?1:0));
       if(!grp.length) continue;
-      const meta = SEC_META[s];
-      out += '<div class="sec"><b>'+esc(meta.label)+'</b><span>'+grp.length+'</span>'+
-             '<span class="ln"></span><span style="text-transform:none;letter-spacing:0">'+esc(meta.hint)+'</span></div>';
+      out += '<div class="sec"><b>'+esc(c.label)+'</b><span>'+grp.length+'</span>'+
+             '<span class="ln"></span><span style="text-transform:none;letter-spacing:0">'+esc(c.hint||'')+'</span></div>';
       out += grp.map(itemHTML).join('');
     }
-    list.innerHTML = rows.length ? out : '<div class="empty">'+(activeTag?'这个标签下没有软件，点「全部」看看。':'没有匹配的软件。')+'</div>';
+    list.innerHTML = rows.length ? out : '<div class="empty">'+(activeTag||activeCat?'当前筛选下没有软件，点「全部」看看。':'没有匹配的软件。')+'</div>';
   }
   list.querySelectorAll('.item').forEach(el=>el.onclick=()=>{ selId=el.dataset.id; renderAll(); });
 }
@@ -543,11 +580,17 @@ function renderFooter(){
   const cur = currentUse();
   const cmd = $('#fcmd');
   if(tab==='catalog'){
-    const shown = CAT.entries.filter(e=>!activeTag || (e.tags||[]).includes(activeTag)).length;
-    $('#fsum').innerHTML = activeTag
-      ? '软件目录 · 标签「'+esc((TV[activeTag]||{}).label||activeTag)+'」 <b>'+shown+'</b> / '+CAT.entries.length+' 个条目'
-      : '软件目录 · 共 '+CAT.entries.length+' 个条目 · '+(CAT.tags||[]).length+' 个标签';
-    cmd.textContent = 'python3 tools/moshan.py catalog';
+    const conds = [];
+    if(activeCat) conds.push('品类「'+esc((CV[activeCat]||{}).label||activeCat)+'」');
+    if(activeTag) conds.push('标签「'+esc((TV[activeTag]||{}).label||activeTag)+'」');
+    const shown = CAT.entries.filter(e=>(!activeCat || catOf(e)===activeCat)
+      && (!activeTag || (e.tags||[]).includes(activeTag))).length;
+    $('#fsum').innerHTML = conds.length
+      ? '软件目录 · '+conds.join(' + ')+' <b>'+shown+'</b> / '+CAT.entries.length+' 个条目'
+      : '软件目录 · 共 '+CAT.entries.length+' 个条目 · '+(CAT.categories||[]).length+' 个品类 · '+(CAT.tags||[]).length+' 个标签';
+    cmd.textContent = activeCat
+      ? 'python3 tools/moshan.py catalog --category '+activeCat
+      : 'python3 tools/moshan.py catalog';
     return;
   }
   if(activeTag && tab==='plugins'){
@@ -568,7 +611,7 @@ function renderFooter(){
 }
 
 function renderAll(){
-  renderStats(); renderTagbar(); renderList(); renderFooter();
+  renderStats(); renderCatbar(); renderTagbar(); renderList(); renderFooter();
   const d = $('#detail');
   if(tab==='plugins'){
     const p = REG.plugins.find(x=>x.id===selId);
@@ -598,7 +641,11 @@ document.querySelector('[data-tab="catalog"] .cnt').textContent = CAT.entries.le
 document.querySelectorAll('.tabs button').forEach(b=>{
   b.onclick = () => {
     tab = b.dataset.tab;
-    selId = tab==='plugins' ? (REG.plugins[0]||{}).id : (CAT.entries[0]||{}).id;
+    const pool = tab==='plugins' ? REG.plugins : CAT.entries;
+    if(activeTag && !pool.some(x=>(x.tags||[]).includes(activeTag))) activeTag = null;
+    if(activeCat && !pool.some(x=>catOf(x)===activeCat)) activeCat = null;
+    // 不在这里指定选中项：目录页的分段顺序和数组顺序不一样，交给 renderList 取「渲染后的第一条」
+    selId = null;
     document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on', x===b));
     renderAll();
   };

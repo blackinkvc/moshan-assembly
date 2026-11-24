@@ -5,7 +5,7 @@
   "description": "开源软件的「能力目录」：把每个软件拆成功能模块，每个模块只声明两件事——我提供什么能力（provides）、我需要别人给我什么（accepts）。蓝图里的格子填的都是能力，不是软件名。",
   "type": "object",
   "additionalProperties": false,
-  "required": ["spec", "capabilities", "tags", "entries"],
+  "required": ["spec", "capabilities", "tags", "categories", "entries"],
   "properties": {
     "$schema": { "type": "string" },
     "spec": { "const": "1.0" },
@@ -44,18 +44,37 @@
       }
     },
 
+    "categories": {
+      "type": "array",
+      "description": "品类词表。与 tags 正交的第二套分类：tag 说「什么领域 / 什么栈」（可以多个），category 说「这是哪一种东西」（有且只有一个）。筛选界面按它分段。",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]{1,23}$" },
+          "label": { "type": "string", "maxLength": 16 },
+          "hint": { "type": "string", "maxLength": 40 }
+        }
+      }
+    },
     "entries": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "name", "kind", "license", "tags", "modules"],
+        "required": ["id", "name", "kind", "category", "license", "tags", "modules"],
         "properties": {
           "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,48}$" },
           "name": { "type": "string" },
           "repo": { "type": "string", "pattern": "^[\\w.-]+/[\\w.-]+$" },
           "homepage": { "type": "string" },
           "kind": { "enum": ["container", "process", "binary", "existing"] },
+          "category": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,23}$",
+            "description": "品类 id，必须在顶层 categories 词表里。与 kind 不同：kind 说怎么拿到（容器/进程/二进制/只登记），category 说它是什么东西（模型/MCP/技能/插件/软件/基座）。"
+          },
           "tags": {
             "type": "array",
             "minItems": 1,

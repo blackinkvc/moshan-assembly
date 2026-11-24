@@ -247,6 +247,24 @@ def validate_catalog(d, name="<catalog>"):
     if not tag_ids:
         e.add("tags", "标签词表为空；每个条目都必须打标签，没有词表就无从校验")
 
+    # 品类词表：条目的「这是哪一种东西」，有且只有一个，也必须是受控词
+    cat_ids, cat_used = set(), set()
+    for i, c in enumerate(d.get("categories") or []):
+        w = "categories[%d]" % i
+        cid = c.get("id")
+        if not cid:
+            e.add(w + ".id", "缺少 id")
+            continue
+        if cid in cat_ids:
+            e.add(w + ".id", "品类 id 重复 %r" % cid)
+        cat_ids.add(cid)
+        if not TAG_RE.match(str(cid)):
+            e.add(w + ".id", "需为小写字母/数字/连字符，2-24 字（如 agent-plugin）")
+        if not c.get("label"):
+            e.add(w + ".label", "缺少 label")
+    if not cat_ids:
+        e.add("categories", "品类词表为空；筛选界面靠它分段，没有词表就无法分组")
+
     eids = set()
     for i, ent in enumerate(d.get("entries") or []):
         w = "entries[%d]" % i
@@ -260,6 +278,16 @@ def validate_catalog(d, name="<catalog>"):
         kind = ent.get("kind")
         if kind not in COMP_KINDS:
             e.add(w + ".kind", "必须是 %s 之一" % (COMP_KINDS,))
+        # 品类：必填、有且只有一个、必须在词表内
+        cat = ent.get("category")
+        if not cat:
+            e.add(w + ".category", "缺少品类（每个条目必须且只能属于一个品类，否则筛选漏项）")
+        elif not isinstance(cat, str):
+            e.add(w + ".category", "必须是字符串（一个条目只能属于一个品类，不能写成数组）")
+        elif cat not in cat_ids:
+            e.add(w + ".category", "引用了词表里不存在的品类 %r（先加到顶层 categories）" % cat)
+        else:
+            cat_used.add(cat)
         # 标签：必填、不重复、必须在词表内
         etags = ent.get("tags")
         if not isinstance(etags, list) or not etags:
@@ -362,6 +390,12 @@ def validate_registry(d, name="<registry>"):
             e.add(w + ".sha256", "必须是 64 位小写 hex")
         if not p.get("sha256"):
             e.add(w + ".sha256", "缺少校验和（安装前必须校验，否则不做来源保证）")
+        # 品类：必须能归类，否则界面按品类筛选时这个插件会消失
+        ccat = p.get("catalog_category")
+        if not ccat:
+            e.add(w + ".catalog_category", "缺品类（默认应为 agent-plugin；生成索引时由清单的 catalog_category 带出）")
+        elif not TAG_RE.match(str(ccat)):
+            e.add(w + ".catalog_category", "品类格式不合法 %r（小写字母/数字/连字符，2-24 字）" % ccat)
         # 标签：与软件目录共用一套词表，这里只能校格式；词表归属由 catalog 一侧保证
         ptags = p.get("tags")
         if not isinstance(ptags, list) or not ptags:

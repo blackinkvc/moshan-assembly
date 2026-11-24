@@ -28,6 +28,11 @@
           "repo": { "type": "string", "pattern": "^[\\w.-]+/[\\w.-]+$", "description": "owner/repo，与 Obsidian 同形" },
           "kind": { "enum": ["single", "stack", "adapter"] },
           "category": { "type": "string" },
+          "catalog_category": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,23}$",
+            "description": "品类 id，取 catalog 的 categories 词表。注意与上面的 category（中文自由分类，如「笔记」「算价」）不是一回事：那个是给人看的短标签，这个是筛选用的受控词。"
+          },
           "keywords": { "type": "array", "items": { "type": "string" } },
           "tags": {
             "type": "array",

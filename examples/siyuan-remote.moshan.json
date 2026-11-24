@@ -11,6 +11,7 @@
   "repo": "pamphile/moshan-siyuan-adapter",
   "kind": "adapter",
   "category": "笔记",
+  "catalog_category": "agent-plugin",
   "tags": ["data", "ui", "selfhost"],
   "group": "other",
   "permissions": ["net:192.168.0.102"],

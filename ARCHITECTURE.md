@@ -18,7 +18,7 @@
             └───────────┬────────────┴────────────────────────────┘
                         ▼
               ┌─────────────────────┐
-              │  L0 能力词表 + 目录   │  39 条能力 / 22 个标签 / 51 个条目 / 70 个模块（含 35 个只登记）
+              │  L0 能力词表 + 目录   │  39 能力 / 22 标签 / 6 品类 / 51 条目 / 70 模块（含 35 个只登记）
               └─────────┬───────────┘
                         ▼
               ┌─────────────────────┐
@@ -80,18 +80,23 @@
    桌面与系统工具 14 个（Git / WhatCable / RustDesk / 按键显示Pro / Ubuntu / LibreOffice / ezNTFS / LocalSend / Tailscale / Dropover / RunCat / Cherry Studio / OpenWorker / Organic Maps）、
    开放权重模型 10 个（DeepSeek V4.1 Flash、Kimi K3.1 Pro、GLM-5.3 Flash、Qwen3.8 27B、Gemma 4、MiniMax M3.1 Flash、MiMo-V2.6-Pro、Kimi K2.7 Code、ERNIE 5.5 Flash Base、混元 Hy4）。
    都是 `artifact.kind = none`，**不进下载集、不可装**，作用是「先知道有这个东西、它占哪一段」。闭源条目不拆模块细节，只在 `notes` 里说清为什么值得看。
-4. **标签词表**：22 个标签，分两组——**领域**（`ui` 界面、`frontend` 前端、`backend` 后端、`dev` 开发、`network` 网络、`download` 下载、`media` 媒体、`data` 数据、`search` 检索、`ai`、`model` 模型、`security` 安全、`ops` 运维、`geo` 地理、`office` 办公）与**技术栈**（`desktop` 桌面、`web`、`cli` 命令行、`protocol` 协议、`native` 原生、`selfhost` 可自建、`skill` 技能）。
+4. **品类词表**：6 个品类，一个条目**只能属于一个**——`model` 基础模型（10）、`mcp` MCP（1）、`skill` 技能（1）、`agent-plugin` Agent 插件（2）、`app` 软件（27）、`framework` 基座与协议（10）。这是界面上的第一道筛选，按它给列表分段。
+5. **标签词表**：22 个标签，分两组——**领域**（`ui` 界面、`frontend` 前端、`backend` 后端、`dev` 开发、`network` 网络、`download` 下载、`media` 媒体、`data` 数据、`search` 检索、`ai`、`model` 模型、`security` 安全、`ops` 运维、`geo` 地理、`office` 办公）与**技术栈**（`desktop` 桌面、`web`、`cli` 命令行、`protocol` 协议、`native` 原生、`selfhost` 可自建、`skill` 技能）。
 
-### 能力与标签是两套维度，不要合并
+### 三套维度，各有各的用处，不要合并
 
-| | 能力 `capabilities` | 标签 `tags` |
-| --- | --- | --- |
-| 回答 | 「能供给什么」 | 「属于哪一类」 |
-| 谁用 | 转换器（蓝图格子、连线推导） | 人（筛选、浏览、找同类） |
-| 粒度 | 一条能力可被机器精确匹配 | 一个条目可打多个，交叉描述 |
-| 校验 | 模块 `capability` 必须在词表 | 条目 `tags` 必须在词表，且**至少一个** |
+| | 能力 `capability` | 标签 `tags` | 品类 `category` |
+| --- | --- | --- | --- |
+| 回答 | 「能供给什么」 | 「属于哪些领域 / 什么栈」 | 「这是哪一种东西」 |
+| 谁用 | 转换器（蓝图格子、连线推导） | 人（交叉筛选、找同类） | 人（第一道分类、列表分段） |
+| 粒度 | 一模块一条，可被机器精确匹配 | 一条目多个，交叉描述 | 一条目**有且只有一个** |
+| 校验 | 模块 `capability` 必须在词表 | 条目 `tags` 必须在词表，**至少一个** | 条目 `category` 必须在词表，**必填** |
 
-**为什么必须分开**：能力要能唯一确定一条连线（`media.download` 只能有一个来源），一旦允许「一个模块随便挂五个能力」，连线推导就失去唯一解。标签则相反，天生该是多个——Electron 同时是「桌面 / 界面 / 前端 / 原生」，这四句都对，但一句都不能拿来连管线。
+**为什么能力和标签必须分开**：能力要能唯一确定一条连线（`media.download` 只能有一个来源），一旦允许「一个模块随便挂五个能力」，连线推导就失去唯一解。标签则相反，天生该是多个——Electron 同时是「桌面 / 界面 / 前端 / 原生」，这四句都对，但一句都不能拿来连管线。
+
+**为什么在标签之外还要品类**：标签是交叉的网状描述，搜「AI」会同时出模型、客户端、协议、插件，混在一行里；但人找东西时第一个问题往往是「这是模型还是软件」。品类就是回答这一个问题，所以它必须唯一、必须必填，界面也按它给列表分段。Electron 打四个标签都对，但它只能是 `framework` 一个品类。
+
+**品类判定不靠猜**：写在 `catalog/*.json` 的 `category` 里，词表外的值校验器直接报错。插件侧对应字段是 `catalog_category`（清单里原有的 `category` 是「笔记 / 算价」这类中文短分类，两者不是一回事，不复用）。
 
 标签是**跨页签共用**的：插件（`registry.json` 的 `tags`）与软件条目用同一套词表，所以市场页一个筛选器能同时管两个页签。插件标签的来源有优先级：
 1. 清单里自己写 `tags`（作者说了算，词表外的词构建时告警）；
@@ -332,10 +337,10 @@ moshan.json（自由演进）──派生──> plugins.json（七字段，字�
 ├── schema/
 │   ├── moshan.schema.json       包清单（single/stack/adapter，spec 2.1）
 │   ├── registry.schema.json     商店索引
-│   ├── catalog.schema.json      能力词表 + 标签词表 + 软件拆解（含 artifact）
+│   ├── catalog.schema.json      能力词表 + 标签词表 + 品类词表 + 软件拆解（含 artifact）
 │   ├── blueprint.schema.json    画布蓝图
 │   └── card.schema.json         卡片（中台唯一认识的形状）
-├── catalog/moshan-catalog.json  51 个条目 / 70 个模块 / 39 条能力 / 22 个标签（其中 35 个只登记）
+├── catalog/moshan-catalog.json  51 个条目 / 70 个模块 / 39 条能力 / 22 个标签 / 6 个品类（其中 35 个只登记）
 ├── registry/registry.json       生成的商店索引
 ├── examples/                    4 个可安装包 + 3 个蓝图 + 2 个生成清单
 ├── tools/
@@ -387,6 +392,7 @@ M4 是当前最短的验证闭环：llmcost 的清单已写好，装通即等于
 python3 tools/moshan.py catalog
 python3 tools/moshan.py catalog --cap media.transcode
 python3 tools/moshan.py catalog --tag protocol      # 只看协议类
+python3 tools/moshan.py catalog --category model    # 只看基础模型
 python3 tools/moshan.py tags --entries              # 标签词表 + 用量 + 各自挂了哪些条目
 
 # 定向安装：知道要什么，直接指定（不走推荐）

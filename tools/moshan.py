@@ -599,10 +599,17 @@ def cmd_catalog(args):
     tag = getattr(args, "tag", None)
     if tag and tag not in tmap:
         die("词表里没有标签 %r（可用：%s）" % (tag, "、".join(sorted(tmap))))
-    print("能力词表 %d 条，标签 %d 个，条目 %d 个\n" % (len(caps), len(tmap), len(entries)))
+    cmap = {c["id"]: c for c in cat.get("categories") or []}
+    category = getattr(args, "category", None)
+    if category and category not in cmap:
+        die("词表里没有品类 %r（可用：%s）" % (category, "、".join(cmap)))
+    print("能力词表 %d 条，标签 %d 个，品类 %d 个，条目 %d 个\n"
+          % (len(caps), len(tmap), len(cmap), len(entries)))
     shown = 0
     for e in cat["entries"]:
         if tag and tag not in (e.get("tags") or []):
+            continue
+        if category and e.get("category") != category:
             continue
         mods = [m for m in e["modules"] if not args.cap or m["capability"] == args.cap]
         if args.cap and not mods:
@@ -612,8 +619,9 @@ def cmd_catalog(args):
                     for m in e["modules"] if m.get("default", True))
         # 标签写在 id 前，一眼能看出这条归在哪一类
         tline = "/".join((tmap.get(t) or {}).get("label", t) for t in (e.get("tags") or []))
-        print("%-14s %-10s %-6s %6s  %s" % (e["id"], e["kind"], e.get("tier", "community"),
-                                            human(total), (e.get("repo") or "")))
+        clabel = (cmap.get(e.get("category")) or {}).get("label", e.get("category") or "-")
+        print("%-14s %-10s %-10s %-6s %6s  %s" % (e["id"], e["kind"], clabel, e.get("tier", "community"),
+                                                 human(total), (e.get("repo") or "")))
         print("   %s  标签 %s" % (" " * 8, tline))
         for m in mods:
             a = m.get("artifact") or {"kind": "none"}
@@ -786,6 +794,8 @@ def cmd_registry(args):
             "author": m.get("author"),
             "repo": m.get("repo") or "",
             "category": m.get("category"),
+            # 品类：受控词表里的一格，和上面那个自由写的中文短分类互不影响
+            "catalog_category": m.get("catalog_category") or "agent-plugin",
             "group": m.get("group"),
             "keywords": m.get("keywords") or [],
             "tags": tags_for(m, pid),
@@ -870,6 +880,7 @@ def main(argv):
     p = sub.add_parser("catalog", help="列出能力目录（拆解知识，不含下载）")
     p.add_argument("--cap", help="只看某条能力")
     p.add_argument("--tag", help="只看某个标签（如 ui、network、protocol）")
+    p.add_argument("--category", help="只看某个品类（model / mcp / skill / agent-plugin / app / framework）")
     p.add_argument("--json", action="store_true")
     p.set_defaults(fn=cmd_catalog)
 

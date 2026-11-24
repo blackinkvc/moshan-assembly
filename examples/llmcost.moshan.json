@@ -12,6 +12,7 @@
   "icon": "icon.png",
   "kind": "single",
   "category": "算价",
+  "catalog_category": "agent-plugin",
   "group": "other",
   "keywords": ["token", "price", "llm", "cost"],
   "tags": ["ai", "dev", "cli"],

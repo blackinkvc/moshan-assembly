@@ -278,6 +278,11 @@ python3 tools/blueprint.py examples/blueprint-knowledge.json \
 - `validate.py` 两层都查：catalog 一侧查「词表里有没有这个词」，registry 一侧查「有没有标签、格式对不对」。
 - **与 `capabilities` 严格分开**：能力是给机器连管线的（一条能力只能有一个来源），标签是给人筛的（一个条目可以同时是「桌面 / 界面 / 前端 / 原生」）。合并会让推荐失去唯一解。
 
+**品类用 `catalog_category`，是另一层，别和上面的 `category` 混。** 插件清单里原有的 `category` 是给自己看的中文短分类（「笔记」「算价」「组合栈」），自由填写；`catalog_category` 才是取词表的那一格，取值来自 `catalog/moshan-catalog.json` 的 `categories`（`model` / `mcp` / `skill` / `agent-plugin` / `app` / `framework`）。两个字段名不同是故意的——同名会让「中文短分类」和「受控品类」互相覆盖。
+
+- 插件不写 `catalog_category` 时按 `agent-plugin` 处理。
+- 现场有两个筛选维度：品类（唯一）与标签（多个），两者 AND，都不是装饰——品类回答「这是哪一种东西」，标签回答「它沾哪些领域」。
+
 **L2 · 多商店（也零后端）**
 抄 CasaOS：设置里可加任意 `store_url`。于是「我的商店」「团队的商店」「某个作者自建商店」并列，互不干扰。每个商店就是一个 JSON，可各自挂 Pages。
 

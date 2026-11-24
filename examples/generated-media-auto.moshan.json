@@ -12,6 +12,7 @@
   "license": "MIT",
   "kind": "stack",
   "category": "组合栈",
+  "catalog_category": "agent-plugin",
   "tags": [
     "media",
     "download",

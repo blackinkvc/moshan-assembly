@@ -29,6 +29,11 @@
     "icon": { "type": "string", "description": "包内相对路径，如 icon.png" },
     "kind": { "enum": ["single", "stack", "adapter"] },
     "category": { "type": "string" },
+    "catalog_category": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,23}$",
+      "description": "品类 id，取 catalog/moshan-catalog.json 的 categories 词表（model / mcp / skill / agent-plugin / app / framework）。不写按 agent-plugin 处理。"
+    },
     "group": { "enum": ["plugin", "tool", "other"], "default": "other", "description": "中台弹窗归类，与现有 plugins.json 的 group 同义" },
     "keywords": { "type": "array", "items": { "type": "string" } },
     "tags": {

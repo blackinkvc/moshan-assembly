@@ -11,6 +11,7 @@
   "repo": "pamphile/moshan-media-auto",
   "kind": "stack",
   "category": "媒体",
+  "catalog_category": "agent-plugin",
   "group": "other",
   "keywords": ["qbittorrent", "jellyfin", "rename", "stack"],
   "permissions": ["docker", "fs:媒体库", "net:127.0.0.1", "exec:python3"],
