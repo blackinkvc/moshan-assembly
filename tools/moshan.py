@@ -589,6 +589,71 @@ def render_readme(manifest, comps, items):
 # ---------------------------------------------------------------- 命令
 
 
+def cmd_net(args):
+    """共用关系：谁跟谁共用同一套东西。
+
+    三种共用分开列，因为它们的含义完全不同：
+      底座 —— 我做在它里面（Electron 里跑着好几个 App），换底会一起换
+      接口 —— 我按它的标准跟外面讲话（MCP 被多个客户端说），加一个是加法
+      同格 —— 我们都供给同一条能力（十个模型都在 ai.model 这一格），互为替代
+    """
+    cat, entries = catalog()
+    caps = {c["id"]: c for c in cat.get("capabilities") or []}
+
+    refs = {}
+    for e in cat["entries"]:
+        for b in (e.get("built_on") or []):
+            refs.setdefault(b, []).append((e["id"], "based-on"))
+        for b in (e.get("speaks") or []):
+            refs.setdefault(b, []).append((e["id"], "speaks"))
+
+    prov = {}
+    for e in cat["entries"]:
+        for m in e["modules"]:
+            prov.setdefault(m["capability"], set()).add(e["id"])
+
+    blocks = []
+    for bid, us in refs.items():
+        if bid not in entries:
+            continue
+        kind = "接口" if all(r[1] == "speaks" for r in us) else "底座"
+        blocks.append({"key": bid, "kind": kind,
+                       "name": entries[bid]["name"], "users": [u[0] for u in us]})
+    for cap, users in prov.items():
+        if len(users) < 2:
+            continue
+        blocks.append({"key": cap, "kind": "同格",
+                       "name": (caps.get(cap) or {}).get("label", cap),
+                       "users": sorted(users)})
+
+    if getattr(args, "block", None):
+        b = getattr(args, "block")
+        hit = [x for x in blocks if x["key"] == b or x["name"] == b]
+        if not hit:
+            die("没有这个共用块 %r（用不带参数的 net 先看一眼）" % b)
+        x = hit[0]
+        print("%s（%s，%d 个）" % (x["name"], x["kind"], len(x["users"])))
+        for u in x["users"]:
+            print("  %-16s %s" % (u, (entries.get(u) or {}).get("category", "")))
+        return 0
+
+    order = {"底座": 0, "接口": 1, "同格": 2}
+    blocks.sort(key=lambda x: (order[x["kind"]], -len(x["users"]), len(x["name"])))
+    cnt = {}
+    for x in blocks:
+        cnt[x["kind"]] = cnt.get(x["kind"], 0) + 1
+    print("共用关系 %d 块（底座 %d / 接口 %d / 同格 %d）\n"
+          % (len(blocks), cnt.get("底座", 0), cnt.get("接口", 0), cnt.get("同格", 0)))
+    grp = None
+    for x in blocks:
+        if x["kind"] != grp:
+            grp = x["kind"]
+            print("[%s]" % grp)
+        print("  %-10s %-18s %2d 个共用  %s"
+              % (x["kind"], x["name"], len(x["users"]), " ".join(x["users"])))
+    return 0
+
+
 def cmd_catalog(args):
     cat, entries = catalog()
     caps = {c["id"]: c for c in cat["capabilities"]}
@@ -889,6 +954,10 @@ def main(argv):
     p.add_argument("--category", help="只看某个品类（hardware / component / model / mcp / skill / agent-plugin / app / framework）")
     p.add_argument("--json", action="store_true")
     p.set_defaults(fn=cmd_catalog)
+
+    p = sub.add_parser("net", help="列共用关系（谁跟谁共用同一套底座 / 接口 / 能力位）")
+    p.add_argument("-b", "--block", help="只看某一块：能力 id 或条目 id")
+    p.set_defaults(fn=cmd_net)
 
     p = sub.add_parser("tags", help="列标签词表与用量（零使用的会标出来）")
     p.add_argument("--entries", action="store_true", help="附上每个标签下的条目 id")

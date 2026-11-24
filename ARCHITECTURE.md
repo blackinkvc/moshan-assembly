@@ -204,6 +204,33 @@
 
 为什么不把这些全做成模块：模块要能进格子、算体积、推连线；`parts` 里那些是同一层的**选型**，拆成模块只会在画布上生成一堆永远不会被连线的假节点。判断标准——**能拿来连线的才叫模块，只能拿来做决定的叫 parts**。
 
+### 3.2.2 共用关系：目录不是平铺的
+
+拆开之后会发现一件事：**很多条目共用同一套东西**。十个模型都供给 `ai.model`，五个软件都建在 Rust 上。目录如果只是平铺列表，这种共性就看不见了。所以条目多了两个字段：
+
+```jsonc
+{ "id": "cherry-studio", "built_on": ["electron"], "speaks": ["mcp"] }
+```
+
+| 边 | 字段 | 含义 | 例子 |
+| --- | --- | --- | --- |
+| **底座** | `built_on` | 我做在它里面 | Electron 里跑着思源、Cherry Studio、AnythingLLM |
+| **接口** | `speaks` | 我按它的标准跟外面讲话 | Cherry Studio、AnythingLLM 都说 MCP |
+| **同格** | 不用写 | 我们都供给同一条能力，**互为替代** | Chroma / sqlite-vec / LanceDB 都做 `kb.rag` |
+
+前两种必须显式写，因为从数据里推不出来（「思源是 Electron 写的」这件事只有人知道）。第三种**故意不写**——同一条能力有多个供给者时自动成立，手写只会写漏。
+
+**为什么分「底座」和「接口」**：底座是替换成本高的耦合（换内核等于重做），接口是加法（多支持一套协议不伤害已有的）。混成一个字段，就分不清「改一处影响一片」和「加一个不影响谁」。
+
+**铁律：拿不准的不写。** 网宁可稀，不可假——一条编出来的边会让整张网失去可信度。目前只有 11 条底座/接口边，全部是可以从上游 README 直接确认的（Electron = Chromium + Node、Tauri = Rust、Meilisearch = Rust…）。
+
+三处落地：
+
+- 界面「关系网」页签：左栏共用块（按底座 → 接口 → 同格排），右栏二分图 + 谁共用它
+- 条目详情「它在网里的位置」：站在谁肩上 / 谁共用它，chip 可点跳转
+- 列表徽章「共用 N」：被两个以上条目挂在身上才显示
+- CLI：`python3 tools/moshan.py net`（`-b electron` 只看一块）
+
 ### 3.3 下载集算法（`moshan plan` 的实现）
 
 ```
@@ -410,6 +437,8 @@ python3 tools/moshan.py catalog --cap media.transcode
 python3 tools/moshan.py catalog --tag protocol      # 只看协议类
 python3 tools/moshan.py catalog --category model    # 只看基础模型
 python3 tools/moshan.py tags --entries              # 标签词表 + 用量 + 各自挂了哪些条目
+python3 tools/moshan.py net                        # 共用关系：谁跟谁共用底座/接口/能力位
+python3 tools/moshan.py net -b electron            # 只看某一块被谁共用
 
 # 定向安装：知道要什么，直接指定（不走推荐）
 python3 tools/moshan.py plan  examples/generated-media-auto.moshan.json \

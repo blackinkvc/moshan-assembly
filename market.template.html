@@ -157,6 +157,25 @@
   .parts .pt{font-size:11.5px;line-height:1.6}
   .parts .pt i{font-style:normal;font-weight:600;color:var(--ink);margin-right:6px}
   .parts .pt span{color:var(--muted)}
+  /* 关系网：共用块、网位置的小chip、二分图容器 */
+  .netwrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px;
+    margin:10px 0 4px;overflow-x:auto}
+  .netwrap svg{display:block}
+  .nrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:3px 0}
+  .nrow b{font-size:11px;color:var(--muted);font-weight:500;min-width:64px}
+  .nchip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);border-radius:999px;
+    padding:2px 9px 2px 10px;font-size:12px;cursor:pointer;background:var(--bg)}
+  .nchip:hover{border-color:var(--accent);color:var(--accent)}
+  .nchip i{font-style:normal;font:10px/1.5 var(--mono);color:var(--muted)}
+  .nrel{display:flex;gap:8px;align-items:baseline;padding:4px 0;font-size:12px;
+    border-bottom:1px solid var(--line-2);cursor:pointer}
+  .nrel:hover .nn{color:var(--accent)}
+  .nrel .nn{font-weight:600;min-width:112px}
+  .nrel .nr{font:10px/1.7 var(--mono);color:var(--accent);background:var(--accent-soft);border-radius:4px;padding:0 5px}
+  .nrel .nd{flex:1;color:var(--muted);font-size:11.5px;line-height:1.5;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .item .sh{font:10px/1.6 var(--mono);color:var(--accent);background:var(--accent-soft);
+    border-radius:4px;padding:1px 5px;white-space:nowrap}
   .who{display:flex;gap:8px;padding:4px 0;font-size:12px;border-bottom:1px solid var(--line-2);cursor:pointer}
   .who:hover .wn{color:var(--accent)}
   .who .wn{font-weight:600;min-width:110px}
@@ -202,6 +221,7 @@
   <div class="tabs">
     <button data-tab="plugins">插件<span class="cnt"></span></button>
     <button data-tab="catalog" class="on">软件目录<span class="cnt"></span></button>
+    <button data-tab="net">关系网<span class="cnt"></span></button>
   </div>
   <input id="q" placeholder="搜插件、软件、能力…（中文也行）">
   <div class="stats" id="stats"></div>
@@ -274,8 +294,12 @@ const NET_BLOCKS = (() => {
       users: [...set].map(id=>({id, name:(ENTRIES[id]||{}).name||id, rel:'slot'})),
       count: set.size});
   }
-  // 有实际共用关系的排前面；同类里被用得多、名字短的在前面才扫得动
-  blocks.sort((a,b)=> b.count - a.count || (a.kind==='slot'?1:0) - (b.kind==='slot'?1:0) || a.name.length - b.name.length);
+  // 底座/接口优先于同格：一个是「同一个人撑起一圈」，一个是「一排同款」，
+  // 前者才是网。同类里按被共用次数排，次数相同按名字短——扫得快。
+  blocks.sort((a,b)=>{
+    const ka = a.kind==='slot'?1:0, kb = b.kind==='slot'?1:0;
+    return ka - kb || b.count - a.count || a.name.length - b.name.length;
+  });
   return blocks;
 })();
 const NET_BY_KEY = Object.fromEntries(NET_BLOCKS.map(b=>[b.key,b]));
@@ -423,6 +447,7 @@ function renderCatbar(){
 
 function renderTagbar(){
   const bar = $('#tagbar');
+  if(tab==='net'){ bar.hidden = true; return; }   // 网里没有标签这个维度，别摆一排点了没反应的筛子
   const items = tab==='plugins' ? REG.plugins : CAT.entries;
   // 两个页签共用一套词表与筛选状态：切过去看「协议」下有哪些插件，是同一件事
   if(!items.some(it=>(it.tags||[]).length)){ bar.hidden = true; return; }
@@ -470,6 +495,21 @@ function matchEntry(e, needle){
 
 function renderList(){
   const list = $('#list');
+  if(tab==='net'){
+    const rows = NET_BLOCKS.filter(b=>!q ||
+      match([b.name, b.id, b.hint||'', b.users.map(u=>u.name).join(' ')].join(' '), q));
+    if(rows.length && !rows.some(b=>b.key===selId)) selId = rows[0].key;
+    const KB = {speaks:'接口', 'built-on':'底座', slot:'同格'};
+    list.innerHTML = rows.length ? rows.map(b=>
+      '<div class="item '+(selId===b.key?'on':'')+'" data-key="'+esc(b.key)+'">'+
+        '<div class="r1"><span class="nm">'+esc(b.name)+'</span><span class="sp"></span>'+
+        '<span class="badge">'+esc(KB[b.kind])+'</span></div>'+
+        '<div class="sum">'+b.count+' 个条目共用'+(b.kind==='slot'?' · 择一，不是叠加':'')+'</div>'+
+        (b.hint?'<div class="kw">'+esc(b.hint)+'</div>':'')+
+      '</div>').join('') : '<div class="empty">没有匹配的共用块。</div>';
+    list.querySelectorAll('.item').forEach(el=>el.onclick=()=>{ selId=el.dataset.key; renderAll(); });
+    return;
+  }
   if(tab==='plugins'){
     const rows = REG.plugins
       .filter(p=>!activeTag || (p.tags||[]).includes(activeTag))
@@ -503,12 +543,14 @@ function renderList(){
       const isCard = e.category==='component';
       const isHw = e.category==='hardware';   // 硬件：只登记型号与取舍，采购不在这里发生
       const shapes = e.modules.filter(m=>/形态/.test(m.group||'')).length;
+      const shared = (REFS[e.id]||[]).length;   // 有几个条目挂在它身上（共用同一套底座/接口）
       const sum = isCard
         ? e.modules.length+' 段环节 · '+(shapes?shapes+' 种形态 · ':'')+'只登记'
         : (isHw ? esc(e.modules.map(m=>m.label||m.id).join(' · '))
         : (isRef?esc(licShort(e))+' · 只登记，不下载':e.modules.length+' 个模块已拆解 · 默认下载 '+mb(def)));
       return '<div class="item '+(selId===e.id?'on':'')+'" data-id="'+esc(e.id)+'">'+
         '<div class="r1"><span class="nm">'+esc(e.name)+'</span><span class="sp"></span>'+
+        (shared>1?'<span class="sh">共用 '+shared+'</span>':'')+
         '<span class="badge">'+esc(isCard?'能力卡':(isHw?'硬件':kindCN(e.kind)))+'</span></div>'+
         '<div class="sum">'+sum+'</div>'+
         tagRow(e)+
@@ -620,15 +662,17 @@ function netSvg(block){
          '" fill="none" stroke="'+stroke+'" stroke-width="1.1" opacity="0.45"/>';
   });
   g += '<circle cx="'+cx+'" cy="'+cy+'" r="'+r0+'" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.2"/>';
-  // 块名最多两行
-  const nm = block.name.length > 9 ? [block.name.slice(0,9), block.name.slice(9,18)] : [block.name];
+  // 圆里放不下长名字：4 字一行、最多两行，超出用省略号（完整名在标题上）
+  const cs = [...block.name];
+  const nm = cs.length <= 4 ? [block.name] : [cs.slice(0,4).join(''), cs.slice(4,7).join('') + (cs.length>7?'…':'')];
   g += '<text x="'+cx+'" y="'+(cy - (nm.length-1)*7 + 4)+'" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">'+
        nm.map((t,i)=>'<tspan x="'+cx+'" dy="'+(i?14:0)+'">'+esc(t)+'</tspan>').join('')+'</text>';
   us.forEach((u,i)=>{
     const y = padTop + rowH*i + rowH/2;
     g += '<circle cx="'+nx+'" cy="'+y+'" r="'+nr+'" fill="var(--panel)" stroke="var(--accent)" stroke-width="1.2"/>';
     g += '<text x="'+(nx+nr+8)+'" y="'+(y+4)+'" font-size="12" fill="var(--ink)">'+esc(u.name)+'</text>';
-    g += '<text x="'+(W-14)+'" y="'+(y+4)+'" text-anchor="end" font-size="10.5" fill="var(--muted)">'+esc(REL_CN[u.rel]||u.rel)+'</text>';
+    if(block.kind!=='slot')
+      g += '<text x="'+(W-14)+'" y="'+(y+4)+'" text-anchor="end" font-size="10.5" fill="var(--muted)">'+esc(REL_CN[u.rel]||u.rel)+'</text>';
   });
   g += '</svg>';
   return g;
@@ -772,7 +816,7 @@ function renderEntry(e){
       (e.modules.length>1
         ? '<h2>拆解（'+e.modules.length+' 段能力）</h2>'+moduleCards(e)
         : (isHw && e.modules.length ? '<h2>挑的时候看什么</h2>'+moduleCards(e) : ''))+
-      (isCard ? whoMakes(e) : '')+
+      (isCard ? whoMakes(e) : '')+netPos(e)+
       '<h2>来源与链接</h2><div class="comp"><div class="bd"><div class="note" style="padding:0">'+
         (links.length ? links.join(' · ')
           : (isHw ? esc(e.name)+'：硬件没有上游仓库，也不登记商家链接——型号、批次与价格随市，按上面的要点自己比。'
@@ -808,6 +852,7 @@ function renderEntry(e){
       (m.note?'<div class="note">'+esc(m.note)+'</div>':'');
   }
   html += '</div></div>';
+  html += netPos(e);
   html += '<h2>怎么用它</h2><div class="comp"><div class="bd"><div class="note" style="padding:0">'+
     '把它放进蓝图格子，或在装某个插件时用 <code style="font-family:var(--mono)">--use "'+esc(e.id)+':'+esc(e.modules.filter(m=>m.default!==false).map(m=>m.id).join(','))+'"</code> 显式指定。'+
     '</div></div></div>';
@@ -823,6 +868,13 @@ function currentUse(){
 function renderFooter(){
   const cur = currentUse();
   const cmd = $('#fcmd');
+  if(tab==='net'){
+    const b = selId && NET_BY_KEY[selId];
+    $('#fsum').innerHTML = '关系网 · <b>'+NET_BLOCKS.length+'</b> 个共用块'+
+      (b ? ' · 选中「'+esc(b.name)+'」被 '+b.count+' 个条目共用' : ' · 选一块看谁跟谁共用');
+    cmd.textContent = 'python3 tools/moshan.py net';
+    return;
+  }
   if(tab==='catalog'){
     const conds = [];
     if(activeCat) conds.push('品类「'+esc((CV[activeCat]||{}).label||activeCat)+'」');
@@ -860,11 +912,13 @@ function renderAll(){
   if(tab==='plugins'){
     const p = REG.plugins.find(x=>x.id===selId);
     d.innerHTML = p ? renderPlugin(p) : '<div class="empty">选一个插件。左边列表点一下即可。</div>';
+  } else if(tab==='net'){
+    d.innerHTML = renderNet(selId ? NET_BY_KEY[selId] : null);
   } else {
     const e = ENTRIES[selId];
     d.innerHTML = e ? renderEntry(e) : '<div class="empty">这些是拆解好的开源软件。点开看它被拆成了哪些模块、各自要下多少。</div>';
   }
-  d.querySelectorAll('.who[data-goto]').forEach(el=>{
+  d.querySelectorAll('[data-goto]').forEach(el=>{
     // 从能力卡反查跳到实现者：先清筛选，否则列表里可能根本没有这一条
     el.onclick = () => {
       const id = el.dataset.goto;
@@ -890,6 +944,7 @@ function renderAll(){
 // 页签上标数量：不然「只有 4 个插件」会被当成整个仓库的全部内容
 document.querySelector('[data-tab="plugins"] .cnt').textContent = REG.plugins.length;
 document.querySelector('[data-tab="catalog"] .cnt').textContent = CAT.entries.length;
+document.querySelector('[data-tab="net"] .cnt').textContent = NET_BLOCKS.length;
 
 document.querySelectorAll('.tabs button').forEach(b=>{
   b.onclick = () => {
