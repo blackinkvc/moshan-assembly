@@ -129,6 +129,114 @@
       "label": "Agent 互联协议",
       "group": "协议",
       "desc": "Agent 与工具、Agent 与 Agent、Agent 与界面之间的标准接口"
+    },
+    {
+      "id": "dev.vcs",
+      "label": "版本控制",
+      "group": "开发",
+      "desc": "仓库、提交、差异比对"
+    },
+    {
+      "id": "sys.diagnose",
+      "label": "硬件诊断",
+      "group": "系统",
+      "desc": "把系统底层的硬件状态翻译成人话"
+    },
+    {
+      "id": "sys.mount",
+      "label": "磁盘挂载",
+      "group": "系统",
+      "desc": "把外置盘接进文件系统，并安全弹出"
+    },
+    {
+      "id": "os.distro",
+      "label": "操作系统",
+      "group": "基座",
+      "desc": "宿主底座本身，不是跑在它上面的服务"
+    },
+    {
+      "id": "doc.office",
+      "label": "办公文档",
+      "group": "文档",
+      "desc": "docx / xlsx / pptx 的读写与格式转换"
+    },
+    {
+      "id": "remote.desktop",
+      "label": "远程桌面",
+      "group": "网络",
+      "desc": "远程看到并操作另一台机器的屏幕"
+    },
+    {
+      "id": "net.overlay",
+      "label": "虚拟组网",
+      "group": "网络",
+      "desc": "把多台机器组成一个虚拟内网"
+    },
+    {
+      "id": "net.transfer",
+      "label": "局域网传输",
+      "group": "网络",
+      "desc": "同一网段内直传文件，不过云"
+    },
+    {
+      "id": "ui.overlay",
+      "label": "桌面浮层",
+      "group": "界面",
+      "desc": "菜单栏或屏幕上的常驻小块信息"
+    },
+    {
+      "id": "file.shelf",
+      "label": "拖放暂存",
+      "group": "界面",
+      "desc": "拖拽过程中的临时置物架"
+    },
+    {
+      "id": "ops.monitor",
+      "label": "状态监控",
+      "group": "运维",
+      "desc": "把 CPU / 负载这类指标变得一眼可见"
+    },
+    {
+      "id": "ai.agent",
+      "label": "Agent 运行时",
+      "group": "AI",
+      "desc": "跑 Agent 循环、调度工具与权限"
+    },
+    {
+      "id": "ai.skill",
+      "label": "技能包",
+      "group": "AI",
+      "desc": "给 Agent 读的说明书，不是独立进程"
+    },
+    {
+      "id": "ai.local",
+      "label": "本地推理",
+      "group": "AI",
+      "desc": "在本机加载权重并提供推理端点"
+    },
+    {
+      "id": "ai.client",
+      "label": "模型客户端",
+      "group": "AI",
+      "desc": "在同一个界面里切多家模型"
+    },
+    {
+      "id": "geo.map",
+      "label": "离线地图",
+      "group": "地理",
+      "desc": "不联网也能用的地图与导航"
+    },
+    {
+      "id": "ai.model",
+      "label": "模型权重",
+      "group": "AI",
+      "desc": "一份可下载的权重 + 模型卡，不是服务"
+    },
+    {
+      "id": "ai.inference",
+      "label": "托管推理",
+      "group": "AI",
+      "desc": "厂商托管的 API 端点，按 token 计费"
     }
   ],
   "entries": [
@@ -1067,6 +1175,948 @@
         "ai",
         "security"
       ]
+    },
+    {
+      "id": "git",
+      "name": "Git",
+      "repo": "git/git",
+      "kind": "binary",
+      "homepage": "https://git-scm.com",
+      "license": "GPL-2.0",
+      "tier": "official",
+      "notes": "所有代码的地基，也是目录里唯一「不装就没法干活」的依赖：拉仓库、比对 commit sha 判断上游有没有更新（新闻摘录那条链路就靠后一半），都绕不过它。macOS 自带版本偏旧，brew 装新版更省事。",
+      "runtime": {
+        "entry": "git"
+      },
+      "modules": [
+        {
+          "id": "vcs",
+          "label": "版本控制",
+          "capability": "dev.vcs",
+          "default": true,
+          "artifact": {
+            "kind": "package",
+            "manager": "brew",
+            "name": "git",
+            "size_mb": 60,
+            "note": "brew install git，约 60MB 含依赖"
+          },
+          "note": "拉取、比对、导出补丁都走它；上游更新检测优先比 sha，不下载全量"
+        }
+      ],
+      "tags": [
+        "dev",
+        "cli",
+        "native"
+      ]
+    },
+    {
+      "id": "whatcable",
+      "name": "WhatCable",
+      "repo": "darrylmorley/whatcable",
+      "kind": "existing",
+      "homepage": "https://whatcable.uk",
+      "license": "MIT（部分子目录 proprietary）",
+      "tier": "community",
+      "notes": "插上 USB-C 线，用一句人话告诉你这根线到底能跑 USB 2.0 还是 40Gbps、以及为什么充电慢。信息本来就在 IOKit 里，只是没人翻译。注意许可是混合的：默认 MIT，但部分子目录是专有代码，别整仓照搬。",
+      "modules": [
+        {
+          "id": "diagnose",
+          "label": "线缆能力诊断",
+          "capability": "sys.diagnose",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          },
+          "note": "菜单栏 App，读 IOKit 的端口/电源协商结果；Pro 版才给全部诊断项"
+        }
+      ],
+      "tags": [
+        "desktop",
+        "ui",
+        "native",
+        "ops"
+      ]
+    },
+    {
+      "id": "rustdesk",
+      "name": "RustDesk",
+      "repo": "rustdesk/rustdesk",
+      "kind": "existing",
+      "homepage": "https://rustdesk.com",
+      "license": "AGPL-3.0",
+      "tier": "official",
+      "notes": "自建远程桌面的首选：客户端开源，中继（hbbs/hbbr）也能自己架，画面不经过第三方。国内网络下比 TeamViewer / AnyDesk 稳。AGPL 要注意——改完对外提供服务会触发开源义务。",
+      "modules": [
+        {
+          "id": "client",
+          "label": "被控端 / 主控端",
+          "capability": "remote.desktop",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          },
+          "note": "一个 App 兼两端，输入机器 ID 即可连；支持文件传输与剪贴板同步"
+        },
+        {
+          "id": "relay",
+          "label": "自建中继",
+          "capability": "net.overlay",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          },
+          "note": "官方给 rustdesk-server 容器，起 hbbs + hbbr 两台就能摆脱公共服务器"
+        }
+      ],
+      "tags": [
+        "desktop",
+        "network",
+        "ui",
+        "selfhost"
+      ]
+    },
+    {
+      "id": "showkeypro",
+      "name": "按键显示Pro",
+      "kind": "existing",
+      "homepage": "https://apps.apple.com/cn/app/id1579988758",
+      "license": "专有（免费）",
+      "tier": "community",
+      "notes": "App Store 上的免费小工具，实时把按下的键和鼠标事件画在屏幕上，适合录屏、直播和培训。这类工具的价值全在「不联网、不记录」这一条上，作者明说了它没有联网权限。闭源，只登记不拆。",
+      "modules": [
+        {
+          "id": "overlay",
+          "label": "按键浮层",
+          "capability": "ui.overlay",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "闭源软件，只登记；不提供自动安装"
+          },
+          "note": "叠加在屏幕上的键位显示，可换风格、可拖位置、全屏也能显示"
+        }
+      ],
+      "tags": [
+        "ui",
+        "desktop"
+      ]
+    },
+    {
+      "id": "ubuntu",
+      "name": "Ubuntu",
+      "kind": "existing",
+      "homepage": "https://ubuntu.com",
+      "license": "GPL-2.0+ 及组件混合许可（含非自由固件）",
+      "tier": "official",
+      "notes": "宿主底座级的条目：目录里所有容器最后都跑在某个 Linux 上，Ubuntu LTS 是最省心的默认值（apt 包全、五年支持、教程最多）。它不该被「装进中台」，登记在这里是让「底座」这一段在图上有个明确落点，也好解释为什么容器方案默认按 Debian 系写。",
+      "modules": [
+        {
+          "id": "base",
+          "label": "宿主底座",
+          "capability": "os.distro",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          },
+          "note": "只作参考底座：中台自己是一堆容器，宿主 OS 由你选定，不在目录里管理"
+        }
+      ],
+      "tags": [
+        "native",
+        "cli",
+        "ops",
+        "selfhost"
+      ]
+    },
+    {
+      "id": "libreoffice",
+      "name": "LibreOffice",
+      "repo": "LibreOffice/core",
+      "kind": "existing",
+      "homepage": "https://www.libreoffice.org",
+      "license": "GPL-3.0（另有 MPL-2.0 双许可）",
+      "tier": "official",
+      "notes": "唯一能整包替代 Office 的开源套件。对自动化来说真正有用的是它的无头模式：soffice --headless --convert-to pdf，一行命令把 docx 转 PDF，不需要装 Word。文档流水线里的常客。",
+      "modules": [
+        {
+          "id": "suite",
+          "label": "办公套件",
+          "capability": "doc.office",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "桌面套件，按平台装 dmg / deb；约 700MB，本目录不代下"
+          },
+          "note": "Writer / Calc / Impress 三件套；脚本里多用 --headless --convert-to 做格式转换"
+        }
+      ],
+      "tags": [
+        "office",
+        "desktop",
+        "native",
+        "ui"
+      ]
+    },
+    {
+      "id": "ezntfs",
+      "name": "ezNTFS",
+      "repo": "ixiehao/ezNTFS",
+      "kind": "existing",
+      "homepage": "https://ixiehao.github.io/ezNTFS/",
+      "license": "MIT",
+      "tier": "community",
+      "notes": "macOS 默认只能读 NTFS，这个用 SwiftUI 包了一层 macFUSE，让外置 NTFS 盘可写，带按盘自动挂载、复制校验和安全弹出。同名仓库有两个，这里收的是仍在更新的那个（另一个 2024 年就停了）。",
+      "modules": [
+        {
+          "id": "mount",
+          "label": "NTFS 读写挂载",
+          "capability": "sys.mount",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          },
+          "note": "底层依赖 macFUSE，需要授权系统扩展；弹出前会确认写入已完成"
+        }
+      ],
+      "tags": [
+        "data",
+        "native",
+        "desktop"
+      ]
+    },
+    {
+      "id": "deepseek-harness",
+      "name": "DeepSeek Harness",
+      "repo": "deepseek-ai/deepseek-harness",
+      "kind": "process",
+      "homepage": "https://deepseek.com/harness",
+      "license": "MIT",
+      "tier": "official",
+      "cost": {
+        "ram_mb": 400,
+        "disk_gb": 1
+      },
+      "notes": "DeepSeek 官方的 Agent 外壳（dsh），架构上「一切都是插件」，npx 一行起 Web UI（默认 3080）。对目录的意义是：插件即能力，它的插件生态就是 skill 的来源——这也是为什么 skill 在本文档里是独立条目而不是软件的附属。开发者预览期，接口会破坏性变更。",
+      "runtime": {
+        "entry": "npx",
+        "args": [
+          "-y",
+          "@deepseek-ai/dsh",
+          "web"
+        ]
+      },
+      "modules": [
+        {
+          "id": "harness",
+          "label": "Agent 运行时",
+          "capability": "ai.agent",
+          "port": {
+            "name": "webui",
+            "port": 3080,
+            "protocol": "http"
+          },
+          "default": true,
+          "artifact": {
+            "kind": "package",
+            "manager": "npm",
+            "name": "@deepseek-ai/dsh",
+            "size_mb": 80,
+            "note": "npx 直接拉，无需常驻安装"
+          },
+          "note": "起 Web UI 与工具调度；本地跑，模型与权限都自己定"
+        },
+        {
+          "id": "plugins",
+          "label": "插件 / 技能位",
+          "capability": "ai.skill",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "插件按需单独取，不随主程序打包"
+          },
+          "note": "能力靠插件补：装一个插件等于给 Agent 加一段技能，不用改主程序"
+        }
+      ],
+      "tags": [
+        "ai",
+        "dev",
+        "cli",
+        "web"
+      ]
+    },
+    {
+      "id": "localsend",
+      "name": "LocalSend",
+      "repo": "localsend/localsend",
+      "kind": "existing",
+      "homepage": "https://localsend.org",
+      "license": "Apache-2.0",
+      "tier": "official",
+      "notes": "同一 WiFi 下跨设备传文件，不登录、不过云、无广告。AirDrop 的跨平台替代：Mac ↔ 手机 ↔ Windows 都能互传。节点发现走局域网广播，断网也能用。",
+      "modules": [
+        {
+          "id": "transfer",
+          "label": "局域网直传",
+          "capability": "net.transfer",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          },
+          "note": "设备自动发现 + 端到端加密；传大文件比走网盘中转快得多"
+        }
+      ],
+      "tags": [
+        "network",
+        "desktop",
+        "native"
+      ]
+    },
+    {
+      "id": "tailscale",
+      "name": "Tailscale",
+      "repo": "tailscale/tailscale",
+      "kind": "process",
+      "homepage": "https://tailscale.com",
+      "license": "BSD-3-Clause",
+      "tier": "official",
+      "cost": {
+        "ram_mb": 60,
+        "disk_gb": 0.1
+      },
+      "notes": "基于 WireGuard 的虚拟组网：给每台机器一个固定内网 IP，家里的盒子、公司电脑、云主机像接在同一个交换机上。目录里凡是「远程访问家里服务」的场景都该走它，比端口映射安全得多——不用把服务暴露到公网。",
+      "runtime": {
+        "entry": "tailscaled"
+      },
+      "modules": [
+        {
+          "id": "mesh",
+          "label": "虚拟内网",
+          "capability": "net.overlay",
+          "default": true,
+          "artifact": {
+            "kind": "package",
+            "manager": "brew",
+            "name": "tailscale",
+            "size_mb": 70,
+            "note": "brew install tailscale；Linux 走官方源"
+          },
+          "note": "登录后自动打洞直连，打不通才走 DERP 中继；客户端开源，控制面是托管服务（可换 Headscale 自建）"
+        }
+      ],
+      "tags": [
+        "network",
+        "security",
+        "cli",
+        "selfhost"
+      ]
+    },
+    {
+      "id": "dropover",
+      "name": "Dropover",
+      "kind": "existing",
+      "homepage": "https://dropoverapp.com",
+      "license": "专有（免费 + 内购）",
+      "tier": "community",
+      "notes": "拖文件时的临时置物架：晃一下鼠标就出现，把要移动的东西先丢进去，切到目标位置再一次性放下。省的是「开两个 Finder 窗口」那点摩擦，但用过就回不去。免费版够日常，Pro 才解锁云上传和自定义动作。闭源，只登记。",
+      "modules": [
+        {
+          "id": "shelf",
+          "label": "拖放暂存架",
+          "capability": "file.shelf",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "闭源软件，只登记；不提供自动安装"
+          },
+          "note": "支持文件、文件夹、链接、文本片段；自带改图、抽文字、压 ZIP 等动作"
+        }
+      ],
+      "tags": [
+        "ui",
+        "desktop",
+        "native"
+      ]
+    },
+    {
+      "id": "runcat",
+      "name": "RunCat",
+      "repo": "runcat-dev/RunCatNeo",
+      "kind": "existing",
+      "homepage": "https://runcat-dev.github.io/RunCatNeo/",
+      "license": "Apache-2.0",
+      "tier": "official",
+      "notes": "菜单栏一只按 CPU 负载跑步的猫：跑得越快机器越忙，比打开活动监视器直观。纯装饰性的监控，但它是「状态可见性」这件事最省事的实现——顺带一提，同一个项目在 Windows 上叫 RunCat365。",
+      "modules": [
+        {
+          "id": "monitor",
+          "label": "负载指示",
+          "capability": "ops.monitor",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          },
+          "note": "读系统负载改动画帧率；可换猫、鸟、齿轮等皮肤"
+        }
+      ],
+      "tags": [
+        "ops",
+        "ui",
+        "desktop"
+      ]
+    },
+    {
+      "id": "cherry-studio",
+      "name": "Cherry Studio",
+      "repo": "CherryHQ/cherry-studio",
+      "kind": "existing",
+      "homepage": "https://cherryai.com",
+      "license": "AGPL-3.0",
+      "tier": "official",
+      "notes": "桌面版「多模型工作台」：同一个界面里切 OpenAI / Claude / 本地 Ollama，带知识库和 MCP。对不想在浏览器里管五个 AI 站点的人来说，这是目前完成度最高的开源客户端——Electron 写的，代价是内存。",
+      "modules": [
+        {
+          "id": "client",
+          "label": "多模型对话",
+          "capability": "ai.client",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "桌面 App 装一次即可，不进下载集"
+          },
+          "note": "同一界面切 OpenAI / Claude / Ollama，支持多模型并行对比"
+        },
+        {
+          "id": "knowledge",
+          "label": "知识库",
+          "capability": "note.search",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "随 App 内置，不额外下载"
+          },
+          "note": "本地向量化文档后供对话检索；文件不出本机"
+        },
+        {
+          "id": "mcp",
+          "label": "MCP 工具位",
+          "capability": "ai.protocol",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "MCP server 按需单独装，不随 App 打包"
+          },
+          "note": "接 MCP server 后，对话里可以直接调外部工具"
+        }
+      ],
+      "tags": [
+        "ai",
+        "desktop",
+        "ui",
+        "frontend"
+      ]
+    },
+    {
+      "id": "openworker",
+      "name": "OpenWorker",
+      "repo": "andrewyng/openworker",
+      "kind": "existing",
+      "homepage": "https://openworker.com",
+      "license": "MIT",
+      "tier": "official",
+      "notes": "桌面 AI 同事 + Harness SDK：给一个请求，产出简报、整理好的文件夹或审过的 PR；跑在本机，权限可逐项批，命令可关进沙箱。和 dsh 是同一类东西的两种取向——它更偏「现成桌面 App」，dsh 更偏「插件运行时」。",
+      "modules": [
+        {
+          "id": "desktop",
+          "label": "AI 同事",
+          "capability": "ai.agent",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          },
+          "note": "自带模型选择（云 key 或本地 Ollama），敏感动作要人点确认"
+        },
+        {
+          "id": "sdk",
+          "label": "Harness SDK",
+          "capability": "dev.runtime",
+          "default": false,
+          "artifact": {
+            "kind": "package",
+            "manager": "pip",
+            "name": "openworker",
+            "size_mb": 120,
+            "note": "SDK 部分，装进自己的 Python 环境"
+          },
+          "note": "拿同一套运行时自己做 Agent 应用；Python 实现，可嵌进别的壳"
+        }
+      ],
+      "tags": [
+        "ai",
+        "desktop",
+        "dev"
+      ]
+    },
+    {
+      "id": "lmstudio",
+      "name": "LM Studio",
+      "kind": "existing",
+      "homepage": "https://lmstudio.ai",
+      "license": "专有（App 本体）；lms CLI / SDK / MLX 引擎为 MIT",
+      "tier": "official",
+      "notes": "Mac 上跑本地模型最省事的一个：下 GGUF 或 MLX 模型，起一个 OpenAI 兼容端点（默认 1234 口），现有 SDK 改个 base URL 就能用。App 本体闭源但免费（含商用），lms CLI、两套 SDK 和 MLX 引擎是 MIT——所以它「能用」但不「能审」，介意这点的换 llama.cpp。",
+      "modules": [
+        {
+          "id": "runtime",
+          "label": "本地推理端点",
+          "capability": "ai.local",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "闭源软件，只登记；不提供自动安装"
+          },
+          "note": "OpenAI / Anthropic 双兼容；模型按需加载、空闲自动卸载；0.4 起拆出 llmster 可无界面部署"
+        }
+      ],
+      "tags": [
+        "ai",
+        "desktop",
+        "cli"
+      ]
+    },
+    {
+      "id": "organic-maps",
+      "name": "Organic Maps",
+      "repo": "organicmaps/organicmaps",
+      "kind": "existing",
+      "homepage": "https://organicmaps.app",
+      "license": "Apache-2.0",
+      "tier": "official",
+      "notes": "离线地图：把整块区域预先下到本地，没信号也能导航，无广告、无追踪、无账号。它是「地图数据该归谁」的一个答案——底图来自 OpenStreetMap，客户端全开源，徒步和自驾的离线路线是它最强的地方。",
+      "modules": [
+        {
+          "id": "map",
+          "label": "离线地图与导航",
+          "capability": "geo.map",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          },
+          "note": "按国家/地区下载矢量包；支持步行、骑行、驾车路线，全程不需要联网"
+        }
+      ],
+      "tags": [
+        "geo",
+        "desktop",
+        "native"
+      ]
+    },
+    {
+      "id": "agent-skills",
+      "name": "Agent Skills",
+      "repo": "anthropics/skills",
+      "kind": "existing",
+      "homepage": "https://github.com/anthropics/skills",
+      "license": "未声明（仓库无 LICENSE）",
+      "tier": "official",
+      "notes": "Anthropic 公开的 Agent Skills 仓库，也是「技能包」这种交付形态的参考实现：一个目录 + 一份 SKILL.md，写清什么时候该用、怎么用、边界在哪。目录把它单列一条，是因为 skill 和软件是两种东西——软件是进程，skill 是给 Agent 读的说明书，装法与生命周期都不一样。仓库没有 LICENSE，复用前需自行确认授权。",
+      "modules": [
+        {
+          "id": "skills",
+          "label": "技能包集合",
+          "capability": "ai.skill",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "只登记链接与介绍，不下载、不安装"
+          },
+          "note": "每个 skill 自带说明与脚本，Agent 按需加载；与本目录的「能力词表」互补——它管怎么做，这里管谁能做"
+        }
+      ],
+      "tags": [
+        "ai",
+        "dev",
+        "skill"
+      ]
+    },
+    {
+      "id": "deepseek-v4-1-flash",
+      "name": "DeepSeek V4.1 Flash",
+      "kind": "existing",
+      "homepage": "https://www.deepseek.com/news/deepseek-v4-1-flash/",
+      "license": "MIT",
+      "tier": "official",
+      "notes": "552B 的 MoE，但每个 token 只激活 8B（读）/16B（写）——非对称结构就是为 Agent 场景做的：读长上下文尽量便宜，写输出多给一点算力。1M 上下文、原生多模态，MIT 没有附加条款，是当下「自建跑得起、商用不用问人」的最强档之一。KV Cache 压到 890 字节/token，长任务反复读仓库时省得很明显。",
+      "modules": [
+        {
+          "id": "weights",
+          "label": "开放权重",
+          "capability": "ai.model",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "权重在 Hugging Face，本目录不代下"
+          },
+          "note": "checkpoint 约 763B 参数（含 196B Engram 记忆模块），FP8 下按数百 GB 准备；4bit 量化约 280GB，仍是多卡活。官方推荐 vLLM / SGLang，4.1 起 FP4 KV Cache 进主路径。"
+        },
+        {
+          "id": "api",
+          "label": "托管 API",
+          "capability": "ai.inference",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "按 token 计费，无需下载"
+          },
+          "note": "API 名 deepseek-flash，峰谷两价：峰时 $0.30/$1.20 每百万 token，谷时半价；缓存命中单价更低，长上下文任务是主要省钱点"
+        }
+      ],
+      "tags": [
+        "ai",
+        "model"
+      ]
+    },
+    {
+      "id": "kimi-k3-1-pro",
+      "name": "Kimi K3.1 Pro",
+      "kind": "existing",
+      "homepage": "https://www.moonshot.cn",
+      "license": "Kimi K3.1 Pro License（MIT 风格 + 两条附加）",
+      "tier": "official",
+      "notes": "开放权重里目前最大的一档：2.8T 总参数、104B 激活、896 个专家、1M 上下文。它的意义是「证明开源能摸到闭源的天花板」，不是「你今晚能跑起来」——权重 1.56TB、96 个分片，要八卡 B300 级别才谈得上部署，且发布时没有 GGUF。许可 MIT 风格但留了两个口子：做模型即服务且年营收超 2000 万美元要单独签约，产品月活过亿要在界面显著标名。",
+      "modules": [
+        {
+          "id": "weights",
+          "label": "开放权重",
+          "capability": "ai.model",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "1.56TB，光下载就要挑硬盘"
+          },
+          "note": "权重 1.56TB、96 个 safetensors 分片、MXFP4，发布时没有 GGUF；官方给 vLLM 0.34+ / SGLang / TokenSpeed 的配方，八卡 B300 级别才谈得上部署。"
+        },
+        {
+          "id": "api",
+          "label": "托管 API",
+          "capability": "ai.inference",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "按 token 计费，无需下载"
+          },
+          "note": "API 名 kimi-k3.1-pro，标准版 $2/$10 每百万 token，另有 -highspeed 变体约 2 倍价换 2–3 倍速度"
+        }
+      ],
+      "tags": [
+        "ai",
+        "model"
+      ]
+    },
+    {
+      "id": "glm-5-3-flash",
+      "name": "GLM-5.3 Flash",
+      "kind": "existing",
+      "homepage": "https://z.ai",
+      "license": "MIT",
+      "tier": "official",
+      "notes": "321B 总参数、18B 激活、1M 上下文，纯 MIT——同门 GLM-5.3 是 753B 底座、许可带「模型即服务营收过 100 亿美元需安全审查」的附加条款，Flash 版砍了尺寸却保住了干净许可。多数团队的实际最优解就落在这档：不用法务复核，单机多卡能起，长上下文够用。",
+      "modules": [
+        {
+          "id": "weights",
+          "label": "开放权重",
+          "capability": "ai.model",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "权重在 Hugging Face，本目录不代下"
+          },
+          "note": "321B 总参数 / 18B 激活，量化后几百 GB；vLLM、SGLang、KTransformers、Unsloth 都支持，推理强度可分 low / high / max 三档。"
+        },
+        {
+          "id": "api",
+          "label": "托管 API",
+          "capability": "ai.inference",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "按 token 计费，无需下载"
+          },
+          "note": "Open Platform 提供同源 API；与开放权重同价体系，适合先试后自建"
+        }
+      ],
+      "tags": [
+        "ai",
+        "model"
+      ]
+    },
+    {
+      "id": "qwen-3-8-27b",
+      "name": "Qwen3.8 27B",
+      "kind": "existing",
+      "homepage": "https://qwen.ai",
+      "license": "Apache-2.0",
+      "tier": "official",
+      "notes": "27.8B 稠密模型，原生 262K 上下文（RoPE 缩放可推到 1M）。它的价值不在跑分榜，在「能装进一台 Mac」：32GB 内存的机器上 4bit 量化就能跑，这是本地 Agent 最现实的起步配置。许可 Apache 2.0，商用没有附加条件。",
+      "modules": [
+        {
+          "id": "weights",
+          "label": "开放权重",
+          "capability": "ai.model",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "全精度约 55GB，量化版另算"
+          },
+          "note": "稠密 27.8B，4bit 量化约 16–18GB，32GB 统一内存的 Mac 能跑；原生 262K 上下文，Ollama / LM Studio / llama.cpp 都有现成支持。"
+        },
+        {
+          "id": "api",
+          "label": "托管 API",
+          "capability": "ai.inference",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "按 token 计费，无需下载"
+          },
+          "note": "阿里云百炼提供同源 API；适合把本地原型直接对到线上同款模型"
+        }
+      ],
+      "tags": [
+        "ai",
+        "model"
+      ]
+    },
+    {
+      "id": "gemma-4",
+      "name": "Gemma 4",
+      "kind": "existing",
+      "homepage": "https://deepmind.google/models/gemma/",
+      "license": "Apache-2.0",
+      "tier": "official",
+      "notes": "Google 的轻量开源线，31B 稠密与 26B A4B 两档，256K 上下文，Apache 2.0。Gemma 的定位一直是「小机器上最不挑环境的那一个」：量化版本小、跑得动、许可干净，配合 Ollama 一条命令就能起。适合当默认小模型或本地兜底。",
+      "modules": [
+        {
+          "id": "weights",
+          "label": "开放权重",
+          "capability": "ai.model",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "权重在 Hugging Face 与 Kaggle，本目录不代下"
+          },
+          "note": "31B 稠密 / 26B A4B 两档，4bit 量化后十几到二十几 GB，消费级显卡与 Mac 都能跑；官方与社区都给了 GGUF、MLX 版本。"
+        },
+        {
+          "id": "api",
+          "label": "托管 API",
+          "capability": "ai.inference",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "按 token 计费，无需下载"
+          },
+          "note": "Google AI Studio 与 Vertex 提供同源 API，可先用托管再决定要不要自建"
+        }
+      ],
+      "tags": [
+        "ai",
+        "model"
+      ]
+    },
+    {
+      "id": "minimax-m3-1-flash",
+      "name": "MiniMax M3.1 Flash",
+      "kind": "existing",
+      "homepage": "https://www.minimaxi.com",
+      "license": "MiniMax Community License（非标准开源）",
+      "tier": "official",
+      "notes": "428B 总参数只激活 23B，1M 上下文，主打「轻硬件上的效率」。许可走 MiniMax 社区许可而不是 MIT/Apache，商用前要读条款——这类许可通常允许你用、允许改，但对「拿它对外提供推理服务」有限制。适合内部业务，不适合直接转卖。",
+      "modules": [
+        {
+          "id": "weights",
+          "label": "开放权重",
+          "capability": "ai.model",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "权重在 Hugging Face，本目录不代下"
+          },
+          "note": "428B 总参数 / 23B 激活，按几百 GB 准备；MoE 结构让它在同尺寸里显存要求偏低。社区许可，自建前先确认「是否对外提供模型服务」这一条。"
+        },
+        {
+          "id": "api",
+          "label": "托管 API",
+          "capability": "ai.inference",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "按 token 计费，无需下载"
+          },
+          "note": "开放平台提供同源 API，单价在国产一线里偏低，适合先跑量再评估自建"
+        }
+      ],
+      "tags": [
+        "ai",
+        "model"
+      ]
+    },
+    {
+      "id": "mimo-v2-6-pro",
+      "name": "MiMo-V2.6-Pro",
+      "kind": "existing",
+      "homepage": "https://github.com/XiaomiMiMo",
+      "license": "MIT",
+      "tier": "official",
+      "notes": "小米的 MoE：1.02T 总参数、42B 激活、1M 上下文，MIT。在国产一线性价比里它排得靠前，许可也是国内厂商里最干净的一档（纯 MIT，无营收门槛）。代价照旧——1T 级权重仍然要一柜子卡，个人只能在 API 上用它。",
+      "modules": [
+        {
+          "id": "weights",
+          "label": "开放权重",
+          "capability": "ai.model",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "权重在 Hugging Face，本目录不代下"
+          },
+          "note": "1.02T 总参数 / 42B 激活，全量权重需多卡，量化后仍是服务器级——个人基本只能在 API 上用。MIT 无附加条款，可自由改、可商用、可对外供服务。"
+        },
+        {
+          "id": "api",
+          "label": "托管 API",
+          "capability": "ai.inference",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "按 token 计费，无需下载"
+          },
+          "note": "小米开放平台提供 API；适合拿它做高性价比的通用层，把贵模型留给难任务"
+        }
+      ],
+      "tags": [
+        "ai",
+        "model"
+      ]
+    },
+    {
+      "id": "kimi-k2-7-code",
+      "name": "Kimi K2.7 Code",
+      "kind": "existing",
+      "homepage": "https://www.moonshot.cn",
+      "license": "Modified MIT",
+      "tier": "official",
+      "notes": "专攻 Agentic coding 的一档：1T 总参数、32B 激活、256K 上下文，Modified MIT。名字里的 Code 是实话——它在终端类、仓库级改代码的任务上比通用版稳，代价是通用对话不如旗舰。真实用法是「给它一个工作区和一个目标，让它自己跑几轮」，而不是聊天。",
+      "modules": [
+        {
+          "id": "weights",
+          "label": "开放权重",
+          "capability": "ai.model",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "权重在 Hugging Face，本目录不代下"
+          },
+          "note": "1T 总参数 / 32B 激活，256K 上下文，权重按几百 GB 准备，量化后单机多卡可起；为长程编码任务调过，配 Claude Code / Codex 这类外壳效果更明显。"
+        },
+        {
+          "id": "api",
+          "label": "托管 API",
+          "capability": "ai.inference",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "按 token 计费，无需下载"
+          },
+          "note": "Moonshot API 与 Kimi Code 直接可用；先把任务跑通、再决定要不要自建"
+        }
+      ],
+      "tags": [
+        "ai",
+        "model"
+      ]
+    },
+    {
+      "id": "ernie-5-5-flash-base",
+      "name": "ERNIE 5.5 Flash Base",
+      "kind": "existing",
+      "homepage": "https://ernie.baidu.com",
+      "license": "ERNIE 5.5 Flash Base Model License v1.0（自定义）",
+      "tier": "official",
+      "notes": "百度的开放权重版本，1M 上下文，走自家许可——不是 MIT/Apache 那一类，条款里通常含使用范围与标识要求，落地前要按自己的场景读一遍。它的位置是中文语料与国内合规场景：要在一个必须过审的环境里跑模型，选择面本来就窄。",
+      "modules": [
+        {
+          "id": "weights",
+          "label": "开放权重",
+          "capability": "ai.model",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "权重在百度官方渠道放出，本目录不代下"
+          },
+          "note": "开放的是 Base 版，规模以官方模型卡为准，能力低于同代闭源旗舰；自定义许可，重点确认「商用范围」与「是否需标注来源」。"
+        },
+        {
+          "id": "api",
+          "label": "托管 API",
+          "capability": "ai.inference",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "按 token 计费，无需下载"
+          },
+          "note": "百度智能云千帆提供同源 API，国内合规链路上最省事的一档"
+        }
+      ],
+      "tags": [
+        "ai",
+        "model"
+      ]
+    },
+    {
+      "id": "hunyuan-hy4",
+      "name": "混元 Hy4",
+      "kind": "existing",
+      "homepage": "https://hunyuan.tencent.com",
+      "license": "Apache-2.0",
+      "tier": "official",
+      "notes": "腾讯混元 4 代的开放权重预览版，1M 上下文，Apache 2.0。国内厂商里少见的「纯 Apache 2.0 + 长上下文」组合——许可上没有任何需要法务确认的地方。预览版意味着接口和权重都可能再变，适合先摸清它的能力边界，不适合直接压生产。",
+      "modules": [
+        {
+          "id": "weights",
+          "label": "开放权重",
+          "capability": "ai.model",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "权重在官方渠道，本目录不代下"
+          },
+          "note": "权重在模型页放出，规格以官方模型卡为准；预览版建议先小规模试跑，注意版本漂移。Apache 2.0，可改可商用可再分发。"
+        },
+        {
+          "id": "api",
+          "label": "托管 API",
+          "capability": "ai.inference",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "按 token 计费，无需下载"
+          },
+          "note": "腾讯云混元提供同源 API，国内延迟与合规都占优"
+        }
+      ],
+      "tags": [
+        "ai",
+        "model"
+      ]
     }
   ],
   "tags": [
@@ -1131,6 +2181,12 @@
       "desc": "模型、Agent、推理链、算价"
     },
     {
+      "id": "model",
+      "label": "模型",
+      "group": "领域",
+      "desc": "开放权重的大模型本体，与「跑它的运行时」区分开"
+    },
+    {
       "id": "security",
       "label": "安全",
       "group": "领域",
@@ -1141,6 +2197,18 @@
       "label": "运维",
       "group": "领域",
       "desc": "部署、监控、统计、日志这类跑了之后才需要的事"
+    },
+    {
+      "id": "geo",
+      "label": "地理",
+      "group": "领域",
+      "desc": "地图、位置、地理数据"
+    },
+    {
+      "id": "office",
+      "label": "办公",
+      "group": "领域",
+      "desc": "文档、表格、演示这类办公件"
     },
     {
       "id": "desktop",
@@ -1177,6 +2245,12 @@
       "label": "可自建",
       "group": "技术栈",
       "desc": "能在自己的机器上跑起来，不依赖厂商云"
+    },
+    {
+      "id": "skill",
+      "label": "技能",
+      "group": "技术栈",
+      "desc": "以技能包 / 插件形式交付，而不是独立进程"
     }
   ]
 }

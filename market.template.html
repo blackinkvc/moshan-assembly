@@ -250,9 +250,21 @@ function useString(mf){
 function match(hay, needle){
   hay = hay.toLowerCase(); needle = needle.toLowerCase();
   if(hay.includes(needle)) return true;
-  // 中文逐字覆盖，让「媒体」也能命中「影视媒体库」
+  // 逐字兜底只对中文生效：让「媒体」能命中「影视媒体库」。
+  // 英文不能这么干——"tailscale" 的 t/a/s/e 几乎每行都有，一兜底就全量命中。
+  if (!/[\u4e00-\u9fa5]/.test(needle)) return false;
   return [...needle].every(ch=>hay.includes(ch));
 }
+
+const KIND_CN = {container:'容器', process:'进程', binary:'二进制', existing:'只登记'};
+const kindCN = k => KIND_CN[k] || k;
+const licenseKind = e => /专有/.test(e.license||'') ? 'closed' : (/未声明/.test(e.license||'') ? 'unclear' : 'open');
+const isClosed = e => licenseKind(e) !== 'open';
+// 列表副行只放得下一小段许可名：取括号前的部分，超长截断
+const licShort = e => {
+  const t = (e.license||'').split(/[（(]/)[0].trim();
+  return t.length > 20 ? t.slice(0, 19) + '…' : (t || '许可未写');
+};
 
 function tagChip(id){
   const t = TV[id];
@@ -321,16 +333,17 @@ function renderList(){
   } else {
     const rows = CAT.entries
       .filter(e=>!activeTag || (e.tags||[]).includes(activeTag))
-      .filter(e=>!q || match([e.id,e.name,(e.repo||''),e.kind,e.tier||'',tagText(e),
-        e.modules.map(m=>m.capability+' '+(m.label||'')).join(' ')].join(' '), q));
+      .filter(e=>!q || match([e.id,e.name,(e.repo||''),e.kind,e.tier||'',(e.license||''),tagText(e),
+        e.modules.map(m=>m.capability+' '+(m.label||'')+' '+((m.artifact||{}).note||'')).join(' '),
+        (e.notes||'')].join(' '), q));
     if(rows.length && !rows.some(e=>e.id===selId)) selId = rows[0].id;
     list.innerHTML = rows.length ? rows.map(e=>{
       const def = e.modules.filter(m=>m.default!==false).reduce((n,m)=>n+((m.artifact||{}).size_mb||0),0);
       const isRef = e.kind==='existing';
       return '<div class="item '+(selId===e.id?'on':'')+'" data-id="'+esc(e.id)+'">'+
         '<div class="r1"><span class="nm">'+esc(e.name)+'</span><span class="sp"></span>'+
-        '<span class="badge">'+esc(isRef?'只登记':e.kind)+'</span></div>'+
-        '<div class="sum">'+(isRef?'技术基座 / 协议参考 · 不下载':e.modules.length+' 个模块已拆解 · 默认下载 '+mb(def))+'</div>'+
+        '<span class="badge">'+esc(kindCN(e.kind))+'</span></div>'+
+        '<div class="sum">'+(isRef?esc(licShort(e))+' · 只登记，不下载':e.modules.length+' 个模块已拆解 · 默认下载 '+mb(def))+'</div>'+
         tagRow(e)+
         (isRef?'':'<div class="kw">'+esc(e.modules.map(m=>m.capability).join(' · '))+'</div>')+
         '</div>';
@@ -410,24 +423,42 @@ function renderPlugin(p){
 }
 
 function renderEntry(e){
-  // 只登记的条目（技术基座 / 协议）：没有制品，不参与下载集，详情页换一套说法
+  // 只登记条目（技术基座 / 协议 / 闭源软件）：没有制品，不参与下载集，详情页换一套说法
   if(e.kind==='existing'){
-    const m = e.modules[0]||{};
-    const gh = 'https://github.com/'+(e.repo||'');
+    const closed = isClosed(e);
+    const caps = e.modules.map(m=>m.capability).filter(Boolean);
+    const links = [];
+    if(e.repo) links.push('<a href="https://github.com/'+esc(e.repo)+'" target="_blank" rel="noopener">'+esc('github.com/'+e.repo)+'</a>');
+    if(e.homepage && !/^https?:\/\/(www\.)?github\.com\//.test(e.homepage))
+      links.push('<a href="'+esc(e.homepage)+'" target="_blank" rel="noopener">'+esc(e.homepage)+'</a>');
     return '<h1>'+esc(e.name)+'</h1>'+
-      '<div class="sub">'+esc(e.repo||'')+' · '+esc(e.license||'')+' · '+(e.tier||'community')+'</div>'+
+      '<div class="sub">'+esc(e.repo||'')+(e.repo?' · ':'')+esc(e.license||'')+' · '+(e.tier||'community')+'</div>'+
     tagRow(e, true)+
       '<div class="row">'+
-        '<div class="kv"><i>形态</i> 只登记</div>'+
-        '<div class="kv"><i>能力</i> '+esc(m.capability||'—')+'</div>'+
+        '<div class="kv"><i>形态</i> '+({closed:'闭源 · 只登记',unclear:'许可未明 · 只登记'}[licenseKind(e)]||'只登记')+'</div>'+
+        '<div class="kv"><i>能力</i> '+esc(caps.join(' · ')||'—')+'</div>'+
         '<div class="kv"><i>下载</i> <b>无</b></div>'+
       '</div>'+
-      '<div class="okbox">只登记链接与介绍：不下载、不安装、不进下载集。要用就按下面的地址自己装——'+
-        '目录在这里的作用是「先知道有这个东西、它解决哪一段」，不是「点一下就装上」。</div>'+
+      '<div class="okbox">'+({
+        closed: '闭源软件，只登记链接与介绍：不下载、不安装、不进下载集，也不替你装。要用按下面的地址自己取。',
+        unclear: '上游没有声明许可，因此只登记链接与介绍：不下载、不安装。复用它的内容前请先确认授权。',
+      }[licenseKind(e)] || '只登记链接与介绍：不下载、不安装、不进下载集。要用就按下面的地址自己装——'
+        +'目录在这里的作用是「先知道有这个东西、它解决哪一段」，不是「点一下就装上」。')+'</div>'+
       '<h2>为什么收在这里</h2><div class="comp"><div class="bd"><div class="note" style="padding:0">'+esc(e.notes||'')+'</div></div></div>'+
-      '<h2>链接</h2><div class="comp"><div class="bd"><div class="note" style="padding:0">'+
-        '<a href="'+esc(gh)+'" target="_blank" rel="noopener">'+esc(e.repo||'')+'</a>'+
-        (e.homepage?' · <a href="'+esc(e.homepage)+'" target="_blank" rel="noopener">'+esc(e.homepage)+'</a>':'')+
+      (e.modules.length>1
+        ? '<h2>拆解（'+e.modules.length+' 段能力）</h2>'+e.modules.map(m=>
+            '<div class="comp"><div class="bd">'+
+              '<div class="r1" style="display:flex;align-items:center;gap:8px">'+
+                '<b style="font-size:13px">'+esc(m.label||m.id)+'</b>'+
+                '<span class="mono" style="font-size:11px;color:var(--muted)">'+esc(m.capability)+'</span>'+
+                '<span class="sp" style="flex:1"></span>'+
+                '<span class="badge">不单独下载</span>'+
+              '</div>'+
+              (m.note?'<div class="note">'+esc(m.note)+'</div>':'')+
+            '</div></div>').join('')
+        : '')+
+      '<h2>来源与链接</h2><div class="comp"><div class="bd"><div class="note" style="padding:0">'+
+        (links.length ? links.join(' · ') : esc(e.name)+'：未找到可登记的上游地址')+
       '</div></div></div>';
   }
   const def = e.modules.filter(m=>m.default!==false);
@@ -441,7 +472,7 @@ function renderEntry(e){
     '<div class="sub">'+esc(e.repo||'')+' · '+esc(e.license||'')+' · '+(e.tier||'community')+'</div>'+
     tagRow(e, true)+
     '<div class="row">'+
-      '<div class="kv"><i>形态</i> '+esc(e.kind)+'</div>'+
+      '<div class="kv"><i>形态</i> '+esc(kindCN(e.kind))+'</div>'+
       '<div class="kv"><i>默认下载</i> <b>'+mb(defSize)+'</b></div>'+
       '<div class="kv"><i>全模块</i> '+mb(all)+'</div>'+
       '<div class="kv"><i>内存</i> '+((e.cost||{}).ram_mb||'?')+' MB</div>'+

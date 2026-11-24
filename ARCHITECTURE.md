@@ -18,7 +18,7 @@
             └───────────┬────────────┴────────────────────────────┘
                         ▼
               ┌─────────────────────┐
-              │  L0 能力词表 + 目录   │  21 条能力 / 18 个标签 / 24 个软件 / 28 个模块（含 11 个只登记）
+              │  L0 能力词表 + 目录   │  39 条能力 / 22 个标签 / 51 个条目 / 70 个模块（含 35 个只登记）
               └─────────┬───────────┘
                         ▼
               ┌─────────────────────┐
@@ -71,13 +71,16 @@
 
 `catalog/moshan-catalog.json` 做两件事：
 
-1. **受控词表**：21 条能力（`media.download`、`note.store`、`search.fulltext`、`ai.usage`、`dev.runtime`、`dev.build`、`ai.protocol`…）。格子只能填词表里的词，填错直接报错，**不让模型猜一个最像的**。
-2. **拆解知识**：13 个可装软件，拆成 17 个模块，每个模块声明三件事：
+1. **受控词表**：39 条能力（`media.download`、`note.store`、`search.fulltext`、`ai.usage`、`dev.runtime`、`dev.build`、`ai.protocol`、`ai.model`、`ai.inference`、`os.distro`…）。格子只能填词表里的词，填错直接报错，**不让模型猜一个最像的**。
+2. **拆解知识**：16 个可装软件，每个拆成若干模块（51 个条目合计 70 个模块），每个模块声明三件事：
    - 提供什么能力（`capability`）
    - 接受什么（`accepts`，能力 → 环境变量名，连线据此自动推导）
    - **要下载什么（`artifact`，见 §3）**
-3. **只登记条目**（`kind: existing`）：11 个技术基座与协议（Electron / Tauri / Chromium / Rust / Node.js、MCP / A2A / ACP / AG-UI / A2UI / AP2）。各 1 个模块、`artifact.kind = none`，**不进下载集、不可装**，作用是「先知道有这个东西、它占哪一段」。
-4. **标签词表**：18 个标签，分两组——**领域**（`ui` 界面、`frontend` 前端、`backend` 后端、`dev` 开发、`network` 网络、`download` 下载、`media` 媒体、`data` 数据、`search` 检索、`ai`、`security` 安全、`ops` 运维）与**技术栈**（`desktop` 桌面、`web`、`cli` 命令行、`protocol` 协议、`native` 原生、`selfhost` 可自建）。
+3. **只登记条目**（`kind: existing`，共 35 个）：技术基座与协议 11 个（Electron / Tauri / Chromium / Rust / Node.js、MCP / A2A / ACP / AG-UI / A2UI / AP2）、
+   桌面与系统工具 14 个（Git / WhatCable / RustDesk / 按键显示Pro / Ubuntu / LibreOffice / ezNTFS / LocalSend / Tailscale / Dropover / RunCat / Cherry Studio / OpenWorker / Organic Maps）、
+   开放权重模型 10 个（DeepSeek V4.1 Flash、Kimi K3.1 Pro、GLM-5.3 Flash、Qwen3.8 27B、Gemma 4、MiniMax M3.1 Flash、MiMo-V2.6-Pro、Kimi K2.7 Code、ERNIE 5.5 Flash Base、混元 Hy4）。
+   都是 `artifact.kind = none`，**不进下载集、不可装**，作用是「先知道有这个东西、它占哪一段」。闭源条目不拆模块细节，只在 `notes` 里说清为什么值得看。
+4. **标签词表**：22 个标签，分两组——**领域**（`ui` 界面、`frontend` 前端、`backend` 后端、`dev` 开发、`network` 网络、`download` 下载、`media` 媒体、`data` 数据、`search` 检索、`ai`、`model` 模型、`security` 安全、`ops` 运维、`geo` 地理、`office` 办公）与**技术栈**（`desktop` 桌面、`web`、`cli` 命令行、`protocol` 协议、`native` 原生、`selfhost` 可自建、`skill` 技能）。
 
 ### 能力与标签是两套维度，不要合并
 
@@ -332,7 +335,7 @@ moshan.json（自由演进）──派生──> plugins.json（七字段，字�
 │   ├── catalog.schema.json      能力词表 + 标签词表 + 软件拆解（含 artifact）
 │   ├── blueprint.schema.json    画布蓝图
 │   └── card.schema.json         卡片（中台唯一认识的形状）
-├── catalog/moshan-catalog.json  24 个软件 / 28 个模块 / 21 条能力 / 18 个标签（其中 11 个只登记）
+├── catalog/moshan-catalog.json  51 个条目 / 70 个模块 / 39 条能力 / 22 个标签（其中 35 个只登记）
 ├── registry/registry.json       生成的商店索引
 ├── examples/                    4 个可安装包 + 3 个蓝图 + 2 个生成清单
 ├── tools/
