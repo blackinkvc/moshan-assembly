@@ -237,6 +237,96 @@
       "label": "托管推理",
       "group": "AI",
       "desc": "厂商托管的 API 端点，按 token 计费"
+    },
+    {
+      "id": "kb.ingest",
+      "label": "解析入库",
+      "group": "知识库",
+      "desc": "PDF/网页/Office 变成文本，版面与表格要保住"
+    },
+    {
+      "id": "kb.chunk",
+      "label": "切块",
+      "group": "知识库",
+      "desc": "长文切成能嵌入的小段，切法决定召回质量"
+    },
+    {
+      "id": "kb.rag",
+      "label": "向量 RAG",
+      "group": "知识库",
+      "desc": "嵌入后按语义相似度召回，换个说法也能搜到"
+    },
+    {
+      "id": "kb.fulltext",
+      "label": "关键词检索",
+      "group": "知识库",
+      "desc": "倒排 + BM25，不嵌入；型号、错误码这类精确词靠它"
+    },
+    {
+      "id": "kb.graph",
+      "label": "图谱检索",
+      "group": "知识库",
+      "desc": "实体关系图，沿边走多跳；回答「谁和谁什么关系」"
+    },
+    {
+      "id": "kb.file",
+      "label": "直读文件",
+      "group": "知识库",
+      "desc": "不建索引，整篇塞进上下文；库小的时候效果最好"
+    },
+    {
+      "id": "kb.agentic",
+      "label": "检索代理",
+      "group": "知识库",
+      "desc": "把搜和读做成工具，Agent 自己改写查询、多轮翻找"
+    },
+    {
+      "id": "kb.inject",
+      "label": "重排注入",
+      "group": "知识库",
+      "desc": "召回只是候选，排序、去重、编号后才进上下文"
+    },
+    {
+      "id": "kb.manage",
+      "label": "多库管理",
+      "group": "知识库",
+      "desc": "多库隔离、增量重算、删除同步——长期可用性的分水岭"
+    },
+    {
+      "id": "hw.display",
+      "label": "桌面显示",
+      "group": "硬件",
+      "desc": "把多窗口、多面板同时摊在眼前的那块屏"
+    },
+    {
+      "id": "hw.eink",
+      "label": "常显画面",
+      "group": "硬件",
+      "desc": "不发光、不熄屏、只在刷新时耗电的静态页"
+    },
+    {
+      "id": "hw.node",
+      "label": "常驻节点",
+      "group": "硬件",
+      "desc": "低功耗 7×24 跑容器与服务的机器"
+    },
+    {
+      "id": "hw.npu",
+      "label": "本地推理",
+      "group": "硬件",
+      "desc": "板上直接跑小模型，不占主 CPU、不出网"
+    },
+    {
+      "id": "hw.switch",
+      "label": "多机切换",
+      "group": "硬件",
+      "desc": "一套键鼠屏在多台机器之间切"
+    },
+    {
+      "id": "hw.storage",
+      "label": "本地大盘",
+      "group": "硬件",
+      "desc": "媒体库、备份与镜像仓库的独立盘位"
     }
   ],
   "entries": [
@@ -1632,14 +1722,28 @@
         },
         {
           "id": "knowledge",
-          "label": "知识库",
-          "capability": "note.search",
+          "label": "知识库（向量 RAG）",
+          "capability": "kb.rag",
           "default": false,
           "artifact": {
             "kind": "none",
             "note": "随 App 内置，不额外下载"
           },
-          "note": "本地向量化文档后供对话检索；文件不出本机"
+          "note": "本地向量化后按相似度召回；文件不出本机，换嵌入模型要整库重算",
+          "parts": [
+            {
+              "label": "嵌入",
+              "note": "内置或自定义：可指向 Ollama、OpenAI 兼容端点"
+            },
+            {
+              "label": "检索",
+              "note": "向量 top-k，没有重排；精确词（型号、编号）搜不准是常态"
+            },
+            {
+              "label": "管理",
+              "note": "多库可建，增量按文件变化重算；删文件后旧向量是否清掉要自己验"
+            }
+          ]
         },
         {
           "id": "mcp",
@@ -2168,6 +2272,853 @@
         "ai",
         "model"
       ]
+    },
+    {
+      "id": "knowledge-base",
+      "name": "知识库",
+      "kind": "existing",
+      "category": "component",
+      "license": "概念卡 · 无代码",
+      "tier": "official",
+      "tags": [
+        "ai",
+        "search",
+        "data"
+      ],
+      "notes": "几乎每个 AI 客户端里都有一张「知识库」卡，但底下根本不是一回事：有的是向量 RAG（切块→嵌入→相似度召回），有的只是全文关键词，有的干脆不建索引、把文件整篇塞进上下文。这张卡把「知识库」从各家界面里提出来单独登记——先分清是哪一种形态，再把内部环节逐段拆开，每一环都能单独换实现。看到某个 App 写「支持知识库」，对着这张卡就能问清三件事：走的是哪种形态、缺哪几个环节、那几环能不能换。",
+      "modules": [
+        {
+          "id": "parse",
+          "label": "解析入库",
+          "capability": "kb.ingest",
+          "group": "① 入库",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "概念卡，没有制品；具体实现在下面各环节里"
+          },
+          "note": "把 PDF / 网页 / Office 变成干净文本。这一环决定后面所有环节的天花板——解析歪了，嵌入再准也救不回来。",
+          "parts": [
+            {
+              "label": "PDF 解析",
+              "note": "docling（版面、表格、阅读顺序都保得住，MIT）；markitdown（只取文字，最轻）；unstructured（格式最全，依赖重）"
+            },
+            {
+              "label": "扫描件",
+              "note": "先 tesseract / PaddleOCR 出文字再入库；纯图 PDF 不做 OCR 等于没入库，还会被当成「检索不到」"
+            },
+            {
+              "label": "网页正文",
+              "note": "trafilatura 提正文；直接把整页 HTML 塞进去，导航栏和 cookie 提示会污染召回"
+            },
+            {
+              "label": "表格与公式",
+              "note": "表格转 Markdown 表比纯文本好；公式留给 LaTeX，别指望 OCR 认对"
+            }
+          ]
+        },
+        {
+          "id": "chunk",
+          "label": "切块",
+          "capability": "kb.chunk",
+          "group": "① 入库",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "概念卡，没有制品；具体实现在下面各环节里"
+          },
+          "note": "切多大、切在哪，直接决定召回精度。切太大一段里混三个主题，切太小一句话缺主语。",
+          "parts": [
+            {
+              "label": "尺寸",
+              "note": "512 字 + 15% 重叠是稳妥起点；中文按字算，别照抄英文的 1000 token"
+            },
+            {
+              "label": "按结构切",
+              "note": "优先按标题层级 / 段落切，再对超长段做二次切分——比定长硬切好一档"
+            },
+            {
+              "label": "语义切块",
+              "note": "chonkie 之类的语义切块收益不稳定，先固定窗口跑通再考虑"
+            },
+            {
+              "label": "带上下文",
+              "note": "每块前面拼上「文件名 · 章节标题」，小块才不会丢出处"
+            }
+          ]
+        },
+        {
+          "id": "rag",
+          "label": "向量 RAG",
+          "capability": "kb.rag",
+          "group": "② 检索形态（择一或叠加）",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "概念卡，没有制品；具体实现在下面各环节里"
+          },
+          "note": "最主流的形态：切块 → 嵌入成向量 → 按余弦相似度召回 top-k。好处是不要求字面命中，换种说法也能搜到；短板是型号、编号这类精确词经常搜不准。",
+          "parts": [
+            {
+              "label": "向量库",
+              "note": "sqlite-vec（单文件零服务，几万条够用）；Chroma（原型期最省事）；LanceDB（列存、可多模态）；pgvector（已有 Postgres 直接上）"
+            },
+            {
+              "label": "召回数",
+              "note": "top-k 取 4~8；k 大了噪音压过信号，k 小了漏答"
+            },
+            {
+              "label": "换模型",
+              "note": "换嵌入模型必须整库重算；维度不同不能混存——这是「用半年后想升级」时最大的坑"
+            },
+            {
+              "label": "纯向量不够",
+              "note": "只做向量、不做关键词的库，搜「ERR_2041」这种串基本是废的"
+            }
+          ]
+        },
+        {
+          "id": "fulltext",
+          "label": "关键词检索",
+          "capability": "kb.fulltext",
+          "group": "② 检索形态（择一或叠加）",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "概念卡，没有制品；具体实现在下面各环节里"
+          },
+          "note": "倒排索引 + BM25，不嵌入、不花 token。精确词它比向量准得多；代价是同义词和转述搜不到。",
+          "parts": [
+            {
+              "label": "引擎",
+              "note": "SQLite FTS5（零部署，配 jieba/ICU 分词）；Meilisearch（开箱即用、中文友好）；Tantivy（Rust，嵌进程序里）"
+            },
+            {
+              "label": "混合",
+              "note": "向量与 BM25 各取 20 条，用 RRF 融合——比调单一形态的分数稳得多"
+            },
+            {
+              "label": "够用的场景",
+              "note": "库只有几千条、查询多是专有名词时，单靠这一层就能交付，不必上嵌入"
+            }
+          ]
+        },
+        {
+          "id": "graph",
+          "label": "图谱检索",
+          "capability": "kb.graph",
+          "group": "② 检索形态（择一或叠加）",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "概念卡，没有制品；具体实现在下面各环节里"
+          },
+          "note": "先把文档抽成「实体—关系」图，再沿边走多跳取子图。回答「A 和 B 什么关系」比向量强；代价是抽取成本高，错抽一条边会一路传下去。",
+          "parts": [
+            {
+              "label": "抽取",
+              "note": "让 LLM 按固定 schema 抽三元组，或直接用 GraphRAG 的社区摘要；schema 越松，抽出来的图越乱"
+            },
+            {
+              "label": "存储",
+              "note": "Kùzu（嵌入式单文件）；Neo4j（生态最全，要起服务）；几千节点用 SQLite 邻接表也够"
+            },
+            {
+              "label": "何时值得",
+              "note": "文档间关系密集（合同、论文、案情）才值得；零散笔记上图谱基本是负收益"
+            }
+          ]
+        },
+        {
+          "id": "direct",
+          "label": "直读文件",
+          "capability": "kb.file",
+          "group": "② 检索形态（择一或叠加）",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "概念卡，没有制品；具体实现在下面各环节里"
+          },
+          "note": "不建索引，提问时把整篇（或目录摘要）塞进上下文。实现成本最低，对「只问几份文档」反而效果最好——没有切块丢上下文的问题。",
+          "parts": [
+            {
+              "label": "适用",
+              "note": "文档总量塞得进上下文窗口；长上下文模型已经很常见，几十份文档完全可行"
+            },
+            {
+              "label": "做法",
+              "note": "把文件名和路径列进提示，让模型自己决定读哪份——Claude Code 读代码库就是这么干的"
+            },
+            {
+              "label": "代价",
+              "note": "每次提问都全量付 token，问十次付十次；库要频繁变就别用这招"
+            }
+          ]
+        },
+        {
+          "id": "agentic",
+          "label": "检索代理",
+          "capability": "kb.agentic",
+          "group": "② 检索形态（择一或叠加）",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "概念卡，没有制品；具体实现在下面各环节里"
+          },
+          "note": "把「搜」和「读」做成工具交给 Agent，让它自己改写查询、多轮翻找。比一次性召回准，代价是慢、贵、结果不可预测。",
+          "parts": [
+            {
+              "label": "做法",
+              "note": "暴露 search / grep / read 三个工具，循环交给模型；查询改写别写死规则"
+            },
+            {
+              "label": "代表",
+              "note": "Cursor 的 @codebase、Claude Code 的文件式检索、deep research 类产品"
+            },
+            {
+              "label": "取舍",
+              "note": "问题开放（「这个项目怎么鉴权」）用它；问题明确（「3.2 节写了什么」）直接向量召回更快更便宜"
+            }
+          ]
+        },
+        {
+          "id": "inject",
+          "label": "重排与注入",
+          "capability": "kb.inject",
+          "group": "③ 出库",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "概念卡，没有制品；具体实现在下面各环节里"
+          },
+          "note": "召回只是候选，进上下文前还要排序、去重、编号。这一步偷懒，模型会答得「像看过但记不清」。",
+          "parts": [
+            {
+              "label": "重排",
+              "note": "bge-reranker-v2-m3（本地、便宜）；Cohere Rerank（云、稳）；不做重排就按 RRF 分数排"
+            },
+            {
+              "label": "注入格式",
+              "note": "每段前带文件名 + 编号 [1]，回答才引得出处；段与段空行隔开，别糊成一坨"
+            },
+            {
+              "label": "位置",
+              "note": "最相关的片段放头尾——长上下文中间的内容最容易被忽略"
+            },
+            {
+              "label": "压缩",
+              "note": "片段太长用 LLMLingua 压，或只留命中句前后 200 字"
+            }
+          ]
+        },
+        {
+          "id": "manage",
+          "label": "多库隔离与增量",
+          "capability": "kb.manage",
+          "group": "③ 出库",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "概念卡，没有制品；具体实现在下面各环节里"
+          },
+          "note": "多数 App 在这一环偷懒：加文件容易，改文件、删文件、多库隔离经常出错。判断一个知识库能不能长期用，看这里比看检索效果准。",
+          "parts": [
+            {
+              "label": "隔离",
+              "note": "一库一个 collection / 表前缀；全塞一个索引再靠元数据过滤，迟早串库"
+            },
+            {
+              "label": "增量",
+              "note": "按文件 hash 或 mtime 判断要不要重算嵌入；全量重建几千页要几十分钟"
+            },
+            {
+              "label": "删除同步",
+              "note": "源文件删了，切块和向量必须一起删；孤儿向量被召回后，模型会引用不存在的内容"
+            },
+            {
+              "label": "可观测",
+              "note": "至少能列出「库里有什么、哪块来自哪个文件」；出问题才查得动"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "docling",
+      "name": "Docling",
+      "repo": "docling-project/docling",
+      "kind": "existing",
+      "category": "app",
+      "homepage": "https://docling-project.github.io/docling/",
+      "license": "MIT",
+      "tier": "official",
+      "notes": "知识库「① 入库」环节目前还原度最好的开源方案：PDF 的版面、表格、阅读顺序都保得住，输出结构化 JSON / Markdown，直接喂切块。IBM 开源，MIT。代价是首次运行要下模型、比 markitdown 慢，大批量转文档要排时间。",
+      "modules": [
+        {
+          "id": "parse",
+          "label": "文档解析",
+          "capability": "kb.ingest",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "pip 包 + 模型权重，只登记不预装"
+          },
+          "note": "PDF / DOCX / PPTX / 图片；表格转 Markdown 表；可选 OCR 与 VLM 后端",
+          "parts": [
+            {
+              "label": "版面还原",
+              "note": "双栏论文按阅读顺序输出，不会左右栏串行"
+            },
+            {
+              "label": "表格",
+              "note": "识别表头与合并单元格，转 Markdown 表；复杂表仍会错，需抽查"
+            },
+            {
+              "label": "OCR",
+              "note": "默认不跑 OCR；扫描件要显式开，或先过 PaddleOCR"
+            }
+          ]
+        },
+        {
+          "id": "chunk",
+          "label": "结构化切块",
+          "capability": "kb.chunk",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "同一包内的 HybridChunker"
+          },
+          "note": "HybridChunker 按标题层级切，并给每块补上章节路径——比定长切块少丢上下文",
+          "parts": [
+            {
+              "label": "章节路径",
+              "note": "每块自带「文档 > 第 2 章 > 2.3 节」，召回后能直接标出处"
+            },
+            {
+              "label": "与嵌入配合",
+              "note": "直接吃 tokenizer 的 token 上限，避免切完再截断"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ai",
+        "office",
+        "data"
+      ]
+    },
+    {
+      "id": "chroma",
+      "name": "Chroma",
+      "repo": "chroma-core/chroma",
+      "kind": "existing",
+      "category": "app",
+      "homepage": "https://www.trychroma.com",
+      "license": "Apache-2.0",
+      "tier": "community",
+      "notes": "知识库「② 向量 RAG」环节里最省事的一个：装完跑几行代码就能建集合、加文档、查相似，默认嵌入式（落本地目录），也能起服务端共享。原型期首选。注意它只是检索基础设施——不负责解析、切块、重排，「装了 Chroma」不等于「有了知识库」。",
+      "modules": [
+        {
+          "id": "vector-store",
+          "label": "向量集合",
+          "capability": "kb.rag",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "pip / npm 包，只登记不预装"
+          },
+          "note": "嵌入式或 client-server 两种起法；自带轻量嵌入函数，也可接外部 embedding",
+          "parts": [
+            {
+              "label": "距离",
+              "note": "默认 L2，文本检索一般改 cosine 更稳"
+            },
+            {
+              "label": "持久化",
+              "note": "嵌入式默认写本地目录；不指定就是内存态，重启即丢"
+            },
+            {
+              "label": "规模",
+              "note": "十万级以内舒服；再大换 LanceDB / pgvector / Qdrant"
+            }
+          ]
+        },
+        {
+          "id": "filter",
+          "label": "元数据过滤",
+          "capability": "kb.manage",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "同一制品内的能力"
+          },
+          "note": "where 条件按元数据过滤；多库隔离靠元数据字段比建多个集合更省",
+          "parts": [
+            {
+              "label": "用法",
+              "note": "metadata 里存 source / 库名 / 时间，查询时 where 限定"
+            },
+            {
+              "label": "坑",
+              "note": "过滤 + 向量是后过滤，选择性差时召回会不足额"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ai",
+        "data",
+        "selfhost"
+      ]
+    },
+    {
+      "id": "sqlite-vec",
+      "name": "sqlite-vec",
+      "repo": "asg017/sqlite-vec",
+      "kind": "existing",
+      "category": "app",
+      "homepage": "https://github.com/asg017/sqlite-vec",
+      "license": "Apache-2.0",
+      "tier": "community",
+      "notes": "把向量检索塞进一个 SQLite 扩展：无服务、无守护进程、一个 .db 文件带走。个人知识库几千到几十万条，它往往比 Chroma 更合适——因为笔记本来就该待在一个文件里，备份就是拷文件。还在 0.x，API 会变，别在关键路径上赌它。",
+      "modules": [
+        {
+          "id": "vec-index",
+          "label": "向量索引",
+          "capability": "kb.rag",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "SQLite 扩展 / 语言绑定，只登记"
+          },
+          "note": "vec0 虚拟表；支持 int8 / bit 量化，内存吃紧时用得上",
+          "parts": [
+            {
+              "label": "部署",
+              "note": "Python / Node / Rust 绑定都有；只是扩展，不改变 SQLite 原有用法"
+            },
+            {
+              "label": "检索",
+              "note": "MATCH + k 取近邻；可与普通 SQL 条件写在同一条语句里"
+            },
+            {
+              "label": "量化",
+              "note": "int8 能把体积压到 1/4，召回略降；bit 更狠，适合粗筛"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ai",
+        "data",
+        "native"
+      ]
+    },
+    {
+      "id": "lancedb",
+      "name": "LanceDB",
+      "repo": "lancedb/lancedb",
+      "kind": "existing",
+      "category": "app",
+      "homepage": "https://lancedb.com",
+      "license": "Apache-2.0",
+      "tier": "community",
+      "notes": "嵌入式向量库，底层是 Lance 列存：不起服务、直接读写磁盘目录，顺带能存原始图片和文本做多模态检索。比 Chroma 重一点、比 pgvector 轻很多。十万条以上、要按条件过滤又要版本化时值得换它。",
+      "modules": [
+        {
+          "id": "vector-store",
+          "label": "向量表",
+          "capability": "kb.rag",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "pip / npm 包，只登记"
+          },
+          "note": "按表建向量索引，支持 IVF-PQ 量化；带版本，能回滚到旧快照",
+          "parts": [
+            {
+              "label": "格式",
+              "note": "Lance 列存，向量与原始数据同表，不用另找地方放图"
+            },
+            {
+              "label": "索引",
+              "note": "暴力扫 / IVF-PQ，按数据量选；小库不需要建索引"
+            },
+            {
+              "label": "版本",
+              "note": "每次写入产生新版本，删错能回滚——比多数向量库实在"
+            }
+          ]
+        }
+      ],
+      "tags": [
+        "ai",
+        "data",
+        "native"
+      ]
+    },
+    {
+      "id": "display-4k",
+      "name": "4K 显示器",
+      "kind": "existing",
+      "category": "hardware",
+      "license": "商品（自购）",
+      "tier": "official",
+      "tags": [
+        "ui",
+        "desktop"
+      ],
+      "notes": "中台、编辑器、终端、服务面板要同时摆在眼前。27 英寸 4K 在 150% 缩放下等效 2560×1440 的工作区，能并排放三栏而不必来回切窗口——收在这里是因为「一眼能看几栏」直接决定这套体系好不好用，界面做得再紧凑，屏只有 1080p 也一样要滚动。挑的时候看三件事：USB-C 一线通（视频+数据+65W 以上供电，省一个坞站）、DP 1.4 或 HDMI 2.0 以上（要 4K60 而不是 4K30）、信号源记忆（接了 KVM 之后，切走再切回来要能自己认回来）。坑：低价 4K 只给 HDMI 1.4，跑 4K30，鼠标拖影一眼就能看出来；标称 10bit 的多半是 8bit+FRC。",
+      "modules": [
+        {
+          "id": "panel",
+          "label": "面板与信号",
+          "capability": "hw.display",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "硬件不进制品的下载集"
+          },
+          "note": "27\" 4K（163ppi）是文字清晰度的甜点，32\" 4K 字更大更松但更占桌面。IPS/VA 都行，不必为曲面和 HDR 加价——这套界面里没有 HDR 内容。"
+        }
+      ]
+    },
+    {
+      "id": "eink-panel",
+      "name": "墨水屏显示器",
+      "kind": "existing",
+      "category": "hardware",
+      "license": "商品（自购）",
+      "tier": "official",
+      "tags": [
+        "ops",
+        "ui"
+      ],
+      "notes": "服务状态、日志尾巴、待办、Token 用量这些页面是「常驻」的，不需要发光：墨水屏只在刷新时耗电，静态画面零功耗、零蓝光，24 小时挂着也不刺眼。收在这里是因为它能把中台的一块面板变成墙上的一块屏，而不是再占一个浏览器窗口。挑的时候：13.3\"（便携，HDMI + USB 供电直连）还是 25.3\"（当桌面副屏）；刷新模式要分「高清」和「快刷」两档，快刷能滚动但字发虚；接口基本只有 HDMI，带 DP 的少。坑：残影是物理特性，做不了视频和动画；寿命按刷新次数算，别让它整屏轮播——固定区域每秒刷一次时间，等于在磨面板。",
+      "modules": [
+        {
+          "id": "panel",
+          "label": "常显面板",
+          "capability": "hw.eink",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "硬件不进制品的下载集"
+          },
+          "note": "它替代的是「一块永远开着的副屏」，不是主显示器：分辨率普遍只有 2K 级、响应以百毫秒计，看代码和拖窗口都不该指望它。"
+        }
+      ]
+    },
+    {
+      "id": "rk3588",
+      "name": "RK3588 板",
+      "kind": "existing",
+      "category": "hardware",
+      "license": "商品（自购）",
+      "tier": "official",
+      "tags": [
+        "selfhost",
+        "ops",
+        "native"
+      ],
+      "notes": "8 核（4×Cortex-A76 + 4×Cortex-A55）加 6 TOPS NPU，整板功耗 5–15W：比同价位的 x86 小主机省一个数量级，比树莓派强一档，正好是「24 小时常驻、跑几个容器、偶尔推个小模型」的形状。收在这里是因为这套体系的底座就是低功耗常驻节点——qbittorrent、Jellyfin、新闻摘录这类服务并不需要 x86。挑的时候：内存版本（8G 起步，16G 才够跑 4B 级模型）、有没有 M.2 或 SATA（系统盘别用 eMMC）、双 2.5G 网口、Armbian/Ubuntu 的支持成熟度。坑：ARM64 镜像生态——不少容器没发 arm64 tag，得自己 build；NPU 要走 RKNN 工具链转换，不是装个 torch 就能用；必须主动散热，裸板跑编译十分钟就降频。",
+      "modules": [
+        {
+          "id": "soc",
+          "label": "整板算力",
+          "capability": "hw.node",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "硬件不进制品的下载集"
+          },
+          "note": "小主机的取舍在「够不够跑常驻」而不是「跑分多少」：8G 版能同时跑下载器和媒体库，16G 版才谈得上本地模型。"
+        },
+        {
+          "id": "npu",
+          "label": "板上推理",
+          "capability": "hw.npu",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "硬件不进制品的下载集"
+          },
+          "note": "6 TOPS 只够 2B–4B 级量化模型，且必须转成 RKNN 格式；适合打标、分类这种「一直要跑、又不值得占 GPU」的活。"
+        }
+      ]
+    },
+    {
+      "id": "kvm-switch",
+      "name": "KVM 切换器",
+      "kind": "existing",
+      "category": "hardware",
+      "license": "商品（自购）",
+      "tier": "official",
+      "tags": [
+        "desktop",
+        "ops"
+      ],
+      "notes": "一套键鼠加一块屏，在 mac、Linux 节点、盒子的控制台之间切：省桌面，也省一套外设的钱。收在这里是因为这套体系天然是多机的——开发机写代码、节点跑服务、盒子做媒体，来回插拔 HDMI 是最原始也最烦的一步。挑的时候：HDMI 2.0 以上（4K60）、USB 直通（键鼠和移动硬盘一起过）、EDID 模拟（切走后主机仍以为显示器还在，否则分辨率掉到 1080p、窗口全乱）、支持热键切换。坑：切换后系统重新识别显示器要 3–5 秒，窗口会重排；不做 EDID 模拟的型号，切回来分辨率必掉；USB 3.0 高速设备和 4K60 抢带宽，线一长就闪屏。",
+      "modules": [
+        {
+          "id": "switch",
+          "label": "切换与 EDID",
+          "capability": "hw.switch",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "硬件不进制品的下载集"
+          },
+          "note": "双机够用就买双口，四口多出的成本通常花在你不会接的机器上；EDID 模拟这一项有没有，比口数重要得多。"
+        }
+      ]
+    },
+    {
+      "id": "disk-jbod",
+      "name": "硬盘柜（DAS）",
+      "kind": "existing",
+      "category": "hardware",
+      "license": "商品（自购）",
+      "tier": "official",
+      "tags": [
+        "selfhost",
+        "data",
+        "ops"
+      ],
+      "notes": "媒体库、备份、镜像仓库都要大盘，而小主机的系统盘通常只有几 GB——CasaOS 盒子的 eMMC 6.6G 就是活例子，数据必须落在独立盘柜上。收在这里是因为这套体系里「装得下」比「跑得快」更常成为瓶颈。挑的时候：单盘直通（每块盘独立可见，坏一块不拖全柜）还是硬件 RAID（一体但换控制器可能读不出）；USB 3.2 且支持 UASP、独立供电（别靠总线供电）、有休眠策略。坑：硬件 RAID 的元数据绑控制器，柜子坏了盘也读不出；供电不足会随机掉盘，长任务跑到一半最致命；盘上别用 exFAT 放 git 仓库，会冒出 non-monotonic index 这类怪问题。",
+      "modules": [
+        {
+          "id": "bay",
+          "label": "盘位与阵列",
+          "capability": "hw.storage",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "硬件不进制品的下载集"
+          },
+          "note": "两块盘做镜像就够大多数人用；要扩的时候「能单独拔出来读」比「阵列重组省空间」值钱。系统盘与数据盘物理分开，重装才不会连数据一起抹。"
+        }
+      ]
+    },
+    {
+      "id": "ragflow",
+      "name": "RAGFlow",
+      "repo": "infiniflow/ragflow",
+      "kind": "existing",
+      "category": "app",
+      "homepage": "https://ragflow.io",
+      "license": "Apache-2.0",
+      "tier": "community",
+      "tags": [
+        "ai",
+        "data",
+        "selfhost"
+      ],
+      "notes": "知识库的「重工业版」：力气花在解析层（DeepDoc 做版面、表格、OCR），检索层给向量与关键词的混合召回，还带切片可视化——能亲眼看见一段 PDF 被切成了什么样，这比任何参数都醒目。代价是 2C 内存起步，装它等于上一个完整的 RAG 服务，不是桌面插件。要啃成百上千页 PDF 时，它比客户端内置的知识库实在得多。",
+      "modules": [
+        {
+          "id": "parse",
+          "label": "深度文档解析",
+          "capability": "kb.ingest",
+          "group": "① 入库",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "服务/桌面程序，只登记不下载"
+          },
+          "note": "二十来种格式，重点在 PDF：版面还原、表格转结构、扫描件 OCR 都在这一层，解析结果能看到每个切片的原文位置。",
+          "parts": [
+            {
+              "label": "DeepDoc",
+              "note": "版面分析 + 表格识别 + OCR 一体，PDF 双栏不乱序"
+            },
+            {
+              "label": "切片预览",
+              "note": "每块能回溯到 PDF 上的原文框，切歪了一眼看得出来"
+            },
+            {
+              "label": "代价",
+              "note": "解析很吃内存，几十页 PDF 跑几分钟是常态"
+            }
+          ]
+        },
+        {
+          "id": "vector",
+          "label": "向量召回",
+          "capability": "kb.rag",
+          "group": "② 检索形态（择一或叠加）",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "服务/桌面程序，只登记不下载"
+          },
+          "note": "文档切片嵌入后按语义召回；默认不重排，可在问答里勾选 rerank。",
+          "parts": [
+            {
+              "label": "嵌入",
+              "note": "可接外部 embedding 或本地模型；换模型要重建索引"
+            },
+            {
+              "label": "开关",
+              "note": "召回有相似度阈值，调低了会把不相关段落一起送进上下文"
+            }
+          ]
+        },
+        {
+          "id": "keyword",
+          "label": "关键词召回",
+          "capability": "kb.fulltext",
+          "group": "② 检索形态（择一或叠加）",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "服务/桌面程序，只登记不下载"
+          },
+          "note": "同一批切片再建倒排，与向量结果一起融合——这就是它比「纯向量」稳的原因：型号和编号能搜到。",
+          "parts": [
+            {
+              "label": "融合",
+              "note": "两路各取若干条后按分数合并，权重可调"
+            },
+            {
+              "label": "适用",
+              "note": "合同编号、法规条号、设备型号这类精确串"
+            }
+          ]
+        },
+        {
+          "id": "rerank",
+          "label": "重排",
+          "capability": "kb.inject",
+          "group": "③ 出库",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "服务/桌面程序，只登记不下载"
+          },
+          "note": "召回候选再按查询重排，把真正对的那段顶到前面。",
+          "parts": [
+            {
+              "label": "模型",
+              "note": "可挂 bge-reranker 类本地模型；不挂就按融合分排"
+            }
+          ]
+        },
+        {
+          "id": "manage",
+          "label": "知识库与租户",
+          "capability": "kb.manage",
+          "group": "③ 出库",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "服务/桌面程序，只登记不下载"
+          },
+          "note": "按知识库分空间，可配团队与权限；文档增删要走解析重跑，不是改一行记录。",
+          "parts": [
+            {
+              "label": "隔离",
+              "note": "一库一空间，跨库查询要显式指定"
+            },
+            {
+              "label": "增量",
+              "note": "重新解析整份文档而非单块；改一页也要重跑该文件"
+            },
+            {
+              "label": "可观测",
+              "note": "切片列表能直接看、能改——这点比多数产品实在"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "anythingllm",
+      "name": "AnythingLLM",
+      "repo": "Mintplex-Labs/anything-llm",
+      "kind": "existing",
+      "category": "app",
+      "homepage": "https://anythingllm.com",
+      "license": "MIT",
+      "tier": "community",
+      "tags": [
+        "ai",
+        "desktop",
+        "selfhost"
+      ],
+      "notes": "桌面一键装好的「知识库全家桶」：文档拖进去就能问，工作区（workspace）之间互相隔离，向量库可换（内置 LanceDB，也能接 pgvector / Chroma / Qdrant）。它的价值不在算法新，而在把「嵌入—存储—检索—对话」这四段都接通了、还能换件。想验证一种知识库形态好不好用，拿它当对照组最省事。",
+      "modules": [
+        {
+          "id": "workspace",
+          "label": "工作区隔离",
+          "capability": "kb.manage",
+          "group": "① 库与隔离",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "服务/桌面程序，只登记不下载"
+          },
+          "note": "一个工作区 = 一个知识库：各自的文档、向量、系统提示互不串味，同一个客户端里可以有多套。",
+          "parts": [
+            {
+              "label": "隔离粒度",
+              "note": "按工作区隔离文档与向量；跨工作区不能混合检索"
+            },
+            {
+              "label": "权限",
+              "note": "单机版只有本机用户；多人要上服务端模式"
+            }
+          ]
+        },
+        {
+          "id": "rag",
+          "label": "文档问答",
+          "capability": "kb.rag",
+          "group": "② 检索形态",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "服务/桌面程序，只登记不下载"
+          },
+          "note": "拖文档进去自动解析、切块、嵌入，提问时召回相关片段拼进上下文。",
+          "parts": [
+            {
+              "label": "向量库",
+              "note": "内置 LanceDB；可换 pgvector / Chroma / Qdrant——换库要重建"
+            },
+            {
+              "label": "解析",
+              "note": "内置解析器够用；复杂 PDF 不如 Docling / RAGFlow"
+            },
+            {
+              "label": "引用",
+              "note": "回答带来源片段，能点开看原文"
+            }
+          ]
+        },
+        {
+          "id": "agent",
+          "label": "Agent 与 MCP",
+          "capability": "ai.agent",
+          "group": "③ 工具位",
+          "default": false,
+          "artifact": {
+            "kind": "none",
+            "note": "服务/桌面程序，只登记不下载"
+          },
+          "note": "除了问答还能跑 Agent：接 MCP server、调工具、定时任务。",
+          "parts": [
+            {
+              "label": "MCP",
+              "note": "支持接 MCP server，等于把外部工具挂进知识库对话"
+            },
+            {
+              "label": "取舍",
+              "note": "Agent 模式比纯 RAG 慢，问题明确时别开"
+            }
+          ]
+        }
+      ]
     }
   ],
   "tags": [
@@ -2306,6 +3257,11 @@
   ],
   "categories": [
     {
+      "id": "component",
+      "label": "能力卡",
+      "hint": "很多软件里同名的那张卡，单独拆开登记"
+    },
+    {
       "id": "model",
       "label": "基础模型",
       "hint": "开放权重或托管 API 的大模型"
@@ -2334,6 +3290,11 @@
       "id": "framework",
       "label": "基座与协议",
       "hint": "运行时、语言、Agent 互联规范"
+    },
+    {
+      "id": "hardware",
+      "label": "硬件",
+      "hint": "要插电、要花钱的那部分：只登记它解决哪一段"
     }
   ]
 }

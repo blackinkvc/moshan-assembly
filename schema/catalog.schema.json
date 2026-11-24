@@ -116,6 +116,24 @@
                 "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,31}$" },
                 "label": { "type": "string" },
                 "capability": { "type": "string", "description": "本模块供给的能力 id，必须在 capabilities 里" },
+                "group": {
+                  "type": "string",
+                  "maxLength": 16,
+                  "description": "同一张卡内部的阶段分组（如 ① 入库 / ② 检索形态 / ③ 出库）。渲染时相邻两段分组不同就插一条小标题——它回答的是「这一步在流程里排第几」，不是分类。"
+                },
+                "parts": {
+                  "type": "array",
+                  "description": "模块的二级拆解：这一环还要做哪几件事、每件事有哪些可替换的实现。只给人看，不进蓝图格子（格子只认 capability）。",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["label"],
+                    "properties": {
+                      "label": { "type": "string", "maxLength": 20, "description": "这一步做什么，如「解析 PDF」「重排」" },
+                      "note": { "type": "string", "description": "可选实现与取舍，直接点名具体项目" }
+                    }
+                  }
+                },
                 "default": { "type": "boolean", "default": true },
                 "port": {
                   "type": "object",

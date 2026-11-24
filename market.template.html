@@ -120,6 +120,28 @@
   label.mod .art{margin-left:auto;font:11px/1.6 var(--mono);color:var(--muted);white-space:nowrap}
   label.mod.off .nm2{color:var(--muted)}
   .note{font-size:11.5px;color:var(--muted);padding:2px 0 0 24px}
+  /* 能力卡：一张卡内部按阶段分段（① 入库 / ② 检索形态 / ③ 出库） */
+  .gsec{display:flex;align-items:center;gap:7px;margin:12px 0 6px;font:11px/1 var(--mono);
+    color:var(--muted);letter-spacing:.04em}
+  .gsec b{font-size:11px;color:var(--ink);font-weight:600}
+  .gsec .ln{flex:1;height:1px;background:var(--line-2)}
+  .kmod{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:9px 12px;margin-bottom:7px}
+  .kmod .kh{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+  .kmod .kt{font-weight:640;font-size:13px}
+  .kmod .kc{font:11px/1.6 var(--mono);color:var(--accent);background:var(--accent-soft);
+    border-radius:5px;padding:1px 6px}
+  .kmod .kcn{font:11px/1.6 var(--mono);color:var(--muted)}
+  .kmod .kn{font-size:11.5px;color:var(--muted);margin-top:3px}
+  /* 二级拆解：竖线缩进，一眼看出是「这一环里的几件事」 */
+  .parts{margin:7px 0 0 6px;padding-left:10px;border-left:2px solid var(--line-2);display:grid;gap:4px}
+  .parts .pt{font-size:11.5px;line-height:1.6}
+  .parts .pt i{font-style:normal;font-weight:600;color:var(--ink);margin-right:6px}
+  .parts .pt span{color:var(--muted)}
+  .who{display:flex;gap:8px;padding:4px 0;font-size:12px;border-bottom:1px solid var(--line-2);cursor:pointer}
+  .who:hover .wn{color:var(--accent)}
+  .who .wn{font-weight:600;min-width:110px}
+  .who .wm{font:11px/1.7 var(--mono);color:var(--muted);min-width:88px}
+  .who .wd{flex:1;color:var(--muted);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .warnbox{background:var(--warn-soft);border:1px solid transparent;color:var(--warn);
     border-radius:8px;padding:8px 11px;font-size:12.5px;margin:10px 0}
   .okbox{background:var(--accent-soft);border-radius:8px;padding:8px 11px;font-size:12.5px;
@@ -188,6 +210,9 @@ const ENTRIES = Object.fromEntries(CAT.entries.map(e=>[e.id,e]));
 const TV = Object.fromEntries((CAT.tags||[]).map(t=>[t.id,t]));
 // 品类词表：第二套分类，条目上只存 id
 const CV = Object.fromEntries((CAT.categories||[]).map(c=>[c.id,c]));
+// 能力词表：模块 panel 里只写 id，中文名从这里取（kb.rag → 向量 RAG）
+const CAV = Object.fromEntries((CAT.capabilities||[]).map(c=>[c.id,c]));
+const capCN = id => (CAV[id]||{}).label || id;
 
 let tab = 'catalog';   // 目录是主体，插件才 4 个，别让人以为这里只有插件
 let q = '';
@@ -357,7 +382,7 @@ function renderStats(){
   const mods = CAT.entries.reduce((n,e)=>n+e.modules.length,0);
   $('#stats').innerHTML =
     '<div class="stat">商店 <b>'+REG.plugins.length+'</b></div>' +
-    '<div class="stat">软件 <b>'+CAT.entries.length+'</b></div>' +
+    '<div class="stat">条目 <b>'+CAT.entries.length+'</b></div>' +
     '<div class="stat">模块 <b>'+mods+'</b></div>' +
     '<div class="stat">能力 <b>'+caps+'</b></div>';
 }
@@ -365,9 +390,14 @@ function renderStats(){
 // 品类取值：插件存在 catalog_category（它的 category 是给自己看的中文短分类），目录条目直接用 category
 const catOf = x => x.catalog_category || x.category || 'agent-plugin';
 
+// 搜索要能命中文案深处：模块的中文能力名（搜「向量」找到所有 RAG 条目）、阶段名、二级拆解的每一行
+const moduleText = m => [capCN(m.capability), m.capability, m.label||'', m.group||'',
+  ((m.artifact||{}).note||''), m.note||'',
+  (m.parts||[]).map(p=>p.label+' '+(p.note||'')).join(' ')].join(' ');
+
 function matchEntry(e, needle){
   return match([e.id, e.name, (e.repo||''), e.kind, e.category||'', e.tier||'', (e.license||''), tagText(e),
-    e.modules.map(m=>m.capability+' '+(m.label||'')+' '+((m.artifact||{}).note||'')).join(' '),
+    e.modules.map(moduleText).join(' '),
     (e.notes||''), ((CV[e.category]||{}).label||'')].join(' '), needle);
 }
 
@@ -403,10 +433,17 @@ function renderList(){
     const itemHTML = e=>{
       const def = e.modules.filter(m=>m.default!==false).reduce((n,m)=>n+((m.artifact||{}).size_mb||0),0);
       const isRef = e.kind==='existing';
+      const isCard = e.category==='component';
+      const isHw = e.category==='hardware';   // 硬件：只登记型号与取舍，采购不在这里发生
+      const shapes = e.modules.filter(m=>/形态/.test(m.group||'')).length;
+      const sum = isCard
+        ? e.modules.length+' 段环节 · '+(shapes?shapes+' 种形态 · ':'')+'只登记'
+        : (isHw ? esc(e.modules.map(m=>m.label||m.id).join(' · '))
+        : (isRef?esc(licShort(e))+' · 只登记，不下载':e.modules.length+' 个模块已拆解 · 默认下载 '+mb(def)));
       return '<div class="item '+(selId===e.id?'on':'')+'" data-id="'+esc(e.id)+'">'+
         '<div class="r1"><span class="nm">'+esc(e.name)+'</span><span class="sp"></span>'+
-        '<span class="badge">'+esc(kindCN(e.kind))+'</span></div>'+
-        '<div class="sum">'+(isRef?esc(licShort(e))+' · 只登记，不下载':e.modules.length+' 个模块已拆解 · 默认下载 '+mb(def))+'</div>'+
+        '<span class="badge">'+esc(isCard?'能力卡':(isHw?'硬件':kindCN(e.kind)))+'</span></div>'+
+        '<div class="sum">'+sum+'</div>'+
         tagRow(e)+
         (isRef?'':'<div class="kw">'+esc(e.modules.map(m=>m.capability).join(' · '))+'</div>')+
         '</div>';
@@ -496,43 +533,106 @@ function renderPlugin(p){
   return html;
 }
 
+// 「重排与注入」和词表里的「重排注入」是一回事，别在同一行写两遍
+const sameWord = (a, b) => a === b || a.replace(/[与和]/g, '') === b.replace(/[与和]/g, '');
+
+// 一张卡内部：按阶段分组，模块带中文能力名与二级拆解（parts）
+function moduleCards(e){
+  let out = '', g = null;
+  for(const m of e.modules){
+    if(m.group && m.group!==g){ g = m.group;
+      out += '<div class="gsec"><b>'+esc(g)+'</b><span class="ln"></span></div>'; }
+    const a = m.artifact||{};
+    out += '<div class="kmod">'+
+      '<div class="kh"><span class="kt">'+esc(m.label||m.id)+'</span>'+
+        (sameWord(capCN(m.capability), m.label||m.id)
+          ? '' : '<span class="kc">'+esc(capCN(m.capability))+'</span>')+
+        '<span class="kcn">'+esc(m.capability)+'</span>'+
+        '<span style="flex:1"></span>'+
+        '<span class="badge">'+esc(a.kind && a.kind!=='none' ? '需下载' : '不单独下载')+'</span>'+
+      '</div>'+
+      (m.note?'<div class="kn">'+esc(m.note)+'</div>':'')+
+      ((m.parts||[]).length
+        ? '<div class="parts">'+m.parts.map(p=>'<div class="pt"><i>'+esc(p.label)+'</i>'+
+            (p.note?'<span>'+esc(p.note)+'</span>':'')+'</div>').join('')+'</div>'
+        : '')+
+      '</div>';
+  }
+  return out;
+}
+
+// 能力卡独有：反查目录里谁挂在这些环节上。卡片独立存在的意义就在这一段——
+// 不是「某个 App 有知识库」，而是「这一环有谁在做、换得掉吗」。
+function whoMakes(e){
+  const order = [...new Set(e.modules.map(m=>m.capability))];
+  let total = 0, body = '';
+  for(const cap of order){
+    const rows = [];
+    for(const o of CAT.entries){
+      if(o.id===e.id) continue;
+      for(const m of o.modules) if(m.capability===cap) rows.push({o, m});
+    }
+    if(!rows.length) continue;
+    total += rows.length;
+    body += '<div class="gsec" style="margin:10px 0 4px"><b>'+esc(capCN(cap))+'</b><span class="ln"></span>'+
+            '<span style="text-transform:none;letter-spacing:0">'+rows.length+' 处</span></div>';
+    body += rows.map(r=>'<div class="who" data-goto="'+esc(r.o.id)+'" title="'+esc(r.o.name)+'">'+
+        '<span class="wn">'+esc(r.o.name)+'</span>'+
+        '<span class="wm">'+esc(r.m.label||r.m.id)+'</span>'+
+        '<span class="wd">'+esc(r.m.note||(r.m.artifact||{}).note||'')+'</span>'+
+      '</div>').join('');
+  }
+  if(!total) return '<h2>谁在做这件事</h2><div class="comp"><div class="bd"><div class="note" style="padding:0">'+
+    '目录里还没有条目挂到这些环节上。把某个实现（比如一个向量库）录进来、在模块上声明对应能力，它就会出现在这里。</div></div></div>';
+  return '<h2>谁在做这件事（'+total+' 处）</h2>'+
+    '<div style="font-size:11.5px;color:var(--muted);margin:-4px 0 8px">下面这些条目的模块，挂在这张卡的某个环节上。点一行跳过去看它的拆解。</div>'+
+    '<div class="comp"><div class="bd">'+body+'</div></div>';
+}
+
 function renderEntry(e){
-  // 只登记条目（技术基座 / 协议 / 闭源软件）：没有制品，不参与下载集，详情页换一套说法
+  // 只登记条目（技术基座 / 协议 / 闭源软件 / 能力卡）：没有制品，不参与下载集，详情页换一套说法
   if(e.kind==='existing'){
-    const closed = isClosed(e);
+    const isCard = e.category==='component';
+    const isHw = e.category==='hardware';   // 硬件：只登记取舍与坑，采购不在这里发生
     const caps = e.modules.map(m=>m.capability).filter(Boolean);
     const links = [];
     if(e.repo) links.push('<a href="https://github.com/'+esc(e.repo)+'" target="_blank" rel="noopener">'+esc('github.com/'+e.repo)+'</a>');
     if(e.homepage && !/^https?:\/\/(www\.)?github\.com\//.test(e.homepage))
       links.push('<a href="'+esc(e.homepage)+'" target="_blank" rel="noopener">'+esc(e.homepage)+'</a>');
+    const shape = isCard ? '能力卡 · 不下载'
+      : (isHw ? '硬件 · 只登记'
+      : ({closed:'闭源 · 只登记',unclear:'许可未明 · 只登记'}[licenseKind(e)] || '只登记'));
+    const box = isCard
+      ? '这是一张能力卡，没有代码可下载。它把各家 App 里同名的那张「'+esc(e.name)+'」拎出来单独立档：'
+        +'先分清形态（同一个名字底下可能是向量 RAG、关键词、图谱，也可能根本不建索引），再把内部环节逐段拆开——'
+        +'每一段的「可选实现」都是能单独换掉的一层。'
+      : isHw
+      ? '硬件不进下载集：这里只登记它在这套体系里补哪一段、挑的时候看什么、坑在哪。买哪一款自己定，'
+        +'装好通电之后它才成为一台节点、一块面板或一个盘位——目录不报价、不带链接，因为型号与价格比软件变得快得多。'
+      : ({closed:'闭源软件，只登记链接与介绍：不下载、不安装、不进下载集，也不替你装。要用按下面的地址自己取。',
+          unclear:'上游没有声明许可，因此只登记链接与介绍：不下载、不安装。复用它的内容前请先确认授权。'}
+         [licenseKind(e)] || '只登记链接与介绍：不下载、不安装、不进下载集。要用就按下面的地址自己装——'
+          +'目录在这里的作用是「先知道有这个东西、它解决哪一段」，不是「点一下就装上」。');
     return '<h1>'+esc(e.name)+'</h1>'+
       '<div class="sub">'+esc(e.repo||'')+(e.repo?' · ':'')+esc(e.license||'')+' · '+(e.tier||'community')+'</div>'+
     tagRow(e, true)+
       '<div class="row">'+
-        '<div class="kv"><i>形态</i> '+({closed:'闭源 · 只登记',unclear:'许可未明 · 只登记'}[licenseKind(e)]||'只登记')+'</div>'+
-        '<div class="kv"><i>能力</i> '+esc(caps.join(' · ')||'—')+'</div>'+
-        '<div class="kv"><i>下载</i> <b>无</b></div>'+
+        '<div class="kv"><i>形态</i> '+shape+'</div>'+
+        (isHw ? '<div class="kv"><i>类型</i> 硬件（自购）</div>'
+              : '<div class="kv"><i>环节</i> '+e.modules.length+' 段</div>')+
+        '<div class="kv"><i>能力</i> '+esc(caps.length<=3 ? (caps.join(' · ')||'—') : caps.length+' 条')+'</div>'+
+        '<div class="kv"><i>'+(isHw?'采购':'下载')+'</i> <b>'+(isHw?'自己买':'无')+'</b></div>'+
       '</div>'+
-      '<div class="okbox">'+({
-        closed: '闭源软件，只登记链接与介绍：不下载、不安装、不进下载集，也不替你装。要用按下面的地址自己取。',
-        unclear: '上游没有声明许可，因此只登记链接与介绍：不下载、不安装。复用它的内容前请先确认授权。',
-      }[licenseKind(e)] || '只登记链接与介绍：不下载、不安装、不进下载集。要用就按下面的地址自己装——'
-        +'目录在这里的作用是「先知道有这个东西、它解决哪一段」，不是「点一下就装上」。')+'</div>'+
+      '<div class="okbox">'+box+'</div>'+
       '<h2>为什么收在这里</h2><div class="comp"><div class="bd"><div class="note" style="padding:0">'+esc(e.notes||'')+'</div></div></div>'+
       (e.modules.length>1
-        ? '<h2>拆解（'+e.modules.length+' 段能力）</h2>'+e.modules.map(m=>
-            '<div class="comp"><div class="bd">'+
-              '<div class="r1" style="display:flex;align-items:center;gap:8px">'+
-                '<b style="font-size:13px">'+esc(m.label||m.id)+'</b>'+
-                '<span class="mono" style="font-size:11px;color:var(--muted)">'+esc(m.capability)+'</span>'+
-                '<span class="sp" style="flex:1"></span>'+
-                '<span class="badge">不单独下载</span>'+
-              '</div>'+
-              (m.note?'<div class="note">'+esc(m.note)+'</div>':'')+
-            '</div></div>').join('')
-        : '')+
+        ? '<h2>拆解（'+e.modules.length+' 段能力）</h2>'+moduleCards(e)
+        : (isHw && e.modules.length ? '<h2>挑的时候看什么</h2>'+moduleCards(e) : ''))+
+      (isCard ? whoMakes(e) : '')+
       '<h2>来源与链接</h2><div class="comp"><div class="bd"><div class="note" style="padding:0">'+
-        (links.length ? links.join(' · ') : esc(e.name)+'：未找到可登记的上游地址')+
+        (links.length ? links.join(' · ')
+          : (isHw ? esc(e.name)+'：硬件没有上游仓库，也不登记商家链接——型号、批次与价格随市，按上面的要点自己比。'
+                  : esc(e.name)+'：未找到可登记的上游地址'))+
       '</div></div></div>';
   }
   const def = e.modules.filter(m=>m.default!==false);
@@ -620,6 +720,15 @@ function renderAll(){
     const e = ENTRIES[selId];
     d.innerHTML = e ? renderEntry(e) : '<div class="empty">这些是拆解好的开源软件。点开看它被拆成了哪些模块、各自要下多少。</div>';
   }
+  d.querySelectorAll('.who[data-goto]').forEach(el=>{
+    // 从能力卡反查跳到实现者：先清筛选，否则列表里可能根本没有这一条
+    el.onclick = () => {
+      const id = el.dataset.goto;
+      if(!ENTRIES[id]) return;
+      tab = 'catalog'; q = ''; activeTag = null; activeCat = null; selId = id;
+      renderAll();
+    };
+  });
   d.querySelectorAll('input[type=checkbox][data-mod]').forEach(cb=>{
     cb.onchange = () => {
       const mf = MFS[selId]; if(!mf) return;

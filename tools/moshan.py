@@ -623,15 +623,21 @@ def cmd_catalog(args):
         print("%-14s %-10s %-10s %-6s %6s  %s" % (e["id"], e["kind"], clabel, e.get("tier", "community"),
                                                  human(total), (e.get("repo") or "")))
         print("   %s  标签 %s" % (" " * 8, tline))
+        grp = None
         for m in mods:
+            if m.get("group") and m["group"] != grp:
+                grp = m["group"]
+                print("   [%s]" % grp)
             a = m.get("artifact") or {"kind": "none"}
             tag_ = a.get("kind")
             if tag_ == "image":
                 tag_ += "@" + (a.get("ref") or "").rsplit(":", 1)[-1]
             elif tag_ == "none" and a.get("variant"):
                 tag_ += "->" + a["variant"]
-            print("   %-10s %-18s %-22s %s" % (m["id"], m["capability"], tag_,
-                                               human(a.get("size_mb")) if a.get("size_mb") else ""))
+            # 二级拆解只报个数：命令行里铺开 69 行细则没法看，界面才铺
+            more = ("  +%d 细节" % len(m["parts"])) if m.get("parts") else ""
+            print("   %-10s %-18s %-22s %s%s" % (m["id"], m["capability"], tag_,
+                                                 human(a.get("size_mb")) if a.get("size_mb") else "", more))
     if tag:
         print("\n标签「%s」命中 %d / %d 个条目" % (tmap[tag]["label"], shown, len(entries)))
     return 0

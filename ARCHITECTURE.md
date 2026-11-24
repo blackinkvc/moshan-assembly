@@ -18,7 +18,7 @@
             └───────────┬────────────┴────────────────────────────┘
                         ▼
               ┌─────────────────────┐
-              │  L0 能力词表 + 目录   │  39 能力 / 22 标签 / 6 品类 / 51 条目 / 70 模块（含 35 个只登记）
+              │  L0 能力词表 + 目录   │  54 能力 / 22 标签 / 8 品类 / 63 条目 / 99 模块（含 47 个只登记）
               └─────────┬───────────┘
                         ▼
               ┌─────────────────────┐
@@ -71,8 +71,8 @@
 
 `catalog/moshan-catalog.json` 做两件事：
 
-1. **受控词表**：39 条能力（`media.download`、`note.store`、`search.fulltext`、`ai.usage`、`dev.runtime`、`dev.build`、`ai.protocol`、`ai.model`、`ai.inference`、`os.distro`…）。格子只能填词表里的词，填错直接报错，**不让模型猜一个最像的**。
-2. **拆解知识**：16 个可装软件，每个拆成若干模块（51 个条目合计 70 个模块），每个模块声明三件事：
+1. **受控词表**：54 条能力（`media.download`、`note.store`、`search.fulltext`、`ai.usage`、`dev.runtime`、`dev.build`、`ai.protocol`、`ai.model`、`ai.inference`、`os.distro`…）。格子只能填词表里的词，填错直接报错，**不让模型猜一个最像的**。
+2. **拆解知识**：16 个可装软件，每个拆成若干模块（63 个条目合计 99 个模块），每个模块声明三件事：
    - 提供什么能力（`capability`）
    - 接受什么（`accepts`，能力 → 环境变量名，连线据此自动推导）
    - **要下载什么（`artifact`，见 §3）**
@@ -80,7 +80,8 @@
    桌面与系统工具 14 个（Git / WhatCable / RustDesk / 按键显示Pro / Ubuntu / LibreOffice / ezNTFS / LocalSend / Tailscale / Dropover / RunCat / Cherry Studio / OpenWorker / Organic Maps）、
    开放权重模型 10 个（DeepSeek V4.1 Flash、Kimi K3.1 Pro、GLM-5.3 Flash、Qwen3.8 27B、Gemma 4、MiniMax M3.1 Flash、MiMo-V2.6-Pro、Kimi K2.7 Code、ERNIE 5.5 Flash Base、混元 Hy4）。
    都是 `artifact.kind = none`，**不进下载集、不可装**，作用是「先知道有这个东西、它占哪一段」。闭源条目不拆模块细节，只在 `notes` 里说清为什么值得看。
-4. **品类词表**：6 个品类，一个条目**只能属于一个**——`model` 基础模型（10）、`mcp` MCP（1）、`skill` 技能（1）、`agent-plugin` Agent 插件（2）、`app` 软件（27）、`framework` 基座与协议（10）。这是界面上的第一道筛选，按它给列表分段。
+4. **品类词表**：8 个品类，一个条目**只能属于一个**——`component` 能力卡（1，各家软件里同名的那张卡单独拆开登记）、`model` 基础模型（10）、`mcp` MCP（1）、`skill` 技能（1）、`agent-plugin` Agent 插件（2）、`app` 软件（33）、`framework` 基座与协议（10）、`hardware` 硬件（5）。这是界面上的第一道筛选，按它给列表分段。
+   **硬件是唯一不参与下载集的品类**：只登记「它在这套体系里补哪一段、挑的时候看什么、坑在哪」，不报价、不登记商家链接——型号与价格比软件变得快得多。条目仍走 `kind=existing`，`modules` 里写的是「要决定的哪几件事」（整板算力 / 板上推理 / 切换与 EDID），能力用 `hw.*` 一组。
 5. **标签词表**：22 个标签，分两组——**领域**（`ui` 界面、`frontend` 前端、`backend` 后端、`dev` 开发、`network` 网络、`download` 下载、`media` 媒体、`data` 数据、`search` 检索、`ai`、`model` 模型、`security` 安全、`ops` 运维、`geo` 地理、`office` 办公）与**技术栈**（`desktop` 桌面、`web`、`cli` 命令行、`protocol` 协议、`native` 原生、`selfhost` 可自建、`skill` 技能）。
 
 ### 三套维度，各有各的用处，不要合并
@@ -187,6 +188,21 @@
 | `none` | 同一制品内的开关 | 不下载，只改配置/变体 |
 
 `none + variant` 是"换镜像但不叠加"的表达：启用硬件转码时，镜像从 `10.10.3` 换成 `10.10.3-vaapi`，体积按替换算（490MB），**不是 260+490**。这个细节错了，安装计划就会虚报一倍体积。
+
+### 3.2.1 模块的二级拆解：`group` 与 `parts`
+
+只给「拆得深」的条目用（能力卡、RAG 这类多层的东西），**不参与安装器计算**：
+
+- `group`——这一环在流程里排第几（`① 入库` / `② 检索形态` / `③ 出库`）。渲染时相邻两段分组不同就插一条小标题，它回答的是"顺序"，不是"分类"。
+- `parts`——这一环内部还要做哪几件事、每件事有哪些可替换实现。**只给人看**，蓝图格子只认 `capability`。
+
+```jsonc
+{ "id": "parse", "capability": "kb.ingest", "group": "① 入库",
+  "parts": [ { "label": "PDF 解析", "note": "docling（版面、表格都保得住）；markitdown（最轻）" },
+             { "label": "扫描件",   "note": "先 tesseract / PaddleOCR 出文字，纯图 PDF 不做 OCR 等于没入库" } ] }
+```
+
+为什么不把这些全做成模块：模块要能进格子、算体积、推连线；`parts` 里那些是同一层的**选型**，拆成模块只会在画布上生成一堆永远不会被连线的假节点。判断标准——**能拿来连线的才叫模块，只能拿来做决定的叫 parts**。
 
 ### 3.3 下载集算法（`moshan plan` 的实现）
 
@@ -340,7 +356,7 @@ moshan.json（自由演进）──派生──> plugins.json（七字段，字�
 │   ├── catalog.schema.json      能力词表 + 标签词表 + 品类词表 + 软件拆解（含 artifact）
 │   ├── blueprint.schema.json    画布蓝图
 │   └── card.schema.json         卡片（中台唯一认识的形状）
-├── catalog/moshan-catalog.json  51 个条目 / 70 个模块 / 39 条能力 / 22 个标签 / 6 个品类（其中 35 个只登记）
+├── catalog/moshan-catalog.json  63 个条目 / 99 个模块 / 54 条能力 / 22 个标签 / 8 个品类（其中 47 个只登记）
 ├── registry/registry.json       生成的商店索引
 ├── examples/                    4 个可安装包 + 3 个蓝图 + 2 个生成清单
 ├── tools/

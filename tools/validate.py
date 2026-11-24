@@ -320,6 +320,23 @@ def validate_catalog(d, name="<catalog>"):
                 seen.add(m["id"])
             if m.get("capability") not in caps:
                 e.add(mw + ".capability", "引用了词表里不存在的能力 %r" % m.get("capability"))
+            if "group" in m and not isinstance(m.get("group"), str):
+                e.add(mw + ".group", "阶段分组必须是字符串（如「① 入库」），不是数组")
+            mparts = m.get("parts")
+            if mparts is not None:
+                if not isinstance(mparts, list):
+                    e.add(mw + ".parts", "二级拆解必须是数组（每项一件事）")
+                else:
+                    for k, pt in enumerate(mparts):
+                        pw = "%s.parts[%d]" % (mw, k)
+                        if isinstance(pt, str):
+                            e.add(pw, "写成对象 {label, note}，不要直接写字符串")
+                        elif not isinstance(pt, dict):
+                            e.add(pw, "必须是对象")
+                        elif not pt.get("label"):
+                            e.add(pw + ".label", "缺少 label（这一步做什么）")
+                        elif len(str(pt.get("label"))) > 20:
+                            e.add(pw + ".label", "label 超过 20 字，界面上会折行")
             for cap in (m.get("accepts") or {}):
                 if cap not in caps:
                     e.add(mw + ".accepts", "接受了词表里不存在的能力 %r" % cap)
