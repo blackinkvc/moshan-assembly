@@ -30,6 +30,17 @@
 - 推：一句话需求 → 该拼哪几格（`match.py`）→ 摊成三档让人挑、检查能不能接上（`base.py`）→ 网页版（`base.py --html`）
   方法与实测见 `MATCH.md`，接口基板见 `wires.py`
 
+## 三个网页
+
+| 文件 | 是什么 | 怎么生成 |
+|---|---|---|
+| `planner.html` | 单屏版：输入需求 → 卡片 → 打钩 → 查断点 | `python3 arch/base.py --html` |
+| `app.html` | **产品原型**：工作台 / 需求 / 选型 / 确认 / 组装 / 完成 / 模块库，全套按钮可点、可跳转，确认后模拟逐格组装 | `python3 arch/app.py` |
+| `guide.html` | 使用说明（图文） | `python3 arch/make_guide.py` |
+
+`app.html` 里的「组装」是前端模拟：按 `check()` 算出的施工顺序逐格推进、写日志、可暂停中止。
+接真流水线时只换 `startBuild/tick` 这一段，前面的选型与确认逻辑不用动。
+
 ## 200 个软件从哪来
 
 前 30 个是手拆的（Dify、n8n、RAGFlow、Cursor…），后 170 个来自 ai-bot.cn：
