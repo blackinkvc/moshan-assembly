@@ -1,0 +1,41 @@
+{
+  "$schema": "https://moshan.dev/schema/moshan-2.json",
+  "spec": "2.0",
+  "id": "llmcost",
+  "name": "Token 价格追踪",
+  "version": "1.1.0",
+  "summary": "模型 API / 套餐 / 本地部署成本",
+  "description": "抓 GitHub 上的价格榜与官方定价页，汇总 API 单价、订阅套餐与本地部署的折算成本。",
+  "author": { "name": "blackinkvc" },
+  "license": "MIT",
+  "repo": "blackinkvc/pocket-llmcost",
+  "icon": "icon.png",
+  "kind": "single",
+  "category": "算价",
+  "group": "other",
+  "keywords": ["token", "price", "llm", "cost"],
+  "permissions": ["fs:13-算价", "net:https", "exec:python3"],
+  "requires": { "moshan": ">=1.0", "python": ">=3.9" },
+  "port": 8776,
+  "ui": { "path": "/", "embed": "iframe", "open": "panel" },
+  "health": { "path": "/api/ping", "interval": 30, "timeout": 3, "expect_body": "ok" },
+  "cards": { "api": "/api/cards" },
+  "data": { "env": "LLMCOST_DIR", "default": "~/Documents/AI项目/13-算价" },
+  "runtime": {
+    "entry": "llmcost.py",
+    "args": ["--serve", "--no-open"],
+    "cwd": ".",
+    "restart": "on-failure"
+  },
+  "update": {
+    "repo": "blackinkvc/pocket-llmcost",
+    "manifest": "https://blackinkvc.github.io/pocket-llmcost/moshan.json",
+    "pack": "https://github.com/blackinkvc/pocket-llmcost/releases/download/1.1.0/llmcost-1.1.0.moshanpack"
+  },
+  "extensions": {
+    "cn.moshan.legacy": {
+      "plugin_json": "plugin.json",
+      "note": "v1 兼容层：中台读到该键时按 v1 字段再解析一遍，双写期用"
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "$schema": "https://moshan.dev/schema/blueprint-1.json",
+  "spec": "1.0",
+  "id": "media-auto",
+  "name": "影视自动入库",
+  "goal": "下载完成自动改名，Jellyfin 立刻能播，中台一页看全",
+
+  "constraints": {
+    "port_pool": [8790, 8799],
+    "reserved_ports": [8776, 8777, 8778, 8779, 8780, 8781, 8782],
+    "max_ram_mb": 1024
+  },
+
+  "slots": [
+    {
+      "id": "dl",
+      "label": "下载",
+      "needs": ["media.download"],
+      "port": 8791,
+      "note": "只要能下载就行，谁来下都无所谓"
+    },
+    {
+      "id": "lib",
+      "label": "媒体库",
+      "needs": ["media.library", "media.stream"],
+      "port": 8792,
+      "note": "要能扫目录、刮元数据、还要能给手机放"
+    },
+    {
+      "id": "hub",
+      "label": "改名胶水",
+      "needs": ["automation.glue"],
+      "custom": true,
+      "outputs": ["automation.glue"],
+      "ui": true,
+      "note": "这一格没有现成软件，60 行代码，负责盯完成事件、改名、通知刷新"
+    }
+  ],
+
+  "edges": [
+    {
+      "from": "dl",
+      "to": "lib",
+      "capability": "media.library",
+      "carrier": "volume",
+      "path": "/media",
+      "note": "两个容器挂同一个宿主目录：下载完的文件对媒体库直接可见"
+    },
+    {
+      "from": "dl",
+      "to": "hub",
+      "env": "QBIT_URL",
+      "note": "胶水每 30 秒查一次种子列表，挑出「已完成但未改名」的条目"
+    },
+    {
+      "from": "lib",
+      "to": "hub",
+      "capability": "media.stream",
+      "env": "JELLYFIN_URL",
+      "note": "改名落盘后调 /Library/Refresh，让它立刻扫到，不用等定时任务"
+    }
+  ],
+
+  "install_as": {
+    "plugin_id": "media-auto",
+    "version": "0.1.0",
+    "port": 8790,
+    "data_env": "MEDIAAUTO_DIR",
+    "data_default": "~/Documents/AI项目/_栈/media-auto",
+    "group": "other",
+    "permissions": ["docker", "fs:媒体库", "net:127.0.0.1", "exec:python3"]
+  }
+}

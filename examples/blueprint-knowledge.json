@@ -1,0 +1,65 @@
+{
+  "$schema": "https://moshan.dev/schema/blueprint-1.json",
+  "spec": "1.0",
+  "id": "daily-digest",
+  "name": "每日信息摘要",
+  "goal": "公众号与 RSS 自动进笔记库，可检索，顺带记 token 账",
+
+  "constraints": {
+    "port_pool": [8790, 8799],
+    "reserved_ports": [8776, 8777, 8778, 8779, 8780, 8781, 8782]
+  },
+
+  "slots": [
+    {
+      "id": "src",
+      "label": "采集",
+      "needs": ["news.fetch"],
+      "note": "公众号优先；RSSHub 更全但内存高十倍，先不钉死，交给解析器权衡"
+    },
+    {
+      "id": "store",
+      "label": "知识库",
+      "needs": ["note.store", "note.edit"],
+      "note": "我要能自己写字，也要能被程序写"
+    },
+    {
+      "id": "index",
+      "label": "检索",
+      "needs": ["search.fulltext"],
+      "note": "条目过千后思源自带检索不够用"
+    },
+    {
+      "id": "usage",
+      "label": "算价",
+      "needs": ["ai.usage"],
+      "note": "摘要用 4B 小模型跑，得知道一天花多少"
+    },
+    {
+      "id": "hub",
+      "label": "摘要胶水",
+      "needs": ["news.digest"],
+      "custom": true,
+      "outputs": ["news.digest"],
+      "ui": true,
+      "note": "去重、打分、取 top12、写进思源、推进 Meilisearch——全是胶水活"
+    }
+  ],
+
+  "edges": [
+    { "from": "src", "to": "hub", "env": "NEWS_SOURCE_URL", "note": "胶水每小时拉一次 feed，按 URL 与标题双指纹去重" },
+    { "from": "store", "to": "hub", "capability": "note.store", "env": "SIYUAN_URL", "note": "调 /api/filetree/createDocWithMd 落档，先查 SQL 看标题是否已存在" },
+    { "from": "index", "to": "hub", "capability": "search.fulltext", "env": "MEILI_URL", "note": "文档推 POST /indexes/notes/documents，走异步任务队列" },
+    { "from": "usage", "to": "hub", "capability": "ai.usage", "env": "LLMCOST_URL", "note": "每次摘要后回报 token，卡片上显示今日花费" }
+  ],
+
+  "install_as": {
+    "plugin_id": "daily-digest",
+    "version": "0.1.0",
+    "port": 8790,
+    "data_env": "DIGEST_DIR",
+    "data_default": "~/Documents/AI项目/_栈/daily-digest",
+    "group": "plugin",
+    "permissions": ["docker", "fs:新闻摘录", "net:https", "net:127.0.0.1", "exec:python3"]
+  }
+}

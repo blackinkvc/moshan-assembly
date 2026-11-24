@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moshan.dev/schema/card-1.json",
+  "title": "Moshan Card 1.0",
+  "description": "中台左栏/首屏卡片。插件只负责产出这个形状，中台只负责渲染；新增插件不需要改页面。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "plugin", "title", "status"],
+  "properties": {
+    "id": { "type": "string", "description": "插件内唯一，稳定不变" },
+    "plugin": { "type": "string", "description": "产生该卡片的插件 id" },
+    "title": { "type": "string", "maxLength": 32 },
+    "subtitle": { "type": "string", "maxLength": 48 },
+    "value": { "type": ["string", "number"], "description": "主数字，例如 12 / 3.2 / 92%" },
+    "unit": { "type": "string", "maxLength": 8 },
+    "delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "value": { "type": ["string", "number"] },
+        "direction": { "enum": ["up", "down", "flat"] },
+        "note": { "type": "string" }
+      }
+    },
+    "status": { "enum": ["ok", "warn", "error", "unknown", "stale"] },
+    "message": { "type": "string", "maxLength": 120, "description": "status 非 ok 时的原因" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "link": { "type": "string", "description": "点卡片跳转到插件页面或原文" },
+    "actions": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "path"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string", "maxLength": 12 },
+          "method": { "enum": ["POST", "GET"], "default": "POST" },
+          "path": { "type": "string", "description": "相对插件 base，如 /api/collect" },
+          "confirm": { "type": "boolean", "default": false },
+          "danger": { "type": "boolean", "default": false }
+        }
+      }
+    }
+  }
+}

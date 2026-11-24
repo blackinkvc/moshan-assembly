@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moshan.dev/schema/catalog-1.json",
+  "title": "Moshan Capability Catalog 1.0",
+  "description": "开源软件的「能力目录」：把每个软件拆成功能模块，每个模块只声明两件事——我提供什么能力（provides）、我需要别人给我什么（accepts）。蓝图里的格子填的都是能力，不是软件名。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["spec", "capabilities", "entries"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "spec": { "const": "1.0" },
+    "name": { "type": "string" },
+    "updated": { "type": "string", "description": "YYYY-MM-DD，用于提示目录新鲜度" },
+
+    "capabilities": {
+      "type": "array",
+      "description": "受控词表。格子只能填这里出现的能力 id，否则解析器报错——这是推荐结果可校验的前提。",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(\\.[a-z][a-z0-9-]*){1,3}$" },
+          "label": { "type": "string", "maxLength": 24 },
+          "group": { "type": "string" },
+          "desc": { "type": "string" }
+        }
+      }
+    },
+
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "kind", "license", "modules"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,48}$" },
+          "name": { "type": "string" },
+          "repo": { "type": "string", "pattern": "^[\\w.-]+/[\\w.-]+$" },
+          "homepage": { "type": "string" },
+          "kind": { "enum": ["container", "process", "binary", "existing"] },
+          "image": { "type": "string", "description": "kind=container：镜像仓库名，不含 tag" },
+          "sample_tag": { "type": "string", "description": "示例 tag。安装时必须用 registry API 取当期稳定版再写死，禁止 latest 漂移" },
+          "license": { "type": "string" },
+          "tier": { "enum": ["official", "verified", "community", "experimental"], "default": "community" },
+          "cost": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "ram_mb": { "type": "integer" },
+              "disk_gb": { "type": "number" },
+              "gpu": { "type": "boolean", "default": false }
+            }
+          },
+          "notes": { "type": "string" },
+          "runtime": {
+            "type": "object",
+            "description": "kind=process|binary 时的启动方式；container 不需要",
+            "additionalProperties": false,
+            "properties": {
+              "entry": { "type": "string" },
+              "args": { "type": "array", "items": { "type": "string" } },
+              "cwd": { "type": "string" }
+            }
+          },
+          "modules": {
+            "type": "array",
+            "description": "功能模块。一个软件 = 若干模块，可按需取用（这正是「拆开功能模块往格子里放」的承载物）。",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["id", "capability"],
+              "properties": {
+                "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,31}$" },
+                "label": { "type": "string" },
+                "capability": { "type": "string", "description": "本模块供给的能力 id，必须在 capabilities 里" },
+                "default": { "type": "boolean", "default": true },
+                "port": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["name", "port"],
+                  "properties": {
+                    "name": { "type": "string" },
+                    "port": { "type": "integer" },
+                    "protocol": { "enum": ["http", "https", "tcp", "udp"], "default": "http" }
+                  }
+                },
+                "path": { "type": "string", "description": "该能力对应的 HTTP 路径，如 /Library/Refresh" },
+                "accepts": {
+                  "type": "object",
+                  "description": "capability -> 本模块读取的环境变量名。有这一条，连线就能自动推导出来，作者不必手写 wires。",
+                  "additionalProperties": { "type": "string" }
+                },
+                "shared": {
+                  "type": "object",
+                  "description": "文件型接口（共享卷）：capability 若以卷而非 URL 交付，在此声明容器内挂载点。",
+                  "additionalProperties": false,
+                  "properties": {
+                    "name": { "type": "string", "description": "共享卷逻辑名，如 downloads" },
+                    "container": { "type": "string" }
+                  }
+                },
+                "config": { "type": "object", "additionalProperties": { "type": "string" }, "description": "选中本模块时合并进组件的环境变量，支持 ${secret}/{host} 占位" },
+                "requires": { "type": "array", "items": { "type": "string" }, "description": "额外的能力依赖（例如 transcoder 需要 media.library）" },
+                "cost": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "ram_mb": { "type": "integer" },
+                    "gpu": { "type": "boolean" }
+                  }
+                },
+                "artifact": {
+                  "type": "object",
+                  "description": "该模块需要下载什么（拆解与下载分离的关键）。目录只声明制品，不预下载；安装时按勾选结果算出最小下载集。缺省视为 none。",
+                  "additionalProperties": false,
+                  "required": ["kind"],
+                  "properties": {
+                    "kind": {
+                      "enum": ["image", "asset", "package", "build", "none"],
+                      "description": "image=容器镜像 / asset=Release 或数据仓库资产 / package=语言包 / build=需现构建 / none=同一制品内开关，不额外下载"
+                    },
+                    "ref": { "type": "string", "description": "kind=image：完整 repo:tag；kind=asset：下载 URL 模板，可用 {repo} {version} {tag} 占位" },
+                    "variants": {
+                      "type": "object",
+                      "description": "kind=image 时的镜像变体（如硬件加速），键为变体名，值为完整 ref。缺省用 ref。",
+                      "additionalProperties": { "type": "string" }
+                    },
+                    "default_variant": { "type": "string", "description": "默认变体名；缺省即用 ref" },
+                    "variant": { "type": "string", "description": "本模块要求所在组件改用哪个变体（如硬件加速）。仅 kind=none 时使用，镜像本体由同组件的 image 模块声明。" },
+                    "repo": { "type": "string", "description": "kind=asset：owner/repo" },
+                    "match": { "type": "string", "description": "kind=asset：资产名匹配 glob，如 *linux-arm64*.tar.gz" },
+                    "manager": { "enum": ["pip", "npm", "brew", "go"], "description": "kind=package 的包管理器" },
+                    "name": { "type": "string", "description": "kind=package 的包名" },
+                    "extra": { "type": "string", "description": "kind=package 的 extra，如 pkg[transcode]" },
+                    "context": { "type": "string", "description": "kind=build 的构建上下文" },
+                    "target": { "type": "string", "description": "kind=build 的 target 阶段" },
+                    "size_mb": { "type": "number", "description": "下载体积，用于安装前告知与体积预算" },
+                    "note": { "type": "string" }
+                  }
+                },
+                "note": { "type": "string", "description": "人话说明，进连通说明表" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

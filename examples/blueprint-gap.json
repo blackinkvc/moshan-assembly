@@ -1,0 +1,22 @@
+{
+  "$schema": "https://moshan.dev/schema/blueprint-1.json",
+  "spec": "1.0",
+  "id": "gap-demo",
+  "name": "缺口演示",
+  "goal": "故意写两个填不上的格子，用来验证解析器不硬凑",
+
+  "slots": [
+    {
+      "id": "capture",
+      "label": "下了就转",
+      "needs": ["media.download", "media.transcode"],
+      "note": "没有一个软件同时供给这两条能力：qBittorrent 只有下载，Jellyfin 的转码要求先有库"
+    },
+    {
+      "id": "subs",
+      "label": "字幕",
+      "needs": ["media.subtitle"],
+      "note": "media.subtitle 不在受控词表里，应该直接报错而不是让模型猜"
+    }
+  ]
+}

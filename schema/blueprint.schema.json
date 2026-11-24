@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moshan.dev/schema/blueprint-1.json",
+  "title": "Moshan Blueprint 1.0",
+  "description": "搭建蓝图：一张流程图，每个格子填「要什么能力」而不是「用什么软件」。解析器负责推荐软件、挑模块、推导连线，最后生成可安装的 moshan.json。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["spec", "id", "name", "slots"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "spec": { "const": "1.0" },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,48}$" },
+    "name": { "type": "string", "maxLength": 32 },
+    "goal": { "type": "string", "description": "一句话目标，会写进生成清单的 summary" },
+
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "port_pool": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2, "default": [8790, 8799], "description": "[起, 止]。容器/进程的宿主端口从这里顺序分配" },
+        "reserved_ports": { "type": "array", "items": { "type": "integer" }, "description": "已被其他插件占用的端口，解析器跳过" },
+        "max_ram_mb": { "type": "integer", "description": "所有组件内存预算之和上限；超了只警告不阻断" },
+        "offline": { "type": "boolean", "default": true, "description": "为真时推荐只允许零外网依赖的软件" }
+      }
+    },
+
+    "slots": {
+      "type": "array",
+      "minItems": 1,
+      "description": "流程图的格子。",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "needs"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,31}$" },
+          "label": { "type": "string", "maxLength": 16, "description": "画在格子上的中文短名" },
+          "needs": { "type": "array", "items": { "type": "string" }, "minItems": 1, "description": "本格需要的 capability id 列表" },
+          "use": {
+            "type": "object",
+            "description": "钉死软件与模块。留空则由解析器推荐。",
+            "additionalProperties": false,
+            "properties": {
+              "entry": { "type": "string" },
+              "modules": { "type": "array", "items": { "type": "string" }, "description": "只取这些模块；空表示取该软件默认模块" }
+            }
+          },
+          "custom": { "type": "boolean", "default": false, "description": "为真表示这一格要自己写胶水：解析器只生成进程骨架与注入表，代码留给人" },
+          "outputs": { "type": "array", "items": { "type": "string" }, "description": "custom 格对外提供的能力（由它自己的 /api 承载）" },
+          "ui": { "type": "boolean", "default": false, "description": "这一格的界面是否作为插件的入口页" },
+          "port": { "type": "integer", "description": "钉死宿主端口；留空自动分配" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+
+    "edges": {
+      "type": "array",
+      "description": "格子之间的连线。只写「谁给谁」，怎么给（env / 共享卷）由解析器按能力匹配决定。",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "capability": { "type": "string", "description": "歧义时显式指定走哪条能力" },
+          "carrier": { "enum": ["env", "volume"], "default": "env" },
+          "path": { "type": "string", "description": "carrier=volume 时，下游容器内的挂载点" },
+          "env": { "type": "string", "description": "carrier=env 且下游是 custom 格时，显式指定变量名" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+
+    "install_as": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "plugin_id": { "type": "string" },
+        "version": { "type": "string", "default": "0.1.0" },
+        "port": { "type": "integer" },
+        "data_env": { "type": "string" },
+        "data_default": { "type": "string" },
+        "group": { "enum": ["plugin", "tool", "other"], "default": "other" },
+        "permissions": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

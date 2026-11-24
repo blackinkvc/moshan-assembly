@@ -1,0 +1,94 @@
+{
+  "$schema": "https://moshan.dev/schema/moshan-2.json",
+  "spec": "2.0",
+  "id": "media-auto",
+  "name": "影视自动入库",
+  "version": "0.1.0",
+  "summary": "qBittorrent 下好自动改名、Jellyfin 自动刷新",
+  "description": "仓库里没有一行新功能，全部是把三个现成东西接起来：qBittorrent 负责下载，一个 60 行的胶水进程盯完成事件并改名，Jellyfin 负责播放。中台只负责起停与显示这张图。这是 stack 形态的典型样本。",
+  "author": { "name": "pamphile" },
+  "license": "MIT",
+  "repo": "pamphile/moshan-media-auto",
+  "kind": "stack",
+  "category": "媒体",
+  "group": "other",
+  "keywords": ["qbittorrent", "jellyfin", "rename", "stack"],
+  "permissions": ["docker", "fs:媒体库", "net:127.0.0.1", "exec:python3"],
+  "requires": { "moshan": ">=2.0", "docker": true, "python": ">=3.9" },
+  "port": 8790,
+  "ui": { "path": "/", "embed": "iframe", "open": "panel" },
+  "health": { "path": "/api/ping", "interval": 30, "timeout": 3 },
+  "cards": { "api": "/api/cards" },
+  "data": { "env": "MEDIAAUTO_DIR", "default": "~/Documents/AI项目/_栈/media-auto" },
+
+  "components": [
+    {
+      "id": "qbit",
+      "name": "qBittorrent",
+      "kind": "container",
+      "version": "4.6.7",
+      "source": "https://github.com/qbittorrent/qBittorrent",
+      "image": "linuxserver/qbittorrent:4.6.7",
+      "expose": 8791,
+      "provides": [{ "name": "webui", "port": 8080, "protocol": "http" }],
+      "env": { "WEBUI_PORT": "8080", "PUID": "501", "PGID": "20" },
+      "volumes": [
+        { "host": "${data}/qbit/config", "container": "/config" },
+        { "host": "~/Documents/AI项目/_栈/media/downloads", "container": "/downloads" }
+      ],
+      "health": { "url": "http://127.0.0.1:8791/", "expect_status": 200 }
+    },
+    {
+      "id": "glue",
+      "name": "改名胶水",
+      "kind": "process",
+      "source": "https://github.com/pamphile/moshan-media-auto",
+      "runtime": {
+        "entry": "glue.py",
+        "args": ["--serve", "--no-open"],
+        "restart": "always"
+      },
+      "expose": 8790,
+      "provides": [{ "name": "api", "port": 8790 }],
+      "health": { "url": "http://127.0.0.1:8790/api/ping", "expect_body": "ok" }
+    },
+    {
+      "id": "jelly",
+      "name": "Jellyfin",
+      "kind": "container",
+      "version": "10.10.3",
+      "source": "https://github.com/jellyfin/jellyfin",
+      "image": "jellyfin/jellyfin:10.10.3",
+      "expose": 8792,
+      "provides": [{ "name": "webui", "port": 8096, "protocol": "http" }],
+      "volumes": [
+        { "host": "${data}/jellyfin/config", "container": "/config" },
+        { "host": "~/Documents/AI项目/_栈/media/library", "container": "/media", "readonly": true }
+      ],
+      "health": { "url": "http://127.0.0.1:8792/health", "expect_status": 200 },
+      "optional": false
+    }
+  ],
+
+  "wires": [
+    {
+      "from": { "component": "qbit", "port": "webui" },
+      "to": { "component": "glue", "env": "QBIT_URL" },
+      "protocol": "http",
+      "note": "胶水每 30 秒查一次种子列表，挑出「已完成但未改名」的条目"
+    },
+    {
+      "from": { "component": "jelly", "port": "webui" },
+      "to": { "component": "glue", "env": "JELLYFIN_URL" },
+      "protocol": "http",
+      "note": "改名落盘后调 /Library/Refresh 让 Jellyfin 立刻扫到新文件，不用等定时任务"
+    },
+    {
+      "from": { "component": "qbit", "port": "webui" },
+      "to": { "component": "jelly", "env": "QBIT_NOTE_URL" },
+      "protocol": "http",
+      "required": false,
+      "note": "仅用于图上的说明：Jellyfin 不消费 qBittorrent，这条虚线表示「同一份下载目录」的隐式依赖，安装时不注入环境变量"
+    }
+  ]
+}

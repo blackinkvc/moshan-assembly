@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moshan.dev/schema/registry-2.json",
+  "title": "Moshan Registry 2.0",
+  "description": "市场索引。一个静态 JSON 文件即可开一个商店（抄 Obsidian community-plugins.json + CasaOS store-config.json）。包本体不进索引，只给地址与校验和。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["spec", "store_id", "name", "plugins"],
+  "properties": {
+    "spec": { "const": "2.0" },
+    "store_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{1,48}$" },
+    "name": { "type": "string", "description": "商店显示名" },
+    "description": { "type": "string" },
+    "maintainer": { "type": "string" },
+    "homepage": { "type": "string" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "plugins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "version", "repo", "kind"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,48}$" },
+          "name": { "type": "string" },
+          "summary": { "type": "string", "maxLength": 64, "description": "搜索与列表用" },
+          "author": { "type": "string" },
+          "repo": { "type": "string", "pattern": "^[\\w.-]+/[\\w.-]+$", "description": "owner/repo，与 Obsidian 同形" },
+          "kind": { "enum": ["single", "stack", "adapter"] },
+          "category": { "type": "string" },
+          "keywords": { "type": "array", "items": { "type": "string" } },
+          "version": { "type": "string" },
+          "manifest": { "type": "string", "description": "moshan.json 直链；缺省则由 repo 拼 raw/refs/heads/main/moshan.json" },
+          "pack": { "type": "string", "description": "包直链；缺省则由 repo+version 拼 GitHub Release 资产" },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$", "description": "包校验和，必校验" },
+          "size": { "type": "integer", "minimum": 0 },
+          "requires": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "moshan": { "type": "string" },
+              "plugins": { "type": "array", "items": { "type": "string" } },
+              "docker": { "type": "boolean" }
+            }
+          },
+          "permissions": { "type": "array", "items": { "type": "string" } },
+          "tier": { "enum": ["official", "verified", "community", "experimental"], "default": "community" },
+          "downloads": { "type": "integer", "minimum": 0 }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,679 @@
+{
+  "$schema": "https://moshan.dev/schema/catalog-1.json",
+  "spec": "1.0",
+  "name": "moshan 官方能力目录",
+  "updated": "2026-11-24",
+  "capabilities": [
+    {
+      "id": "media.download",
+      "label": "下载",
+      "group": "媒体",
+      "desc": "把种子/链接变成磁盘上的文件"
+    },
+    {
+      "id": "media.library",
+      "label": "媒体库",
+      "group": "媒体",
+      "desc": "扫描目录、刮削元数据、生成可播放条目"
+    },
+    {
+      "id": "media.stream",
+      "label": "播放",
+      "group": "媒体",
+      "desc": "对外提供播放页面与串流接口"
+    },
+    {
+      "id": "media.transcode",
+      "label": "硬件转码",
+      "group": "媒体",
+      "desc": "借助 GPU 实时转码，弱设备也能播"
+    },
+    {
+      "id": "media.music",
+      "label": "音乐库",
+      "group": "媒体",
+      "desc": "音频专用库与客户端协议（Subsonic）"
+    },
+    {
+      "id": "note.store",
+      "label": "笔记存储",
+      "group": "知识",
+      "desc": "文档落盘与版本"
+    },
+    {
+      "id": "note.edit",
+      "label": "编辑器",
+      "group": "知识",
+      "desc": "人可写字的界面（Markdown/块编辑）"
+    },
+    {
+      "id": "note.search",
+      "label": "笔记内搜索",
+      "group": "知识",
+      "desc": "自带全文检索"
+    },
+    {
+      "id": "search.fulltext",
+      "label": "全文索引",
+      "group": "知识",
+      "desc": "独立检索引擎，中文分词友好"
+    },
+    {
+      "id": "db.relational",
+      "label": "关系库",
+      "group": "基础",
+      "desc": "PostgreSQL 协议的关系型数据库"
+    },
+    {
+      "id": "cache.kv",
+      "label": "键值缓存",
+      "group": "基础",
+      "desc": "Redis 协议的缓存/队列"
+    },
+    {
+      "id": "storage.object",
+      "label": "对象存储",
+      "group": "基础",
+      "desc": "S3 协议的文件桶"
+    },
+    {
+      "id": "auth.vault",
+      "label": "密码库",
+      "group": "基础",
+      "desc": "口令与密钥保管、自动填充"
+    },
+    {
+      "id": "analytics.stats",
+      "label": "访问统计",
+      "group": "基础",
+      "desc": "隐私友好的页面统计"
+    },
+    {
+      "id": "news.fetch",
+      "label": "信息抓取",
+      "group": "采集",
+      "desc": "把 RSS/公众号变成结构化条目"
+    },
+    {
+      "id": "news.digest",
+      "label": "摘要打分",
+      "group": "采集",
+      "desc": "去重、排序、生成每日摘要"
+    },
+    {
+      "id": "ai.usage",
+      "label": "用量记账",
+      "group": "AI",
+      "desc": "按会话统计 token 与花费"
+    },
+    {
+      "id": "automation.glue",
+      "label": "胶水逻辑",
+      "group": "自定义",
+      "desc": "把上面这些接起来的那几十行代码，通常没有现成软件"
+    }
+  ],
+  "entries": [
+    {
+      "id": "qbittorrent",
+      "name": "qBittorrent",
+      "repo": "qbittorrent/qBittorrent",
+      "kind": "container",
+      "image": "linuxserver/qbittorrent",
+      "sample_tag": "4.6.7",
+      "license": "GPL-2.0",
+      "tier": "official",
+      "cost": {
+        "ram_mb": 120,
+        "disk_gb": 1
+      },
+      "notes": "种子下载的事实标准，WebUI 有完整 REST API，胶水最爱接它。",
+      "modules": [
+        {
+          "id": "torrent",
+          "label": "BT/磁力下载",
+          "capability": "media.download",
+          "default": true,
+          "port": {
+            "name": "webui",
+            "port": 8080,
+            "protocol": "http"
+          },
+          "shared": {
+            "name": "downloads",
+            "container": "/downloads"
+          },
+          "config": {
+            "WEBUI_PORT": "8080",
+            "PUID": "501",
+            "PGID": "20"
+          },
+          "note": "胶水每 30 秒查 /api/v2/torrents/info，挑出「已完成但未改名」的条目",
+          "artifact": {
+            "kind": "image",
+            "ref": "linuxserver/qbittorrent:4.6.7",
+            "size_mb": 190
+          }
+        }
+      ]
+    },
+    {
+      "id": "jellyfin",
+      "name": "Jellyfin",
+      "repo": "jellyfin/jellyfin",
+      "kind": "container",
+      "image": "jellyfin/jellyfin",
+      "sample_tag": "10.10.3",
+      "license": "GPL-2.0",
+      "tier": "official",
+      "cost": {
+        "ram_mb": 400,
+        "disk_gb": 2
+      },
+      "notes": "完全开源、无账号、无付费墙。模块拆得最干净：库、播放、转码可以只要其中一个。",
+      "modules": [
+        {
+          "id": "stream",
+          "label": "播放与 WebUI",
+          "capability": "media.stream",
+          "default": true,
+          "port": {
+            "name": "webui",
+            "port": 8096,
+            "protocol": "http"
+          },
+          "note": "改名落盘后调 /Library/Refresh，让它立刻扫到新文件，不用等定时任务",
+          "artifact": {
+            "kind": "image",
+            "ref": "jellyfin/jellyfin:10.10.3",
+            "variants": {
+              "vaapi": "jellyfin/jellyfin:10.10.3-vaapi",
+              "nvidia": "jellyfin/jellyfin:10.10.3-nvidia"
+            },
+            "size_mb": 260
+          }
+        },
+        {
+          "id": "library",
+          "label": "媒体库刮削",
+          "capability": "media.library",
+          "default": true,
+          "port": {
+            "name": "webui",
+            "port": 8096,
+            "protocol": "http"
+          },
+          "note": "靠共享目录拿文件，不靠网络地址，所以连法是卷不是 URL",
+          "artifact": {
+            "kind": "none",
+            "note": "同一镜像内的媒体库管理，勾选即用，不额外下载"
+          }
+        },
+        {
+          "id": "transcode",
+          "label": "VAAPI 硬转码",
+          "capability": "media.transcode",
+          "default": false,
+          "port": {
+            "name": "webui",
+            "port": 8096,
+            "protocol": "http"
+          },
+          "requires": [
+            "media.library"
+          ],
+          "cost": {
+            "ram_mb": 300,
+            "gpu": true
+          },
+          "config": {
+            "JELLYFIN_HWACCEL": "vaapi"
+          },
+          "note": "默认关闭：需要 /dev/dri 透传，且会多占 300MB 内存",
+          "artifact": {
+            "kind": "none",
+            "variant": "vaapi",
+            "size_mb": 490,
+            "note": "整镜替换为 -vaapi 变体（含基础层），并透传 /dev/dri；不勾则仍用基础镜像"
+          }
+        }
+      ]
+    },
+    {
+      "id": "navidrome",
+      "name": "Navidrome",
+      "repo": "navidrome/navidrome",
+      "kind": "container",
+      "image": "deluan/navidrome",
+      "sample_tag": "0.53.3",
+      "license": "GPL-3.0",
+      "tier": "community",
+      "cost": {
+        "ram_mb": 150,
+        "disk_gb": 0.5
+      },
+      "modules": [
+        {
+          "id": "music",
+          "label": "音乐库",
+          "capability": "media.music",
+          "default": true,
+          "port": {
+            "name": "webui",
+            "port": 4533,
+            "protocol": "http"
+          },
+          "shared": {
+            "name": "music",
+            "container": "/music"
+          },
+          "note": "兼容 Subsonic 协议，手机端可以直接用 play:Sub / substreamer",
+          "artifact": {
+            "kind": "image",
+            "ref": "deluan/navidrome:0.53.3",
+            "size_mb": 60
+          }
+        }
+      ]
+    },
+    {
+      "id": "siyuan",
+      "name": "思源笔记",
+      "repo": "siyuan-note/siyuan",
+      "kind": "container",
+      "image": "b3log/siyuan",
+      "sample_tag": "v3.1.11",
+      "license": "AGPL-3.0",
+      "tier": "official",
+      "cost": {
+        "ram_mb": 200,
+        "disk_gb": 1
+      },
+      "notes": "块级编辑器 + 自带全文检索 + 完整 HTTP API，最适合当「知识沉淀」那一格。",
+      "modules": [
+        {
+          "id": "store",
+          "label": "文档存储",
+          "capability": "note.store",
+          "default": true,
+          "port": {
+            "name": "webui",
+            "port": 6806,
+            "protocol": "http"
+          },
+          "config": {
+            "SIYUAN_ACCESS_AUTH_CODE": "${secret}"
+          },
+          "note": "胶水用 /api/filetree/createDocWithMd 写文档，用 /api/query/sql 查已有标题做去重",
+          "artifact": {
+            "kind": "image",
+            "ref": "b3log/siyuan:v3.1.11",
+            "size_mb": 180
+          }
+        },
+        {
+          "id": "edit",
+          "label": "块编辑器",
+          "capability": "note.edit",
+          "default": true,
+          "port": {
+            "name": "webui",
+            "port": 6806,
+            "protocol": "http"
+          },
+          "artifact": {
+            "kind": "none",
+            "note": "编辑器是同一镜像的内置前端"
+          }
+        },
+        {
+          "id": "search",
+          "label": "内置检索",
+          "capability": "note.search",
+          "default": false,
+          "port": {
+            "name": "webui",
+            "port": 6806,
+            "protocol": "http"
+          },
+          "note": "条目上千以后中文分词会变差，那时候再换 meilisearch",
+          "artifact": {
+            "kind": "none",
+            "note": "内置搜索索引，勾选只打开开关"
+          }
+        }
+      ]
+    },
+    {
+      "id": "meilisearch",
+      "name": "Meilisearch",
+      "repo": "meilisearch/meilisearch",
+      "kind": "container",
+      "image": "getmeili/meilisearch",
+      "sample_tag": "v1.11",
+      "license": "MIT",
+      "tier": "official",
+      "cost": {
+        "ram_mb": 180,
+        "disk_gb": 1
+      },
+      "modules": [
+        {
+          "id": "index",
+          "label": "全文索引",
+          "capability": "search.fulltext",
+          "default": true,
+          "port": {
+            "name": "api",
+            "port": 7700,
+            "protocol": "http"
+          },
+          "config": {
+            "MEILI_MASTER_KEY": "${secret}",
+            "MEILI_NO_ANALYTICS": "true"
+          },
+          "note": "它不主动拉数据：由胶水把文档 POST /indexes/notes/documents 推给它",
+          "artifact": {
+            "kind": "image",
+            "ref": "getmeili/meilisearch:v1.11",
+            "size_mb": 130
+          }
+        }
+      ]
+    },
+    {
+      "id": "postgres",
+      "name": "PostgreSQL",
+      "repo": "postgres/postgres",
+      "kind": "container",
+      "image": "postgres",
+      "sample_tag": "16.4-alpine",
+      "license": "PostgreSQL",
+      "tier": "official",
+      "cost": {
+        "ram_mb": 200,
+        "disk_gb": 2
+      },
+      "modules": [
+        {
+          "id": "db",
+          "label": "关系库",
+          "capability": "db.relational",
+          "default": true,
+          "port": {
+            "name": "pgsql",
+            "port": 5432,
+            "protocol": "tcp"
+          },
+          "config": {
+            "POSTGRES_PASSWORD": "${secret}",
+            "POSTGRES_DB": "app"
+          },
+          "artifact": {
+            "kind": "image",
+            "ref": "postgres:16.4-alpine",
+            "size_mb": 240
+          }
+        }
+      ]
+    },
+    {
+      "id": "redis",
+      "name": "Redis",
+      "repo": "redis/redis",
+      "kind": "container",
+      "image": "redis",
+      "sample_tag": "7.4.1-alpine",
+      "license": "BSD-3-Clause",
+      "tier": "official",
+      "cost": {
+        "ram_mb": 60,
+        "disk_gb": 0.2
+      },
+      "modules": [
+        {
+          "id": "kv",
+          "label": "键值缓存",
+          "capability": "cache.kv",
+          "default": true,
+          "port": {
+            "name": "redis",
+            "port": 6379,
+            "protocol": "tcp"
+          },
+          "artifact": {
+            "kind": "image",
+            "ref": "redis:7.4.1-alpine",
+            "size_mb": 40
+          }
+        }
+      ]
+    },
+    {
+      "id": "minio",
+      "name": "MinIO",
+      "repo": "minio/minio",
+      "kind": "container",
+      "image": "minio/minio",
+      "sample_tag": "RELEASE.2024-10-13T13-34-11Z",
+      "license": "AGPL-3.0",
+      "tier": "official",
+      "cost": {
+        "ram_mb": 250,
+        "disk_gb": 1
+      },
+      "modules": [
+        {
+          "id": "object",
+          "label": "S3 对象存储",
+          "capability": "storage.object",
+          "default": true,
+          "port": {
+            "name": "api",
+            "port": 9000,
+            "protocol": "http"
+          },
+          "config": {
+            "MINIO_ROOT_USER": "moshan",
+            "MINIO_ROOT_PASSWORD": "${secret}"
+          },
+          "artifact": {
+            "kind": "image",
+            "ref": "minio/minio:RELEASE.2024-10-13T13-34-11Z",
+            "size_mb": 160
+          }
+        }
+      ]
+    },
+    {
+      "id": "umami",
+      "name": "Umami",
+      "repo": "umami-software/umami",
+      "kind": "container",
+      "image": "ghcr.io/umami-software/umami",
+      "sample_tag": "postgresql-v2.15.0",
+      "license": "MIT",
+      "tier": "community",
+      "cost": {
+        "ram_mb": 250,
+        "disk_gb": 0.5
+      },
+      "notes": "少数真的用单个 DATABASE_URL 就能接上外部库的统计服务，正好演示跨格连线。",
+      "modules": [
+        {
+          "id": "stats",
+          "label": "访问统计",
+          "capability": "analytics.stats",
+          "default": true,
+          "port": {
+            "name": "webui",
+            "port": 3000,
+            "protocol": "http"
+          },
+          "accepts": {
+            "db.relational": "DATABASE_URL"
+          },
+          "note": "这里就是 env 型连线的样板：把库的地址直接注入成 DATABASE_URL",
+          "artifact": {
+            "kind": "image",
+            "ref": "ghcr.io/umami-software/umami:postgresql-v2.15.0",
+            "size_mb": 200
+          }
+        }
+      ]
+    },
+    {
+      "id": "vaultwarden",
+      "name": "Vaultwarden",
+      "repo": "dani-garcia/vaultwarden",
+      "kind": "container",
+      "image": "vaultwarden/server",
+      "sample_tag": "1.32.1",
+      "license": "AGPL-3.0",
+      "tier": "community",
+      "cost": {
+        "ram_mb": 100,
+        "disk_gb": 0.5
+      },
+      "notes": "Bitwarden 的轻量实现，40MB 内存跑完整密码库。",
+      "modules": [
+        {
+          "id": "vault",
+          "label": "密码库",
+          "capability": "auth.vault",
+          "default": true,
+          "port": {
+            "name": "webui",
+            "port": 80,
+            "protocol": "http"
+          },
+          "accepts": {
+            "db.relational": "DATABASE_URL"
+          },
+          "artifact": {
+            "kind": "image",
+            "ref": "vaultwarden/server:1.32.1",
+            "size_mb": 90
+          }
+        }
+      ]
+    },
+    {
+      "id": "rsshub",
+      "name": "RSSHub",
+      "repo": "DIYgod/RSSHub",
+      "kind": "container",
+      "image": "diygod/rsshub",
+      "sample_tag": "2024-10-11",
+      "license": "MIT",
+      "tier": "official",
+      "cost": {
+        "ram_mb": 300,
+        "disk_gb": 1
+      },
+      "notes": "5000+ 路由，几乎任何站都能变 RSS。公众号路由需要登录态，所以公众号那一路走 wechat-scholar。",
+      "modules": [
+        {
+          "id": "fetch",
+          "label": "通用路由抓取",
+          "capability": "news.fetch",
+          "default": true,
+          "port": {
+            "name": "webui",
+            "port": 1200,
+            "protocol": "http"
+          },
+          "config": {
+            "CACHE_EXPIRE": "3600"
+          },
+          "artifact": {
+            "kind": "image",
+            "ref": "diygod/rsshub:2024-10-11",
+            "size_mb": 300
+          }
+        }
+      ]
+    },
+    {
+      "id": "wechat-scholar",
+      "name": "Wechat-Scholar",
+      "repo": "osnsyc/Wechat-Scholar",
+      "kind": "process",
+      "license": "MIT",
+      "tier": "community",
+      "cost": {
+        "ram_mb": 30,
+        "disk_gb": 0.1
+      },
+      "notes": "上游是「每天三次更新 184 个公众号 RSS」的数据仓库，不是服务。要跑起来需要一个极小的静态托管脚本（约 20 行），本目录把它算进去。",
+      "runtime": {
+        "entry": "feed_server.py",
+        "args": [
+          "--port",
+          "${port}"
+        ]
+      },
+      "modules": [
+        {
+          "id": "feed",
+          "label": "公众号 RSS 源",
+          "capability": "news.fetch",
+          "default": true,
+          "port": {
+            "name": "webui",
+            "port": 8770,
+            "protocol": "http"
+          },
+          "note": "每小时查一次 commit sha，变了才拉全量 zip；公众号这一路天生做不到小时级",
+          "artifact": {
+            "kind": "asset",
+            "repo": "osnsyc/Wechat-Scholar",
+            "match": "*.zip",
+            "ref": "https://codeload.github.com/{repo}/zip/refs/heads/main",
+            "size_mb": 4.2,
+            "note": "整仓 4.19MB。先比对 commit sha，变了才重拉；上游每天只更 3 次"
+          }
+        }
+      ]
+    },
+    {
+      "id": "llmcost",
+      "name": "LLM 算价",
+      "repo": "pamphile/moshan-llmcost",
+      "kind": "process",
+      "license": "MIT",
+      "tier": "verified",
+      "cost": {
+        "ram_mb": 40,
+        "disk_gb": 0.1
+      },
+      "notes": "你自己的插件，已经在 8776 上跑着，正好当「能力目录里也有自研件」的样本。",
+      "runtime": {
+        "entry": "llmcost.py",
+        "args": [
+          "--serve",
+          "--no-open",
+          "--port",
+          "${port}"
+        ]
+      },
+      "modules": [
+        {
+          "id": "usage",
+          "label": "用量记账",
+          "capability": "ai.usage",
+          "default": true,
+          "port": {
+            "name": "api",
+            "port": 8776,
+            "protocol": "http"
+          },
+          "artifact": {
+            "kind": "none",
+            "note": "本地已有该进程，无外部依赖"
+          }
+        }
+      ]
+    }
+  ]
+}

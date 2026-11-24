@@ -1,0 +1,237 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://moshan.dev/schema/moshan-2.json",
+  "title": "Moshan Package Manifest 2.1",
+  "description": "一个插件包的清单（moshan.json，位于包根）。同时表达三种形态：single（自带进程）/ stack（组合若干上游开源软件）/ adapter（包装一个已在跑的外部服务）。2.1 相对 2.0 只加了两件事：wires 支持 carrier（env / volume），以及 spec 允许 2.1。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["spec", "id", "name", "version", "kind"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "spec": { "enum": ["2.0", "2.1"] },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,48}$", "description": "全局唯一，与目录名、registry 条目一致" },
+    "name": { "type": "string", "maxLength": 32 },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+", "description": "semver；GitHub Release tag 必须与之一致（抄 Obsidian 约定）" },
+    "summary": { "type": "string", "maxLength": 64 },
+    "description": { "type": "string" },
+    "author": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "url": { "type": "string" }
+      }
+    },
+    "license": { "type": "string" },
+    "repo": { "type": "string", "pattern": "^[\\w.-]+/[\\w.-]+$" },
+    "homepage": { "type": "string" },
+    "icon": { "type": "string", "description": "包内相对路径，如 icon.png" },
+    "kind": { "enum": ["single", "stack", "adapter"] },
+    "category": { "type": "string" },
+    "group": { "enum": ["plugin", "tool", "other"], "default": "other", "description": "中台弹窗归类，与现有 plugins.json 的 group 同义" },
+    "keywords": { "type": "array", "items": { "type": "string" } },
+
+    "permissions": {
+      "type": "array",
+      "description": "安装前逐项展示并确认。形如 fs:<相对用途> / net:<域名或协议> / exec:<程序> / docker / cron",
+      "items": { "type": "string" }
+    },
+
+    "requires": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "moshan": { "type": "string", "description": "宿主版本区间，如 >=1.0 <3" },
+        "python": { "type": "string" },
+        "docker": { "type": "boolean", "default": false },
+        "plugins": { "type": "array", "items": { "type": "string" }, "description": "依赖的其他插件 id，安装时先装它们" }
+      }
+    },
+
+    "port": { "type": "integer", "minimum": 1024, "maximum": 65535, "description": "主端口；留空表示由中台从 8790-8799 池自动分配" },
+    "ui": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string", "default": "/" },
+        "embed": { "enum": ["iframe", "native", "none"], "default": "iframe" },
+        "open": { "enum": ["browser", "panel", "none"], "default": "panel" }
+      }
+    },
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string", "default": "/api/ping" },
+        "interval": { "type": "integer", "minimum": 5, "default": 30 },
+        "timeout": { "type": "integer", "minimum": 1, "default": 3 },
+        "expect_body": { "type": "string", "description": "响应体包含此串即视为健康，如 ok" }
+      }
+    },
+    "cards": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "api": { "type": "string", "description": "返回 card.schema.json 数组的路径，如 /api/cards" }
+      }
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "env": { "type": "string", "description": "中台注入的数据根环境变量名" },
+        "default": { "type": "string", "description": "缺省数据根，支持 ~ 展开" }
+      }
+    },
+
+    "runtime": {
+      "type": "object",
+      "description": "kind=single|adapter 时的启动方式",
+      "additionalProperties": false,
+      "properties": {
+        "entry": { "type": "string" },
+        "args": { "type": "array", "items": { "type": "string" } },
+        "cwd": { "type": "string", "default": "." },
+        "env": { "type": "object", "additionalProperties": { "type": "string" }, "description": "支持 ${data} ${port} 占位" },
+        "restart": { "enum": ["always", "on-failure", "never"], "default": "on-failure" }
+      }
+    },
+
+    "attach": {
+      "type": "object",
+      "description": "kind=adapter 时，指向已在运行的外部服务",
+      "additionalProperties": false,
+      "properties": {
+        "url": { "type": "string" },
+        "discover": { "enum": ["port", "process", "manual"], "default": "port" },
+        "match": { "type": "string", "description": "discover=process 时的进程名匹配串" }
+      }
+    },
+
+    "components": {
+      "type": "array",
+      "description": "kind=stack 时的组成单元。每一项是一个上游开源软件或胶水进程。",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name", "kind"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9_-]{0,31}$" },
+          "name": { "type": "string" },
+          "kind": { "enum": ["container", "process", "binary", "existing"] },
+          "version": { "type": "string" },
+          "source": { "type": "string", "description": "上游仓库或官网，渲染在图里可点" },
+          "image": { "type": "string", "description": "kind=container：镜像:tag，tag 必须固定" },
+          "runtime": { "type": "object", "description": "kind=process|binary：同顶层 runtime 结构" },
+          "provides": {
+            "type": "array",
+            "description": "本组件向外提供的接口（端口），供 wires 引用",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "port"],
+              "properties": {
+                "name": { "type": "string" },
+                "port": { "type": "integer" },
+                "protocol": { "enum": ["http", "https", "tcp", "udp", "unix"], "default": "http" }
+              }
+            }
+          },
+          "expose": { "type": "integer", "description": "宿主端口；留空由中台分配" },
+          "volumes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["host", "container"],
+              "properties": {
+                "host": { "type": "string", "description": "支持 ${data} 占位" },
+                "container": { "type": "string" },
+                "readonly": { "type": "boolean", "default": false }
+              }
+            }
+          },
+          "env": { "type": "object", "additionalProperties": { "type": "string" } },
+          "health": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "url": { "type": "string" },
+              "expect_status": { "type": "integer", "default": 200 },
+              "expect_body": { "type": "string" }
+            }
+          },
+          "optional": { "type": "boolean", "default": false, "description": "为真时该组件起不来不阻断整体安装" }
+        }
+      }
+    },
+
+    "wires": {
+      "type": "array",
+      "description": "组件间的连线。一份数据三用：渲染拓扑图 / 生成说明文档 / 安装时注入环境变量。",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to"],
+        "properties": {
+          "from": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["component"],
+            "properties": {
+              "component": { "type": "string" },
+              "port": { "type": "string", "description": "引用该组件 provides[].name；carrier=env 时必填" }
+            }
+          },
+          "to": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["component"],
+            "properties": {
+              "component": { "type": "string" },
+              "env": { "type": "string", "description": "carrier=env：注入到目标组件的环境变量名" },
+              "path": { "type": "string", "description": "carrier=volume：下游容器内的挂载点" },
+              "value_template": { "type": "string", "description": "缺省为 {protocol}://127.0.0.1:{port}；可写自定义模板" }
+            }
+          },
+          "carrier": { "enum": ["env", "volume"], "default": "env", "description": "连线载体。env=地址型接口（URL/DSN）；volume=文件型接口（两个容器挂同一宿主目录）。这一区分很重要：文件型连线上注入 URL 是假的连接。" },
+          "capability": { "type": "string", "description": "本连线承载的能力 id，由蓝图解析器填写，便于回查" },
+          "protocol": { "enum": ["http", "https", "tcp", "file", "grpc"], "default": "http" },
+          "note": { "type": "string", "description": "人话说明，直接渲染到拓扑图与生成的 README 段落" },
+          "required": { "type": "boolean", "default": true }
+        }
+      }
+    },
+
+    "update": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repo": { "type": "string" },
+        "manifest": { "type": "string" },
+        "pack": { "type": "string" }
+      }
+    },
+
+    "extensions": {
+      "type": "object",
+      "description": "客户端/团队私有字段。反向域名命名空间，中台不得解释 cn.moshan 之外的键，且必须原样保留。",
+      "additionalProperties": { "type": "object" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "kind": { "const": "single" } }, "required": ["kind"] },
+      "then": { "required": ["runtime"] }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "stack" } }, "required": ["kind"] },
+      "then": { "required": ["components"] }
+    },
+    {
+      "if": { "properties": { "kind": { "const": "adapter" } }, "required": ["kind"] },
+      "then": { "required": ["attach"] }
+    }
+  ]
+}

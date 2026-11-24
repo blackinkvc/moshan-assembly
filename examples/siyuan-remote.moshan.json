@@ -1,0 +1,35 @@
+{
+  "$schema": "https://moshan.dev/schema/moshan-2.json",
+  "spec": "2.0",
+  "id": "siyuan-remote",
+  "name": "思源笔记（盒子上的）",
+  "version": "0.1.0",
+  "summary": "把 CasaOS 盒子里的思源接进中台，只登记不安装",
+  "description": "典型的 adapter：软件早就跑在 192.168.0.102 上，中台不需要装它、也不该管它的起停，只需要知道它在哪、是否活着、以及嵌在哪一格。",
+  "author": { "name": "pamphile" },
+  "license": "MIT",
+  "repo": "pamphile/moshan-siyuan-adapter",
+  "kind": "adapter",
+  "category": "笔记",
+  "group": "other",
+  "permissions": ["net:192.168.0.102"],
+  "requires": { "moshan": ">=2.0" },
+  "port": 8795,
+  "ui": { "path": "/", "embed": "iframe", "open": "panel" },
+  "health": { "path": "/api/system/version", "interval": 60, "timeout": 5 },
+  "attach": {
+    "url": "http://192.168.0.102:6806",
+    "discover": "manual"
+  },
+  "runtime": {
+    "entry": "adapter.py",
+    "args": ["--serve", "--no-open"],
+    "restart": "on-failure"
+  },
+  "extensions": {
+    "cn.moshan.remote": {
+      "host": "192.168.0.102",
+      "note": "盒子走内网；中台只做探活与嵌入，不代管生命周期"
+    }
+  }
+}

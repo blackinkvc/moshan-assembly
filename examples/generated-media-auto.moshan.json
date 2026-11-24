@@ -1,0 +1,222 @@
+{
+  "$schema": "https://moshan.dev/schema/moshan-2.1.json",
+  "spec": "2.1",
+  "id": "media-auto",
+  "name": "影视自动入库",
+  "version": "0.1.0",
+  "summary": "下载完成自动改名，Jellyfin 立刻能播，中台一页看全",
+  "description": "由蓝图 examples/media-auto.json 解析生成，能力目录 2026-11-24。改动请改蓝图，不要改本文件——它是产物。",
+  "author": {
+    "name": "pamphile"
+  },
+  "license": "MIT",
+  "kind": "stack",
+  "category": "组合栈",
+  "group": "other",
+  "keywords": [
+    "automation",
+    "media"
+  ],
+  "permissions": [
+    "docker",
+    "fs:媒体库",
+    "net:127.0.0.1",
+    "exec:python3"
+  ],
+  "requires": {
+    "moshan": ">=2.1"
+  },
+  "port": 8790,
+  "ui": {
+    "path": "/",
+    "embed": "iframe",
+    "open": "panel"
+  },
+  "health": {
+    "path": "/api/ping",
+    "interval": 30,
+    "timeout": 3
+  },
+  "cards": {
+    "api": "/api/cards"
+  },
+  "data": {
+    "env": "MEDIAAUTO_DIR",
+    "default": "~/Documents/AI项目/_栈/media-auto"
+  },
+  "components": [
+    {
+      "id": "qbittorrent",
+      "name": "qBittorrent",
+      "kind": "container",
+      "version": "4.6.7",
+      "source": "https://github.com/qbittorrent/qBittorrent",
+      "expose": 8791,
+      "provides": [
+        {
+          "name": "webui",
+          "port": 8080,
+          "protocol": "http"
+        }
+      ],
+      "volumes": [
+        {
+          "host": "${data}/shared/downloads",
+          "container": "/downloads"
+        }
+      ],
+      "env": {
+        "WEBUI_PORT": "8080",
+        "PUID": "501",
+        "PGID": "20"
+      },
+      "image": "linuxserver/qbittorrent:4.6.7",
+      "health": {
+        "url": "http://127.0.0.1:8791/",
+        "expect_status": 200
+      }
+    },
+    {
+      "id": "jellyfin",
+      "name": "Jellyfin",
+      "kind": "container",
+      "version": "10.10.3",
+      "source": "https://github.com/jellyfin/jellyfin",
+      "expose": 8792,
+      "provides": [
+        {
+          "name": "webui",
+          "port": 8096,
+          "protocol": "http"
+        }
+      ],
+      "volumes": [
+        {
+          "host": "${data}/shared/downloads",
+          "container": "/media",
+          "readonly": true
+        }
+      ],
+      "image": "jellyfin/jellyfin:10.10.3",
+      "health": {
+        "url": "http://127.0.0.1:8792/",
+        "expect_status": 200
+      }
+    },
+    {
+      "id": "hub",
+      "name": "改名胶水",
+      "kind": "process",
+      "source": "本插件自带（custom 格）",
+      "runtime": {
+        "entry": "hub/main.py",
+        "args": [
+          "--serve",
+          "--no-open",
+          "--port",
+          "${port}"
+        ],
+        "restart": "always"
+      },
+      "expose": 8790,
+      "provides": [
+        {
+          "name": "api",
+          "port": 8790,
+          "protocol": "http"
+        }
+      ],
+      "volumes": [
+        {
+          "host": "${data}/hub",
+          "container": "/app/data"
+        }
+      ],
+      "health": {
+        "url": "http://127.0.0.1:8790/api/ping",
+        "expect_body": "ok"
+      }
+    }
+  ],
+  "wires": [
+    {
+      "from": {
+        "component": "qbittorrent"
+      },
+      "to": {
+        "component": "jellyfin",
+        "path": "/media"
+      },
+      "carrier": "volume",
+      "note": "两个容器挂同一个宿主目录：下载完的文件对媒体库直接可见"
+    },
+    {
+      "from": {
+        "component": "qbittorrent",
+        "port": "webui"
+      },
+      "to": {
+        "component": "hub",
+        "env": "QBIT_URL"
+      },
+      "protocol": "http",
+      "capability": "media.download",
+      "note": "胶水每 30 秒查一次种子列表，挑出「已完成但未改名」的条目"
+    },
+    {
+      "from": {
+        "component": "jellyfin",
+        "port": "webui"
+      },
+      "to": {
+        "component": "hub",
+        "env": "JELLYFIN_URL"
+      },
+      "protocol": "http",
+      "capability": "media.stream",
+      "note": "改名落盘后调 /Library/Refresh，让它立刻扫到，不用等定时任务"
+    }
+  ],
+  "extensions": {
+    "cn.moshan.blueprint": {
+      "blueprint": "media-auto",
+      "catalog_updated": "2026-11-24",
+      "slots": [
+        {
+          "slot": "dl",
+          "label": "下载",
+          "needs": [
+            "media.download"
+          ],
+          "resolved": "qbittorrent",
+          "modules": [
+            "torrent"
+          ]
+        },
+        {
+          "slot": "lib",
+          "label": "媒体库",
+          "needs": [
+            "media.library",
+            "media.stream"
+          ],
+          "resolved": "jellyfin",
+          "modules": [
+            "stream",
+            "library"
+          ]
+        },
+        {
+          "slot": "hub",
+          "label": "改名胶水",
+          "needs": [
+            "automation.glue"
+          ],
+          "resolved": "custom",
+          "modules": []
+        }
+      ],
+      "gaps": []
+    }
+  }
+}
