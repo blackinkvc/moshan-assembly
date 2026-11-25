@@ -212,6 +212,18 @@
   .tree .m{color:var(--faint)}
   .donebtns{display:flex;gap:9px;justify-content:center}
 
+  /* ── 试用 / 打包 ── */
+  .trialbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .trialbox{display:block;width:100%;height:640px;border:1px solid var(--line);border-radius:12px;
+    background:#f4f3ef;box-shadow:0 1px 0 #fff inset}
+  .packlist{background:#faf9f7;border:1px solid var(--line);border-radius:10px;padding:4px 0;margin:14px 0;
+    font:12px/1.9 ui-monospace,Menlo,monospace;overflow:auto}
+  .packlist .row{display:flex;gap:10px;padding:5px 14px;border-bottom:1px solid var(--line2)}
+  .packlist .row:last-child{border-bottom:0}
+  .packlist .row b{font-weight:600;color:var(--ink);min-width:130px}
+  .packlist .row span{color:var(--dim);font-family:inherit}
+  @media(max-width:720px){.trialbox{height:540px}}
+
   /* ── 库 ── */
   .libbar{display:flex;gap:9px;align-items:center;margin-bottom:16px}
   input.search{flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 12px;font:13px inherit;outline:none;background:#fff}
@@ -274,11 +286,16 @@
     .logo{padding:0 10px 0 0}
     .logo b{display:none}
     .logo span{display:none}
-    .nav{flex-direction:row;gap:2px}
+    /* 横排时 nav 不能被压缩：flex-shrink 会把每个入口挤到一个字宽，中文就竖排了 */
+    .nav{flex-direction:row;gap:2px;flex:0 0 auto}
+    .nav a{white-space:nowrap;flex:0 0 auto}
     .nav .lbl{display:none}
     .sidefoot{display:none}
     .top{padding:0 14px;height:46px;gap:8px}
+    .top .crumb{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+    .top .right{flex:0 0 auto;white-space:nowrap;display:flex;gap:7px}
     .steps{display:none}
+    .top .hubstep{display:none}
     .page{padding:18px 14px 60px}
     .pagehd{flex-wrap:wrap}
   }
@@ -796,16 +813,20 @@ function providerOf(cid, pid){ return (byId[cid].pv || []).find(p => p.id === pi
 
 /* ────────── 路由 ────────── */
 const ROUTES = ["home", "new", "plan", "confirm", "build", "done", "lib",
-                "hub-style", "hub-mods", "hub-plans"];
+                "hub-style", "hub-mods", "hub-plans", "trial", "pack"];
 function route(){
   const h = (location.hash || "#/home").replace(/^#\//, "").split("?")[0];
   const name = ROUTES.includes(h) ? h : "home";
   if((name === "plan" || name === "confirm") && !S.need){ location.hash = "#/new"; return; }
   if(name === "hub-mods" && !S.hub){ location.hash = "#/hub-style"; return; }
   if(name === "hub-plans" && !(S.hub && S.hub.mods.length)){ location.hash = "#/hub-mods"; return; }
-  document.querySelectorAll(".nav a").forEach(a => a.classList.toggle("on", a.dataset.nav === name));
+  if((name === "trial" || name === "pack") && !(S.hub && S.hub.mods.length)){ location.hash = "#/hub-style"; return; }
+  const NAVALIAS = {trial:"hub-style", pack:"hub-style", "hub-mods":"hub-style", "hub-plans":"hub-style"};
+  document.querySelectorAll(".nav a").forEach(a =>
+    a.classList.toggle("on", a.dataset.nav === (NAVALIAS[name] || name)));
   ({home:viewHome, new:viewNew, plan:viewPlan, confirm:viewConfirm, build:viewBuild, done:viewDone, lib:viewLib,
-    "hub-style":viewHubStyle, "hub-mods":viewHubMods, "hub-plans":viewHubPlans})[name]();
+    "hub-style":viewHubStyle, "hub-mods":viewHubMods, "hub-plans":viewHubPlans,
+    trial:viewTrial, pack:viewPack})[name]();
   $("main").scrollTop = 0;
 }
 function go(h){ flushSave(); if(location.hash === h) route(); else location.hash = h; }
@@ -1473,7 +1494,7 @@ function viewConfirm(){
   $("#bStart").onclick = () => { startBuild(); go("#/build"); };
 }
 
-function exportMd(){
+function mdText(){
   const r = check(S.picks);
   const isHub = !!(S.hub && S.hub.mods.length);
   const L = isHub ? ["# 个人中台 · " + hubStyleName(), "", "共 " + S.hub.mods.length + " 个模块 · " +
@@ -1495,7 +1516,12 @@ function exportMd(){
     L.push(`| ${i + 1} | ${c.name} | ${p ? p.n : "—"} | ${p ? (KIND[p.k] || p.k) : "—"} |`);
   });
   if(S.cov.gaps.length){ L.push("", "## 库外", ""); S.cov.gaps.forEach(g => L.push(`- **${g.name}**：${g.how}`)); }
-  const blob = new Blob([L.join("\n")], {type: "text/markdown;charset=utf-8"});
+  return L.join("\n");
+}
+
+function exportMd(){
+  const isHub = !!(S.hub && S.hub.mods.length);
+  const blob = new Blob([mdText()], {type: "text/markdown;charset=utf-8"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = isHub ? "个人中台清单.md" : "装配清单.md"; a.click();
@@ -1664,6 +1690,633 @@ function renderBuild(){
 }
 
 /* ────────── 视图：完成 ────────── */
+/* ────────── 试用：把选好的中台拼出来，先让人点一遍 ──────────
+   试用和打包出去的是同一份文档：这里生成完整 HTML 字符串，
+   页面里用 iframe.srcdoc 跑，打包时原文写进 zip 的 index.html。
+   好处是「试的」和「带走的」不会分叉。 */
+function trialData(){
+  const isHub = !!(S.hub && S.hub.mods.length);
+  const r = check(S.picks);
+  const mods = isHub ? S.hub.mods.map(hubMod).filter(Boolean) : [];
+  return {
+    name: isHub ? "个人中台 · " + hubStyleName() : (S.need || "装配结果"),
+    style: isHub ? hubStyleName() : "自定义需求",
+    need: S.need || "",
+    at: (() => { const d = new Date(); const p = n => (n < 10 ? "0" : "") + n;
+                 return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()); })(),
+    mods: mods.map(m => {
+      const p = hubPlan(m.id);
+      return {id:m.id, nm:m.nm, tier:m.tier, cells:m.cells,
+              prov: p ? {n:p.n, k:p.k, lv:p.lv, note:p.note} : null};
+    }),
+    cells: S.picks.slice(),
+    lines: r.lines,
+    order: r.order.filter(c => S.picks.includes(c)).map(c => ({id:c, nm:(byId[c] || {}).name || c}))
+  };
+}
+
+/* 试用文档的样式（独立文档，不继承主站变量） */
+function trialCSS(){
+  return `*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:#ecebe5;color:#26251f;font:13px/1.62 -apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Helvetica Neue",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+#app{height:100%;display:flex;flex-direction:column;background:#fff}
+.hdr{height:46px;flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:0 14px;border-bottom:1px solid #e4e1d8;background:#fbfaf7}
+.dots{display:flex;gap:6px;margin-right:2px}
+.dots i{width:10px;height:10px;border-radius:50%;background:#dcd8cd;display:block}
+.dots i:nth-child(1){background:#e3a5a0}.dots i:nth-child(2){background:#e0c48a}.dots i:nth-child(3){background:#a8c9ae}
+.ttl{font-weight:650;font-size:13px}
+.badge{font-size:10.5px;color:#6b6960;border:1px solid #e4e1d8;border-radius:20px;padding:1px 8px;background:#fff;white-space:nowrap}
+.badge.sim{color:#8a6d1f;border-color:#e8dcc0;background:#fdf8ea}
+.bwrap{flex:1;display:flex;min-height:0}
+.nav{width:168px;flex:0 0 auto;border-right:1px solid #efece4;padding:8px 6px;overflow:auto;background:#faf9f6}
+.nav button{width:100%;text-align:left;border:0;background:transparent;border-radius:7px;padding:7px 10px;font:inherit;color:#4a4944;cursor:pointer}
+.nav button:hover{background:#f1efe8}
+.nav button.on{background:#26251f;color:#fff}
+.nav .g{font-size:10.5px;color:#a3a096;padding:9px 10px 4px;letter-spacing:.06em}
+main{flex:1;min-width:0;overflow:auto;padding:16px 18px 22px;background:#fff}
+.ftr{flex:0 0 auto;height:28px;display:flex;align-items:center;gap:10px;padding:0 14px;border-top:1px solid #efece4;font-size:10.5px;color:#96938a;background:#fbfaf7}
+.hd{display:flex;align-items:baseline;gap:8px;font-size:15px;font-weight:640;margin-bottom:10px}
+.hd .c{font-size:11.5px;color:#96938a;font-weight:400}
+.card{border:1px solid #e4e1d8;border-radius:10px;padding:11px 12px;background:#fff}
+.inp{width:100%;border:1px solid #e4e1d8;border-radius:8px;padding:8px 10px;font:inherit;outline:none;background:#fbfaf7;color:inherit}
+.inp:focus{border-color:#c3bda8;background:#fff}
+textarea.inp{min-height:84px;resize:vertical;line-height:1.7}
+.row{display:flex;align-items:center;gap:9px;padding:7px 2px;border-bottom:1px solid #f1efe8}
+.row:last-child{border-bottom:0}
+.ck{width:16px;height:16px;border:1.5px solid #cdc8bb;border-radius:4px;display:grid;place-items:center;font-size:11px;color:#fff;cursor:pointer;flex:0 0 auto;transition:.12s}
+.row.done .ck{background:#3f7d5a;border-color:#3f7d5a}
+.row.done .tx{color:#a3a096;text-decoration:line-through}
+.tx{flex:1;min-width:0;cursor:pointer;word-break:break-word}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:11.5px}
+.at{font-size:10.5px;color:#b3b0a6;white-space:nowrap}
+.del{border:0;background:transparent;color:#c6c2b6;cursor:pointer;font-size:13px;padding:0 3px;line-height:1}
+.del:hover{color:#26251f}
+.empty{color:#b3b0a6;font-size:12px;padding:16px 2px;text-align:center}
+.hint{font-size:11px;color:#96938a;margin-top:10px;line-height:1.66;border-top:1px dashed #e4e1d8;padding-top:8px}
+.hint b{color:#6b6960;font-weight:600}
+.btn{border:1px solid #d9d5c8;background:#fff;border-radius:7px;padding:5px 11px;font:inherit;cursor:pointer;color:inherit}
+.btn:hover{background:#f7f5ef}
+.btn.p{background:#26251f;border-color:#26251f;color:#fff}
+.btn.p:hover{background:#3a3830}
+.msg{border-radius:9px;padding:8px 10px;font-size:12.5px;line-height:1.7;max-width:92%}
+.msg.bot{background:#f4f2ec;border:1px solid #e8e5db;align-self:flex-start}
+.msg.me{background:#26251f;color:#fff;align-self:flex-end}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.ap{border:1px solid #e4e1d8;border-radius:10px;padding:12px 8px;text-align:center;cursor:pointer;background:#fff}
+.ap:hover{border-color:#c3bda8;box-shadow:0 1px 6px rgba(38,37,31,.06)}
+.ap .ic{width:34px;height:34px;border-radius:9px;margin:0 auto 6px;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:600}
+.ap .nm{font-size:11.5px;color:#4a4944;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sw{width:34px;height:19px;border-radius:20px;background:#dcd8cd;position:relative;cursor:pointer;flex:0 0 auto;transition:.16s}
+.sw:after{content:"";position:absolute;width:15px;height:15px;border-radius:50%;background:#fff;top:2px;left:2px;transition:.16s}
+.sw.on{background:#3f7d5a}
+.sw.on:after{left:17px}
+.bar{height:6px;border-radius:6px;background:#f1efe8;overflow:hidden;margin-top:8px}
+.bar>i{display:block;height:100%;width:0;background:#3f7d5a;transition:width .25s}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:10px}
+.st{border:1px solid #e4e1d8;border-radius:9px;padding:9px 11px;background:#fbfaf7}
+.st b{display:block;font-size:19px;font-weight:640;line-height:1.2}
+.st span{font-size:11px;color:#96938a}
+@media(max-width:620px){.nav{width:112px}.hdr .badge.hide{display:none}main{padding:12px}.at{display:none}}`;
+}
+
+/* 试用页的运行时（toString 后会作为独立脚本写进文档，不能引用本页任何变量） */
+function trialRuntime(D){
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const pad = n => (n < 10 ? "0" : "") + n;
+  const ts = () => { const d = new Date(); return (d.getMonth()+1) + "-" + d.getDate() + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); };
+  const K = "moshan.trial.v1";
+  const save = () => { try { localStorage.setItem(K, JSON.stringify(ST)); } catch(e){} };
+
+  const seed = () => ({
+    todo: [{t:"把这一版翻一遍，看看哪些模块其实用不上", done:false, at:ts()},
+           {t:"叉掉不用的，回去重新装一次", done:false, at:ts()}],
+    note: [{t:"中台的第一条笔记\n这段话只存在你自己的浏览器里。换台设备看不到——要跨设备，得装「多端同步」。", at:ts()}],
+    clip: [{t:"https://news.ycombinator.com/item?id=39210000", k:"链接"},
+           {t:'{"model":"gpt-5","tokens":842,"cost":0.0031}', k:"JSON"},
+           {t:"/Users/me/Documents/发票 2026-11.pdf", k:"路径"}],
+    plug: {pomo:true, git:false},
+    syncOn: false, syncAt: "从未同步",
+    launch: [{n:"VS Code", c:"#2f6feb"}, {n:"Chrome", c:"#e07b39"}, {n:"终端", c:"#26251f"}, {n:"备忘录", c:"#c9a227"}],
+    tab: null
+  });
+  let ST = null;
+  try { ST = JSON.parse(localStorage.getItem(K) || "null"); } catch(e){ ST = null; }
+  if(!ST || !Array.isArray(ST.todo)) ST = seed();
+  if(!ST.launch) ST.launch = seed().launch;
+  if(!ST.plug) ST.plug = seed().plug;
+
+  const NAV = [["todo","待办"],["note","速记"],["search","搜索"],["ai","AI 助手"],["clip","剪贴板"],
+               ["launch","启动器"],["plugin","扩展"],["update","更新"],["sync","同步"],["data","数据"]];
+  const have = id => D.mods.some(m => m.id === id);
+  const tabs = NAV.filter(([id]) => have(id));
+  if(!ST.tab || !tabs.some(([id]) => id === ST.tab)) ST.tab = tabs.length ? tabs[0][0] : "data";
+
+  const toast = txt => {
+    let t = $("#tip");
+    if(!t){ t = document.createElement("div"); t.id = "tip";
+      t.style.cssText = "position:fixed;left:50%;bottom:44px;transform:translateX(-50%);background:#26251f;color:#fff;" +
+        "font-size:12px;padding:7px 14px;border-radius:8px;opacity:0;transition:.18s;pointer-events:none;z-index:9";
+      document.body.appendChild(t); }
+    t.textContent = txt; t.style.opacity = 1;
+    clearTimeout(t._h); t._h = setTimeout(() => { t.style.opacity = 0; }, 1600);
+  };
+
+  const P = {};
+
+  P.todo = el => {
+    const left = ST.todo.filter(t => !t.done).length;
+    el.innerHTML = `<div class="hd">待办<span class="c">${left} 条未完成 · 共 ${ST.todo.length} 条</span></div>
+      <div class="card">
+        <input class="inp" id="tdIn" placeholder="加一条，回车确认">
+        <div id="tdList" style="margin-top:4px">${ST.todo.length ? ST.todo.map((t, i) => `<div class="row ${t.done ? "done" : ""}">
+          <div class="ck" data-tg="${i}">${t.done ? "✓" : ""}</div>
+          <div class="tx" data-tg="${i}">${esc(t.t)}</div>
+          <div class="at">${esc(t.at)}</div>
+          <button class="del" data-del="${i}">✕</button></div>`).join("") : `<div class="empty">还没有待办，上面加一条</div>`}</div>
+        <div class="hint">模拟版只做勾选与增删。真实版本在这里接「自建表 + 滚动周期规则」——周期任务勾一次自动滚到下一轮，
+          不会堆一屏逾期副本，提醒走后台线程。</div>
+      </div>`;
+    const inp = $("#tdIn");
+    inp.onkeydown = e => {
+      if(e.key !== "Enter") return;
+      const v = inp.value.trim(); if(!v) return;
+      ST.todo.unshift({t:v, done:false, at:ts()}); save(); paint();
+      const n = $("#tdIn"); if(n) n.focus();
+    };
+    $$("[data-tg]", el).forEach(n => n.onclick = () => { const i = +n.dataset.tg; ST.todo[i].done = !ST.todo[i].done; save(); paint(); });
+    $$("[data-del]", el).forEach(n => n.onclick = () => { ST.todo.splice(+n.dataset.del, 1); save(); paint(); });
+  };
+
+  P.note = el => {
+    el.innerHTML = `<div class="hd">速记<span class="c">${ST.note.length} 条</span></div>
+      <div class="card">
+        <textarea class="inp" id="ntIn" placeholder="随手记一条。⌘/Ctrl + Enter 保存，第一行当标题"></textarea>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+          <button class="btn p" id="ntSave">保存</button>
+          <span style="font-size:11px;color:#96938a">真实版本存成 Markdown 文件，任何编辑器都能打开</span></div>
+      </div>
+      <div class="card" style="margin-top:10px">${ST.note.length ? ST.note.map((n, i) => {
+        const ls = String(n.t).split("\n");
+        const rest = ls.slice(1).join(" ").trim();
+        return `<div class="row" style="align-items:flex-start">
+          <div class="tx"><b>${esc(ls[0] || "（空）")}</b>
+            ${rest ? `<div style="color:#6b6960;font-size:12px;margin-top:2px">${esc(rest.length > 90 ? rest.slice(0, 90) + "…" : rest)}</div>` : ""}
+            <div class="at" style="margin-top:3px">${esc(n.at)}</div></div>
+          <button class="del" data-ndel="${i}">✕</button></div>`;
+      }).join("") : `<div class="empty">还没有笔记</div>`}</div>`;
+    const ta = $("#ntIn");
+    const put = () => {
+      const v = ta.value.trim(); if(!v) { toast("写点什么再存"); return; }
+      ST.note.unshift({t:v, at:ts()}); save(); paint(); toast("已存进笔记");
+    };
+    $("#ntSave").onclick = put;
+    ta.onkeydown = e => { if((e.metaKey || e.ctrlKey) && e.key === "Enter") put(); };
+    $$("[data-ndel]", el).forEach(n => n.onclick = () => { ST.note.splice(+n.dataset.ndel, 1); save(); paint(); });
+  };
+
+  P.search = el => {
+    el.innerHTML = `<div class="hd">全局搜索<span class="c">Ctrl + K</span></div>
+      <div class="card"><input class="inp" id="sqIn" placeholder="搜待办、速记、剪贴板…">
+        <div id="sqList" style="margin-top:6px"></div>
+        <div class="hint">模拟版在内存里做包含匹配。真实版本走 <b>SQLite FTS5</b>，中英混排能直接搜，
+          增量更新要自己写触发器。</div></div>`;
+    const inp = $("#sqIn"), box = $("#sqList");
+    const run = () => {
+      const q = inp.value.trim().toLowerCase();
+      if(!q){ box.innerHTML = `<div class="empty">输入关键词，三个来源一起搜</div>`; return; }
+      const hits = [];
+      ST.todo.forEach((t, i) => { if(String(t.t).toLowerCase().includes(q)) hits.push(["待办", t.t, "todo"]); });
+      ST.note.forEach(n => { if(String(n.t).toLowerCase().includes(q)) hits.push(["速记", String(n.t).split("\n")[0], "note"]); });
+      ST.clip.forEach(c => { if(String(c.t).toLowerCase().includes(q)) hits.push(["剪贴板", c.t, "clip"]); });
+      box.innerHTML = hits.length ? hits.slice(0, 20).map(([k, t, tab]) => `<div class="row" data-jump="${tab}">
+        <span class="badge">${k}</span><div class="tx">${esc(t.slice(0, 110))}</div><span class="at">跳过去 →</span></div>`).join("")
+        : `<div class="empty">没搜到「${esc(inp.value)}」</div>`;
+      $$("[data-jump]", box).forEach(n => n.onclick = () => { ST.tab = n.dataset.jump; save(); syncNav(); paint(); });
+    };
+    inp.oninput = run; run(); inp.focus();
+  };
+
+  P.ai = el => {
+    const mod = D.mods.find(m => m.id === "ai") || {};
+    el.innerHTML = `<div class="hd">AI 助手<span class="c">模拟回复 · 这一版没有联网</span></div>
+      <div class="card" id="aiBox" style="display:flex;flex-direction:column;gap:8px;min-height:220px">
+        <div class="msg bot">（模拟）我读得到这个中台里的数据。试试这几句：<br>
+          · 帮我加一条待办：明天交电费<br>· 我现在有几条待办<br>· 总结一下</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <input class="inp" id="aiIn" placeholder="说点什么…"><button class="btn p" id="aiGo">发送</button>
+      </div>
+      <div class="hint">真实版本走 <b>${esc(mod.prov ? mod.prov.n : "自带 Key 直连")}</b>：请求从本机发出，Key 进系统钥匙串。
+        你选它的理由是：${esc(mod.prov ? mod.prov.note : "—")}</div>`;
+    const box = $("#aiBox"), inp = $("#aiIn");
+    const push = (cls, html) => { const d = document.createElement("div"); d.className = "msg " + cls; d.innerHTML = html; box.appendChild(d); box.scrollTop = box.scrollHeight; };
+    const reply = q => {
+      const s = q.replace(/\s+/g, "");
+      if(/待办|提醒|记一下|记个/.test(s)){
+        const m = q.match(/[：:]\s*([\s\S]+)$/);
+        if(m && m[1].trim()){
+          const t = m[1].trim();
+          ST.todo.unshift({t, done:false, at:ts()}); save();
+          return "已经加进待办了：「" + esc(t) + "」。现在 " + ST.todo.filter(x => !x.done).length + " 条没做完。";
+        }
+        return "要记什么？照「帮我加一条待办：内容」这么说。";
+      }
+      if(/几条待办|多少待办|待办.*几/.test(s))
+        return "未完成 " + ST.todo.filter(x => !x.done).length + " 条，已完成 " + ST.todo.filter(x => x.done).length + " 条。";
+      if(/总结|概括|概览/.test(s)){
+        const first = (ST.todo.find(x => !x.done) || {}).t || "（没有未完成的）";
+        return "现在有 " + ST.todo.filter(x => !x.done).length + " 条未完成待办、" + ST.note.length +
+               " 条速记、" + ST.clip.length + " 条剪贴板记录。最该先动的：「" + esc(first) + "」。";
+      }
+      return "（模拟回复）这一版没有真模型，我只能做本地那几件事：加待办、数数据、给个概览。";
+    };
+    const send = () => {
+      const q = inp.value.trim(); if(!q) return;
+      push("me", esc(q)); inp.value = "";
+      setTimeout(() => { push("bot", reply(q)); }, 260);
+    };
+    $("#aiGo").onclick = send;
+    inp.onkeydown = e => { if(e.key === "Enter") send(); };
+    inp.focus();
+  };
+
+  P.clip = el => {
+    el.innerHTML = `<div class="hd">剪贴板<span class="c">${ST.clip.length} 条</span></div>
+      <div class="card">${ST.clip.length ? ST.clip.map((c, i) => `<div class="row">
+        <span class="badge">${esc(c.k)}</span>
+        <div class="tx mono" data-cp="${i}" title="点一下复制">${esc(c.t)}</div>
+        <button class="del" data-cdel="${i}">✕</button></div>`).join("") : `<div class="empty">没有记录</div>`}
+        <div class="hint">点条目复制。真实版本监听系统剪贴板：按内容哈希去重、图片落盘并生成缩略图，
+          而且必须加密码类应用的排除列表。</div></div>`;
+    $$("[data-cp]", el).forEach(n => n.onclick = () => {
+      const t = ST.clip[+n.dataset.cp].t;
+      navigator.clipboard && navigator.clipboard.writeText
+        ? navigator.clipboard.writeText(t).then(() => toast("已复制"), () => toast("已复制（模拟）"))
+        : toast("已复制（模拟）");
+    });
+    $$("[data-cdel]", el).forEach(n => n.onclick = () => { ST.clip.splice(+n.dataset.cdel, 1); save(); paint(); });
+  };
+
+  P.launch = el => {
+    el.innerHTML = `<div class="hd">快捷启动器<span class="c">${ST.launch.length} 个</span></div>
+      <div class="card"><div class="grid">${ST.launch.map((a, i) => `<div class="ap" data-ln="${i}">
+          <div class="ic" style="background:${esc(a.c)}">${esc(a.n.slice(0, 2))}</div>
+          <div class="nm">${esc(a.n)}</div></div>`).join("")}
+        <div class="ap" id="lpAdd"><div class="ic" style="background:#efece4;color:#96938a">＋</div><div class="nm">添加</div></div>
+      </div>
+      <div class="hint">真实版本扫系统菜单批量导入、取原生 256px 图标；已经开着的应用要切到前台，而不是再开一个。</div></div>`;
+    $$("[data-ln]", el).forEach(n => n.onclick = () => toast("模拟打开：" + ST.launch[+n.dataset.ln].n));
+    $("#lpAdd").onclick = () => {
+      const n = (prompt("要加什么？填个名字") || "").trim();
+      if(!n) return;
+      ST.launch.push({n, c:"#6b6960"}); save(); paint(); toast("已加进启动器");
+    };
+  };
+
+  P.plugin = el => {
+    const rows = [["pomo", "番茄钟", "25 分钟专注 + 5 分钟休息，到点弹系统通知"],
+                  ["git", "Git 状态", "在侧栏显示当前仓库分支与改动行数"]];
+    el.innerHTML = `<div class="hd">扩展<span class="c">${Object.values(ST.plug).filter(Boolean).length} 个已启用</span></div>
+      <div class="card">${rows.map(([id, nm, d]) => `<div class="row">
+        <div class="tx" style="cursor:default"><b>${nm}</b><div style="font-size:11.5px;color:#96938a">${d}</div></div>
+        <div class="sw ${ST.plug[id] ? "on" : ""}" data-pg="${id}"></div></div>`).join("")}
+        <div class="hint">真实版本每个扩展是 <b>manifest + iframe 沙箱</b>：崩了不牵连主程序，权限按 manifest 逐项授权。</div></div>`;
+    $$("[data-pg]", el).forEach(n => n.onclick = () => {
+      const id = n.dataset.pg; ST.plug[id] = !ST.plug[id]; save();
+      n.classList.toggle("on", ST.plug[id]);
+      const c = el.querySelector(".hd .c");
+      if(c) c.textContent = Object.values(ST.plug).filter(Boolean).length + " 个已启用";
+      toast((ST.plug[id] ? "已启用 " : "已停用 ") + (id === "pomo" ? "番茄钟" : "Git 状态"));
+    });
+  };
+
+  P.update = el => {
+    el.innerHTML = `<div class="hd">自动更新</div>
+      <div class="card">
+        <div class="row"><div class="tx" style="cursor:default"><b>当前版本</b>
+          <div style="font-size:11.5px;color:#96938a">v0.1.0 · stable 通道</div></div>
+          <button class="btn" id="upBtn">检查更新</button></div>
+        <div id="upRes" style="font-size:12px;color:#96938a;padding:8px 2px 0"></div>
+        <div class="bar" id="upBar" style="display:none"><i></i></div>
+        <div class="hint">真实版本：验签 → 比 semver → 下 sha256 校验 → 两步改名自替换，失败回滚。
+          清单用 <b>Ed25519</b> 签名，防止有人给你推个假包。</div>
+      </div>`;
+    $("#upBtn").onclick = () => {
+      const b = $("#upBtn"), r = $("#upRes"), bar = $("#upBar");
+      b.disabled = true; b.textContent = "检查中…"; bar.style.display = "block";
+      bar.firstElementChild.style.width = "40%";
+      r.textContent = "正在拉清单…";
+      setTimeout(() => {
+        bar.firstElementChild.style.width = "100%";
+        r.textContent = "已是最新：v0.1.0（清单签名校验通过）";
+        b.textContent = "检查更新"; b.disabled = false;
+        setTimeout(() => { bar.style.display = "none"; bar.firstElementChild.style.width = "0"; }, 700);
+      }, 1200);
+    };
+  };
+
+  P.sync = el => {
+    el.innerHTML = `<div class="hd">多端同步</div>
+      <div class="card">
+        <div class="row"><div class="tx" style="cursor:default"><b>开启同步</b>
+          <div style="font-size:11.5px;color:#96938a">本机加密后再上传，服务器只见密文</div></div>
+          <div class="sw ${ST.syncOn ? "on" : ""}" id="sySw"></div></div>
+        <div class="row"><div class="tx" style="cursor:default"><b>上次同步</b>
+          <div style="font-size:11.5px;color:#96938a">${esc(ST.syncAt)}</div></div>
+          <button class="btn" id="syGo">立即同步</button></div>
+        <div class="bar" id="syBar"><i></i></div>
+        <div class="hint">真实版本要做三件事：设备配对、冲突合并（不是简单覆盖）、墓碑删除（删掉的东西不能在另一台复活）。</div>
+      </div>`;
+    $("#sySw").onclick = () => {
+      ST.syncOn = !ST.syncOn; save();
+      $("#sySw").classList.toggle("on", ST.syncOn);
+      toast(ST.syncOn ? "同步已开启（模拟）" : "同步已关闭");
+    };
+    $("#syGo").onclick = () => {
+      if(!ST.syncOn){ toast("先打开上面的开关"); return; }
+      const b = $("#syGo"), bar = $("#syBar");
+      b.disabled = true; b.textContent = "同步中…"; bar.firstElementChild.style.width = "60%";
+      setTimeout(() => {
+        bar.firstElementChild.style.width = "100%";
+        ST.syncAt = ts() + " · 3 项变更"; save();
+        b.textContent = "立即同步"; b.disabled = false;
+        paint(); toast("已同步 3 项变更（模拟）");
+      }, 1100);
+    };
+  };
+
+  P.data = el => {
+    const bytes = (() => { try { return new Blob([JSON.stringify(ST)]).size; } catch(e){ return 0; } })();
+    el.innerHTML = `<div class="hd">本地数据仓<span class="c">中台的一切都落在这儿</span></div>
+      <div class="stats">
+        <div class="st"><b>${ST.todo.length}</b><span>待办</span></div>
+        <div class="st"><b>${ST.note.length}</b><span>速记</span></div>
+        <div class="st"><b>${ST.clip.length}</b><span>剪贴板</span></div>
+        <div class="st"><b>${(bytes / 1024).toFixed(1)} KB</b><span>占用</span></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;gap:9px;align-items:center">
+          <button class="btn p" id="dtExp">导出全部数据</button>
+          <button class="btn" id="dtReset">清空并恢复示例</button>
+        </div>
+        <div class="hint">模拟版把数据塞在浏览器的 <b>localStorage</b> 里（键 <code>moshan.trial.v1</code>），
+          上限几 MB。真实版本是 <b>SQLite 单文件 + WAL</b>：零运维、整库能拷走、备份就是一个 zip。<br>
+          选中方案：${esc((D.mods.find(m => m.id === "data") || {}).prov ? D.mods.find(m => m.id === "data").prov.n : "—")}</div>
+      </div>`;
+    $("#dtExp").onclick = () => {
+      try {
+        const blob = new Blob([JSON.stringify(ST, null, 2)], {type:"application/json"});
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob); a.download = "中台数据.json"; a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        toast("已导出 中台数据.json");
+      } catch(e){ toast("这个环境不让下载，独立打开 index.html 再试"); }
+    };
+    $("#dtReset").onclick = () => { ST = seed(); ST.tab = "data"; save(); paint(); toast("已恢复示例数据"); };
+  };
+
+  function syncNav(){
+    $$("#nav [data-tab]").forEach(b => b.classList.toggle("on", b.dataset.tab === ST.tab));
+  }
+  function paint(){
+    const el = $("#main");
+    el.scrollTop = 0;
+    (P[ST.tab] || P.data)(el);
+  }
+
+  /* 外壳 */
+  document.body.innerHTML = `<div id="app">
+    <div class="hdr">
+      <div class="dots"><i></i><i></i><i></i></div>
+      <div class="ttl">${esc(D.name)}</div>
+      <span class="badge hide">${esc(D.style)}</span>
+      <span class="badge sim">模拟</span>
+      <div style="flex:1"></div>
+      <span class="badge hide">${D.mods.length} 个模块 · ${D.cells.length} 格</span>
+    </div>
+    <div class="bwrap">
+      <div class="nav" id="nav"><div class="g">模块</div></div>
+      <main id="main"></main>
+    </div>
+    <div class="ftr"><span>模拟运行 · 数据存在本浏览器</span><div style="flex:1"></div><span>装配于 ${esc(D.at)}</span></div>
+  </div>`;
+  $("#nav").innerHTML += tabs.map(([id, nm]) =>
+    `<button data-tab="${id}" class="${ST.tab === id ? "on" : ""}">${nm}</button>`).join("");
+  $$("#nav [data-tab]").forEach(b => b.onclick = () => { ST.tab = b.dataset.tab; save(); syncNav(); paint(); });
+  paint();
+
+  /* Ctrl+K 直接进搜索 */
+  document.addEventListener("keydown", e => {
+    if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k" && have("search")){
+      e.preventDefault(); ST.tab = "search"; save(); syncNav(); paint();
+    }
+  });
+}
+
+/* 生成一份完整、能独立打开的 HTML */
+function trialDoc(){
+  const data = trialData();
+  const js = JSON.stringify(data).replace(/</g, "\\u003c");
+  const name = data.name.replace(/[<>&"]/g, "");
+  return `<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${name} · 模拟试用</title>
+<style>${trialCSS()}</style></head>
+<body>
+<script>(${trialRuntime.toString()})(${js});<\/script>
+</body></html>`;
+}
+
+/* ────────── 视图：试用 ────────── */
+function viewTrial(){
+  const isHub = !!(S.hub && S.hub.mods.length);
+  if(!isHub){ toast("试用只做给个人中台"); go("#/done"); return; }
+  topbar(`工作台 <span>/</span> <b>个人中台</b>`, hubSteps(4),
+    `<button class="btn sm ghost" id="bTMods">改模块</button>
+     <button class="btn sm ghost" id="bTPlans">换方案</button>`);
+  $("#view").innerHTML = `<div class="page">
+    <div class="pagehd"><div><h1>先试用一下</h1>
+      <p>这就是按你选的 ${S.hub.mods.length} 个模块拼出来的中台。点一遍：加条待办、记条笔记、搜一下、跟 AI 说句话。
+      数据只活在这一页里，随便折腾。</p></div>
+      <div class="right"><span class="badge mute">模拟 · 不接真后端</span></div></div>
+    <div class="trialbar">
+      <span class="badge ok">${S.hub.mods.length} 个模块</span>
+      <span class="badge mute">${S.picks.length} 格</span>
+      <span class="faint" style="font-size:11.5px">觉得不对就回上一步改，改完回来再看</span>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn sm" id="bTReset">重置试用数据</button>
+        <button class="btn sm primary" id="bTPack">没问题，打包 →</button>
+      </div>
+    </div>
+    <iframe class="trialbox" id="tFrame" title="模拟中台"></iframe>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+      <button class="btn primary" id="bTPack2">就这样，打包 →</button>
+    </div>
+  </div>`;
+  const mount = () => { $("#tFrame").srcdoc = trialDoc(); };
+  mount();
+  $("#bTReset").onclick = () => {
+    try { localStorage.removeItem("moshan.trial.v1"); } catch(e){}
+    mount(); toast("试用数据已重置");
+  };
+  $("#bTMods").onclick = () => go("#/hub-mods");
+  $("#bTPlans").onclick = () => go("#/hub-plans");
+  $("#bTPack").onclick = $("#bTPack2").onclick = () => go("#/pack");
+}
+
+/* ────────── 打包：zip（store 模式，不压缩，够用且不引外部库） ────────── */
+const CRC_T = (() => {
+  const t = new Uint32Array(256);
+  for(let i = 0; i < 256; i++){
+    let c = i;
+    for(let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[i] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(u8){
+  let c = 0xFFFFFFFF;
+  for(let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function zipStore(files){
+  const enc = new TextEncoder();
+  const parts = [], central = [];
+  let off = 0;
+  const dt = new Date();
+  const dtime = ((dt.getHours() << 11) | (dt.getMinutes() << 5) | (dt.getSeconds() >> 1)) & 0xFFFF;
+  const ddate = (((dt.getFullYear() - 1980) << 9) | ((dt.getMonth() + 1) << 5) | dt.getDate()) & 0xFFFF;
+  files.forEach(f => {
+    const name = enc.encode(f.name);
+    const data = typeof f.data === "string" ? enc.encode(f.data) : f.data;
+    const crc = crc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
+    lh.setUint16(8, 0, true); lh.setUint16(10, dtime, true); lh.setUint16(12, ddate, true);
+    lh.setUint32(14, crc, true); lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true);
+    lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+    parts.push(new Uint8Array(lh.buffer), name, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true);
+    ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+    ch.setUint16(12, dtime, true); ch.setUint16(14, ddate, true);
+    ch.setUint32(16, crc, true); ch.setUint32(20, data.length, true); ch.setUint32(24, data.length, true);
+    ch.setUint16(28, name.length, true); ch.setUint16(30, 0, true); ch.setUint16(32, 0, true);
+    ch.setUint16(34, 0, true); ch.setUint16(36, 0, true); ch.setUint32(38, 0, true); ch.setUint32(42, off, true);
+    central.push(new Uint8Array(ch.buffer), name);
+    off += 30 + name.length + data.length;
+  });
+  const csize = central.reduce((n, u) => n + u.length, 0);
+  const eocd = new DataView(new ArrayBuffer(22));
+  eocd.setUint32(0, 0x06054b50, true);
+  eocd.setUint16(8, files.length, true); eocd.setUint16(10, files.length, true);
+  eocd.setUint32(12, csize, true); eocd.setUint32(16, off, true); eocd.setUint16(20, 0, true);
+  const all = [...parts, ...central, new Uint8Array(eocd.buffer)];
+  const total = all.reduce((n, u) => n + u.length, 0);
+  const out = new Uint8Array(total);
+  let p = 0;
+  all.forEach(u => { out.set(u, p); p += u.length; });
+  return out;
+}
+
+function packFiles(){
+  const data = trialData();
+  const manifest = {
+    生成时间: data.at, 风格: data.style, 需求: data.need,
+    模块数: data.mods.length, 能力格数: data.cells.length, 连线数: data.lines,
+    模块: data.mods.map(m => ({ 名称: m.nm, 编号: m.id, 等级: TIER[m.tier] ? TIER[m.tier][0] : m.tier,
+                                能力格: m.cells, 方案: m.prov ? m.prov.n : null,
+                                方案类型: m.prov ? m.prov.k : null, 理由: m.prov ? m.prov.note : null })),
+    施工顺序: data.order.map((o, i) => (i + 1) + ". " + o.nm + "（" + o.id + "）")
+  };
+  const readme = `# ${data.name}
+
+装配于 ${data.at} · ${data.mods.length} 个模块 · ${data.cells.length} 格 · ${data.lines} 条连线
+
+## 怎么用
+
+双击 \`index.html\`，会打开一个**能点的模拟中台**：左侧是模块导航，待办能加能勾、速记能保存、
+搜索能跨三处找、AI 对话框能真的给你加待办。数据存在你浏览器的 localStorage 里，不上传任何地方。
+
+这是原型：界面与交互是真的，后端是假的。要变成真程序，按 \`模块清单.md\` 的施工顺序逐格落地。
+
+## 装了什么
+
+${data.mods.map(m => `- **${m.nm}**（${m.cells.join(" / ")}）→ ${m.prov ? m.prov.n : "未选"}${m.prov ? "　" + m.prov.note : ""}`).join("\n")}
+
+## 施工顺序
+
+${data.order.map((o, i) => `${i + 1}. ${o.nm}　\`${o.id}\``).join("\n")}
+
+## 三个提醒
+
+1. **先跑通一条链**：数据仓 → 待办 → 界面。这三格通了，后面的都是加法。
+2. **方案是候选不是承诺**：标「自研」的格子要算 token 与返工成本，标「慎选」的多半有运维代价。
+3. **别一次装全**：这块中台是从「必装」起，用两周再决定要不要加可选模块。
+`;
+  return {manifest, readme};
+}
+
+/* ────────── 视图：打包 ────────── */
+function viewPack(){
+  const isHub = !!(S.hub && S.hub.mods.length);
+  const data = trialData();
+  const {manifest, readme} = packFiles();
+  const htmlDoc = trialDoc();
+  const zipBytes = zipStore([
+    {name:"index.html", data: htmlDoc},
+    {name:"manifest.json", data: JSON.stringify(manifest, null, 2)},
+    {name:"README.md", data: readme},
+    {name:"模块清单.md", data: mdText()}
+  ]);
+  const kb = (zipBytes.length / 1024).toFixed(1);
+  topbar(`工作台 <span>/</span> <b>个人中台</b>`, isHub ? hubSteps(4) : 4,
+    `<button class="btn sm ghost" id="bPBack">回试用</button>`);
+  $("#view").innerHTML = `<div class="page">
+    <div class="pagehd"><div><h1>打包带走</h1>
+      <p>包里是四样东西：一个能直接双击打开的试用版中台、一份机器可读的清单、一份给人看的说明、
+      一份按能力格展开的施工表。</p></div>
+      <div class="right"><span class="badge ok">${kb} KB</span></div></div>
+    <div class="packlist">
+      <div class="row"><b>index.html</b><span>${(htmlDoc.length / 1024).toFixed(1)} KB · 刚才试的那个中台，双击即开，不依赖网络</span></div>
+      <div class="row"><b>manifest.json</b><span>${data.mods.length} 个模块 · ${data.cells.length} 格 · ${data.lines} 条连线 · 施工顺序</span></div>
+      <div class="row"><b>README.md</b><span>怎么用、装了什么、施工顺序、三个提醒</span></div>
+      <div class="row"><b>模块清单.md</b><span>按能力格展开的施工表，含每格选的方案与类型</span></div>
+    </div>
+    <div class="card box" style="margin-bottom:16px">
+      <div class="bh">包里怎么来的 <span class="sp">${esc(data.at)}</span></div>
+      <div class="kv"><b>风格</b><span>${esc(data.style)}</span></div>
+      <div class="kv"><b>模块</b><span>${data.mods.map(m => esc(m.nm)).join("、")}</span></div>
+      <div class="kv"><b>施工首格</b><span>${data.order.length ? esc(data.order[0].nm) + "（" + esc(data.order[0].id) + "）" : "—"}</span></div>
+      <div class="kv"><b>施工末格</b><span>${data.order.length ? esc(data.order[data.order.length - 1].nm) + "（" + esc(data.order[data.order.length - 1].id) + "）" : "—"}</span></div>
+    </div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap">
+      <button class="btn primary lg" id="bZipDown">下载 .zip（${kb} KB）</button>
+      <button class="btn" id="bOnlyHtml">只要 index.html</button>
+      <button class="btn" id="bExpP">导出清单 .md</button>
+      <button class="btn ghost" id="bPAgain">再做一个中台</button>
+    </div>
+    <p class="faint" style="font-size:11.5px;margin-top:12px">
+      解开就是普通文件夹，没有安装脚本、没有运行时依赖——这一版是原型，装出来的中台还不能真跑，
+      但界面与交互照着它做即可。</p>
+  </div>`;
+  const dl = (blob, name) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+    toast("已下载 " + name);
+  };
+  $("#bZipDown").onclick = () => dl(new Blob([zipBytes], {type:"application/zip"}), "moshan-hub.zip");
+  $("#bOnlyHtml").onclick = () => dl(new Blob([htmlDoc], {type:"text/html;charset=utf-8"}), "中台试用版.html");
+  $("#bExpP").onclick = exportMd;
+  $("#bPBack").onclick = () => go("#/trial");
+  $("#bPAgain").onclick = () => { S.need = ""; S.hub = null; save(); go("#/hub-style"); };
+}
+
 function viewDone(){
   const r = check(S.picks), b = S.build;
   const isHub = !!(S.hub && S.hub.mods.length);
@@ -1692,12 +2345,19 @@ ${files}
   ├─ <span class="d">.env.example</span><span class="m">      ← 商业服务的 key 占位</span>
   └─ <span class="d">README.md</span><span class="m">         ← 每格做什么、为什么选这个方案</span></div>
     <div class="donebtns">
-      <button class="btn primary" id="bOpen">打开项目目录</button>
-      <button class="btn" id="bExp2">导出清单</button>
-      <button class="btn ghost" id="bAgain">${isHub ? "再做一个中台" : "再做一个"}</button>
+      ${isHub
+        ? `<button class="btn primary" id="bTrial">先试用一下</button>
+           <button class="btn" id="bPack">打包带走</button>
+           <button class="btn ghost" id="bExp2">导出清单</button>
+           <button class="btn ghost" id="bAgain">再做一个中台</button>`
+        : `<button class="btn primary" id="bOpen">打开项目目录</button>
+           <button class="btn" id="bExp2">导出清单</button>
+           <button class="btn ghost" id="bAgain">再做一个</button>`}
     </div>
   </div>`;
-  $("#bOpen").onclick = () => toast("原型：这里会打开本地项目目录");
+  if($("#bTrial")) $("#bTrial").onclick = () => go("#/trial");
+  if($("#bPack")) $("#bPack").onclick = () => go("#/pack");
+  if($("#bOpen")) $("#bOpen").onclick = () => toast("原型：这里会打开本地项目目录");
   $("#bExp2").onclick = exportMd;
   $("#bAgain").onclick = () => { S.need = ""; S.hub = null; save(); go(isHub ? "#/hub-style" : "#/new"); };
 }
