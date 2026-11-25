@@ -15,6 +15,7 @@ import seed04  # noqa: E402
 import seed05  # noqa: E402
 import seed06  # noqa: E402
 import seed07  # noqa: E402
+import seed08  # noqa: E402
 
 COMPS = seed01.COMPS
 PRODS = seed01.PRODS
@@ -34,7 +35,7 @@ def main():
         return 1
     d = {
         "spec": "moshan-arch/1",
-        "updated": "2026-11-24",
+        "updated": "2026-11-25",
         "note": "本体 → 模块 → 子模块。层级靠 parent 串，level 由脚本推。providers 里必须有拿得到的方案。",
         "components": COMPS,
         "products": PRODS,
