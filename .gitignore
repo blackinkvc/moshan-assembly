@@ -21,3 +21,6 @@ arch/arch.db
 arch/planner.html
 arch/guide.html
 arch/app.html
+
+# 发布源目录：只是 index.html = arch/app.html 的一份拷贝，供线上托管用
+publish/

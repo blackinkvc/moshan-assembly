@@ -568,23 +568,43 @@
     linear-gradient(#fbfaf7,#fbfaf7) padding-box,repeating-linear-gradient(0deg,transparent,transparent 21px,rgba(0,0,0,.03) 21px,rgba(0,0,0,.03) 22px);
     padding:6px;overflow:hidden}
   .lg .node rect{transition:opacity .2s}
+  /* SVG 的 <g> 默认绕 viewBox 原点做 transform，rotate/scale 会变成整块位移——
+     五套动效原来都"往下掉一段"，就是这么来的。锁成绕自己那一格的中心。 */
+  .lg .node{transform-box:fill-box;transform-origin:50% 50%}
   .lg .edge{stroke-dasharray:var(--len);stroke-dashoffset:var(--len)}
   .lg.play .edge{animation:edgeDraw .5s linear forwards;animation-delay:var(--ed)}
   @keyframes edgeDraw{to{stroke-dashoffset:0}}
-  .lg.play .node{animation:ndLego .42s cubic-bezier(.2,1.5,.4,1) both;animation-delay:var(--d)}
-  .lg[data-anim="flat"].play .node{animation:ndFlat .3s steps(3,end) both;animation-delay:var(--d)}
-  .lg[data-anim="lego"].play .node{animation:ndLego .42s cubic-bezier(.2,1.5,.4,1) both;animation-delay:var(--d)}
-  .lg[data-anim="solder"].play .node{animation:ndSolder .5s ease-out both;animation-delay:var(--d)}
-  .lg[data-anim="glow"].play .node{animation:ndGlow .6s ease-out both;animation-delay:calc(var(--d) + 160ms)}
-  .lg[data-anim="stack"].play .node{animation:ndStack .5s cubic-bezier(.2,1.3,.4,1) both;animation-delay:var(--d)}
-  @keyframes ndFlat{0%{opacity:0;transform:translateY(-12px)}100%{opacity:1;transform:none}}
-  @keyframes ndLego{0%{opacity:0;transform:translateY(-16px) scale(.94)}
-    62%{opacity:1;transform:translateY(2px) scale(1.02)}100%{transform:none}}
-  @keyframes ndSolder{0%{opacity:0;transform:translateX(-18px)}
-    70%{opacity:1;transform:translateX(1px);filter:drop-shadow(0 0 6px rgba(201,162,39,.9))}
+  .lg.play .node{animation:ndLego .46s cubic-bezier(.2,1.5,.4,1) both;animation-delay:var(--d)}
+  /* ① 平涂方块：不位移、不缩放、没有厚度，只是"啪"地刷上去（4 段跳变 + 直角块） */
+  .lg[data-anim="flat"] .node rect:first-child{filter:none}
+  .lg[data-anim="flat"].play .node{animation:ndFlat .22s steps(4,end) both;
+    animation-delay:calc(var(--d) * .3)}
+  @keyframes ndFlat{0%{opacity:0}100%{opacity:1}}
+  /* ② 立体乐高：掉下来、压一下、回弹，落定后仍留一层向下的厚度阴影 */
+  .lg[data-anim="lego"] .node rect:first-child{filter:drop-shadow(0 3px 0 rgba(120,112,92,.32))}
+  .lg[data-anim="lego"].play .node{animation:ndLego .46s cubic-bezier(.2,1.5,.4,1) both;animation-delay:var(--d)}
+  @keyframes ndLego{0%{opacity:0;transform:translateY(-40px) scale(1.1)}
+    56%{opacity:1;transform:translateY(4px) scale(.975)}
+    78%{transform:translateY(-2px) scale(1.008)}100%{transform:none}}
+  /* ③ 焊接：从左边滑进槽位，接触瞬间迸一点黄火，收尾在端口留个金色焊点 */
+  .lg[data-anim="solder"] .node rect:nth-child(2){fill:#c9a227}
+  .lg[data-anim="solder"].play .node{animation:ndSolder .5s cubic-bezier(.35,.05,.35,1) both;animation-delay:var(--d)}
+  @keyframes ndSolder{0%{opacity:0;transform:translateX(-52px)}
+    56%{opacity:1;transform:translateX(4px);filter:drop-shadow(0 0 9px rgba(214,164,40,.95))}
+    76%{transform:translateX(-2px);filter:drop-shadow(0 0 3px rgba(214,164,40,.6))}
     100%{transform:none;filter:none}}
-  @keyframes ndGlow{0%{opacity:0;filter:brightness(1.9)}100%{opacity:1;filter:none}}
-  @keyframes ndStack{0%{opacity:0;transform:translateY(-10px) rotate(-4deg)}100%{transform:none}}
+  /* ④ 电路点亮：位置完全不动，只有光——格子从暗爆到亮再稳住；线本身也提亮加粗，先亮线后亮格 */
+  .lg[data-anim="glow"] .edge{stroke-width:1.7;opacity:.82}
+  .lg[data-anim="glow"] .node rect:first-child{stroke-width:1.7}
+  .lg[data-anim="glow"].play .node{animation:ndGlow .62s ease-out both;animation-delay:calc(var(--d) + 110ms)}
+  @keyframes ndGlow{0%{opacity:.06;filter:brightness(3.4) saturate(.2)}
+    50%{opacity:1;filter:brightness(1.32)}100%{opacity:1;filter:none}}
+  /* ⑤ 卡片堆叠：像发牌，左右交替歪着落，落定才对齐（--r 由格子序号给定，奇偶相反） */
+  .lg[data-anim="stack"].play .node{animation:ndStack .54s cubic-bezier(.25,.9,.3,1) both;
+    animation-delay:calc(var(--d) * 1.2)}
+  @keyframes ndStack{0%{opacity:0;transform:translateY(-30px) translateX(-8px) rotate(var(--r,-10deg))}
+    70%{opacity:1;transform:translateY(3px) translateX(0) rotate(calc(var(--r,-10deg) * -.14))}
+    100%{transform:none}}
   @keyframes dashIn{to{stroke-dashoffset:0}}
   .wbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:9px}
   .achip{border:1px solid var(--line);background:var(--panel);border-radius:20px;padding:3px 10px;
@@ -680,18 +700,22 @@
   /* ── 组装台：动效变体 ── */
   .pcb .pcbfoot{margin-top:10px;font:10.5px/1.4 ui-monospace,Menlo,monospace;color:#7fa792;
     border-top:1px dashed rgba(170,205,188,.25);padding-top:7px;position:relative}
-  .pcb[data-anim="flat"] .mchip.just{animation:pcbFlat .34s steps(3,end) both}
+  .pcb[data-anim="flat"] .mchip.just{animation:pcbFlat .24s steps(4,end) both}
   .pcb[data-anim="lego"] .mchip.just{animation:plugIn .5s cubic-bezier(.2,1.5,.35,1) both}
-  .pcb[data-anim="solder"] .mchip.just{animation:pcbSolder .5s ease-out both}
-  .pcb[data-anim="glow"] .mchip.just{animation:pcbGlow .55s ease-out both}
-  .pcb[data-anim="stack"] .mchip.just{animation:pcbStack .5s cubic-bezier(.2,1.3,.4,1) both}
+  .pcb[data-anim="solder"] .mchip.just{animation:pcbSolder .5s cubic-bezier(.35,.05,.35,1) both}
+  .pcb[data-anim="glow"] .mchip.just{animation:pcbGlow .62s ease-out both}
+  .pcb[data-anim="stack"] .mchip.just{animation:pcbStack .54s cubic-bezier(.25,.9,.3,1) both}
+  /* 静止时也要分得出来：乐高有厚度、平涂是直角且没影子、点亮常亮一圈光、焊接留金边 */
   .pcb[data-anim="lego"] .mchip{box-shadow:0 3px 0 #b9b3a1,0 6px 10px rgba(0,0,0,.3)}
-  @keyframes pcbFlat{0%{opacity:0;transform:translateY(-20px)}100%{opacity:1;transform:none}}
-  @keyframes pcbSolder{0%{opacity:0;transform:translateX(-24px)}
-    70%{opacity:1;transform:translateX(2px);box-shadow:0 0 12px rgba(255,201,64,.95)}
+  .pcb[data-anim="flat"] .mchip{border-radius:2px;box-shadow:none}
+  .pcb[data-anim="glow"] .mchip{box-shadow:0 0 10px rgba(255,214,120,.45),inset 0 0 0 1px rgba(255,236,190,.6)}
+  @keyframes pcbFlat{0%{opacity:0}100%{opacity:1}}
+  @keyframes pcbSolder{0%{opacity:0;transform:translateX(-34px)}
+    58%{opacity:1;transform:translateX(3px);box-shadow:0 0 13px rgba(255,201,64,.95)}
     100%{transform:none;box-shadow:0 0 0 2px rgba(201,162,39,.8)}}
-  @keyframes pcbGlow{0%{opacity:0;filter:brightness(2)}100%{opacity:1;filter:none}}
-  @keyframes pcbStack{0%{opacity:0;transform:translateY(-14px) rotate(-5deg)}100%{transform:none}}
+  @keyframes pcbGlow{0%{opacity:.12;filter:brightness(2.8) saturate(.4)}
+    55%{opacity:1;filter:brightness(1.3)}100%{opacity:1;filter:none}}
+  @keyframes pcbStack{0%{opacity:0;transform:translateY(-16px) rotate(-9deg)}100%{transform:none}}
   @media(max-width:1080px){.dgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
     .prow{grid-template-columns:1fr;gap:5px}}
 
@@ -1675,11 +1699,11 @@ const STYLES = [
 
 /* ────────── 五种「装模块」动效：连通图与组装台共用同一套 ────────── */
 const ANIMS = [
-  {id:"flat",  nm:"平涂方块", d:"像俄罗斯方块：一块块从上面落下来，落定即上色，没有厚度。"},
-  {id:"lego",  nm:"立体乐高", d:"带厚度与投影，按下去还有一下回弹，像把积木压进凸点。"},
-  {id:"solder",nm:"焊接", d:"芯片滑进槽位，引脚处闪一下火花，然后焊点亮起。"},
-  {id:"glow",  nm:"电路点亮", d:"先出线路，再沿线路跑一遍光，模块随后亮起。"},
-  {id:"stack", nm:"卡片堆叠", d:"像发牌：微微错开、带点旋转地落下，最后对齐成一行。"},
+  {id:"flat",  nm:"平涂方块", d:"不落也不动：直角块一格一格直接印上去，四段跳变，没有厚度。"},
+  {id:"lego",  nm:"立体乐高", d:"带厚度与投影，掉下来压一下再回弹，像把积木压进凸点。"},
+  {id:"solder",nm:"焊接", d:"格子从左边滑进槽位，接触瞬间迸一点黄火，端口留下金色焊点。"},
+  {id:"glow",  nm:"电路点亮", d:"位置完全不动：线先亮起来，格子再一格一格从暗里点亮。"},
+  {id:"stack", nm:"卡片堆叠", d:"像发牌：左右交替歪着落下，落定才对正。"},
 ];
 
 /* ────────── 本地模型的档位表 ──────────
@@ -3056,7 +3080,7 @@ function logicMapHTML(){
       : `M${x1} ${y1} C${(x1 + x2) / 2} ${y1} ${(x1 + x2) / 2} ${y2} ${x2} ${y2}`;
     const len = Math.abs(x2 - x1) + Math.abs(y2 - y1) + 40;
     /* 线跟着「两端都测过了」才画出来：原来按边序号铺时间，会出现线先画好、格子后落的错位感 */
-    const dly = Math.max(0, Math.max(IDX[e.a] || 0, IDX[e.b] || 0) * 45 - 190);
+    const dly = Math.max(0, Math.max(IDX[e.a] || 0, IDX[e.b] || 0) * 24 - 100);
     return `<path class="edge" d="${d}" fill="none"
       stroke="hsl(${domHue((byId[e.a] || {}).dom || "app")} 45% 62%)" stroke-width="1.2" opacity=".55"
       style="--len:${len};--ed:${dly}ms"/>`;
@@ -3067,13 +3091,16 @@ function logicMapHTML(){
       stroke="#c2534a" stroke-width="1.6" stroke-dasharray="3 3"/>
       <text x="${B.x - 26}" y="${B.y + NH / 2 - 4}" text-anchor="end" font-size="9" fill="#c2534a">缺 ${esc(m.t.map(t => TC[t] || t).join("/"))}</text></g>`;
   }).join("");
+  const anm = (S.hub && S.hub.anim) || "lego";
+  const nrx = anm === "flat" ? 2 : 6;          // 平涂方块是直角块，其余是圆角
   const nodes = seq.map((cid, i) => {
     const p = xy[cid], c = byId[cid] || {};
     const nm = (c.name || cid);
     const short = nm.length > 8 ? nm.slice(0, 8) + "…" : nm;
     const cls = badCell.has(cid) ? "bad" : (deadCell.has(cid) ? "warn" : "");
-    return `<g class="node ${cls}" style="--d:${i * 45}ms" data-cid="${cid}">
-      <rect x="${p.x}" y="${p.y}" width="${NW}" height="${NH}" rx="6"
+    /* --r 给卡片堆叠用：奇偶交替歪向两边，才像发牌而不是集体平移 */
+    return `<g class="node ${cls}" style="--d:${i * 24}ms;--r:${i % 2 ? 10 : -10}deg" data-cid="${cid}">
+      <rect x="${p.x}" y="${p.y}" width="${NW}" height="${NH}" rx="${nrx}"
         fill="hsl(${domHue(c.dom)} 62% 96%)" stroke="hsl(${domHue(c.dom)} 45% 70%)"/>
       <rect x="${p.x}" y="${p.y}" width="3" height="${NH}" rx="1.5" fill="hsl(${domHue(c.dom)} 55% 58%)"/>
       <text x="${p.x + 9}" y="${p.y + 18.5}" font-size="10.5" fill="#3a3831">${esc(short)}</text>
@@ -3154,16 +3181,13 @@ function viewHubWire(){
   const bad = r.breaks.length, dead = r.dead.length;
   $("#view").innerHTML = `<div class="page">
     <div class="pagehd"><div><h1>它们接得上吗？</h1>
-      <p>两张图看同一份东西：<b>包图</b>是你看见的分组，<b>逻辑图</b>是模块摊开以后谁吃什么、谁吐什么。
-      红点是断点（要的东西没人产出），黄点是死端（做出来没人用）。<b>进这一页就自动跑一遍自检</b>，
-      从第一格测到最后一格，接不接得上当场就知道——不用你去找。</p></div>
+      <p>先看<b>逻辑图</b>：模块摊开以后谁吃什么、谁吐什么，按施工顺序一格一格装上去。
+      <b>进这一页就自动跑一遍自检</b>，从第一格测到最后一格，接不接得上当场就知道——不用你去找。
+      红点是断点（要的东西没人产出），黄点是死端（做出来没人用）。下面的<b>包图</b>是同一份东西的另一种看法：你看见的分组。</p></div>
       <div class="right"><span class="badge ${bad ? "bad" : "ok"}">${bad ? bad + " 个断点" : "接得上"}</span>
         ${dead ? `<span class="badge warn" style="margin-left:6px">${dead} 个死端</span>` : ""}</div></div>
 
-    <div class="secttl first"><b>① 包图</b><span>用户视角 · ${PACKS.filter(p => S.hub.mods.map(hubMod).some(m => m && m.pks.includes(p.id))).length} 个包 · 同一个模块出现在两行，说明它同时属于两个包</span></div>
-    ${packMapHTML()}
-
-    <div class="secttl"><b>② 逻辑图</b><span>底层视角 · ${S.picks.length} 格 · 从左往右是施工顺序 · 图比屏幕宽时可以左右拖</span></div>
+    <div class="secttl first"><b>① 逻辑图</b><span>底层视角 · ${S.picks.length} 格 · 从左往右是施工顺序 · 图比屏幕宽时可以左右拖</span></div>
     <div class="testbar" id="tbar" data-bad="${bad}" data-dead="${dead}" data-lines="${r.lines}">
       <span class="tst" id="tst"><i class="tdot"></i>准备自检</span>
       <span class="tnum" id="tnum">0 / ${S.picks.length} 格</span>
@@ -3178,6 +3202,9 @@ function viewHubWire(){
     </div>
     ${logicMapHTML()}
     <div class="animnote" id="animNote">${esc((ANIMS.find(a => a.id === anim) || ANIMS[0]).d)}</div>
+
+    <div class="secttl"><b>② 包图</b><span>用户视角 · ${PACKS.filter(p => S.hub.mods.map(hubMod).some(m => m && m.pks.includes(p.id))).length} 个包 · 同一个模块出现在两行，说明它同时属于两个包</span></div>
+    ${packMapHTML()}
 
     ${bad || dead ? `<div class="card box" style="margin-top:14px">
       <div class="bh">检查结果</div>
@@ -3233,10 +3260,16 @@ function viewHubWire(){
   $("#bPlay").onclick = playLogic;
   $("#bPro2").onclick = () => { S.pro = !S.pro; save(); go("#/hub-wire"); };
   $("#bNextW").onclick = $("#bNextW2").onclick = () => { S.cov = hubCov(); save(); go("#/confirm"); };
-  document.querySelectorAll("[data-anim]").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".achip").forEach(b => b.onclick = () => {
     S.hub.anim = b.dataset.anim; save();
     document.querySelectorAll(".achip").forEach(x => x.classList.toggle("on", x.dataset.anim === S.hub.anim));
-    const svg = $("#lgmap"); if(svg) svg.dataset.anim = S.hub.anim;
+    const svg = $("#lgmap");
+    if(svg){
+      svg.dataset.anim = S.hub.anim;
+      /* 圆角/直角是画上去的，切动效时得跟着改（平涂方块要直角块） */
+      const rx = S.hub.anim === "flat" ? 2 : 6;
+      svg.querySelectorAll("g.node rect:first-child").forEach(r => r.setAttribute("rx", rx));
+    }
     const n = $("#animNote"); if(n) n.textContent = (ANIMS.find(a => a.id === S.hub.anim) || ANIMS[0]).d;
     playLogic();
   });
