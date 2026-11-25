@@ -72,8 +72,18 @@
   .btn.danger:hover{background:#fbeeec}
   .btn.sm{padding:3px 9px;font-size:12px;border-radius:6px}
   .btn.lg{padding:9px 20px;font-size:14px;border-radius:9px}
+  /* 一步到底的那种按钮：这一页唯一「不用想」的出口，得让人一眼看见 */
+  .btn.xl{padding:12px 26px;font-size:15px;font-weight:560;border-radius:10px;letter-spacing:.2px}
   .btn:disabled{opacity:.45;cursor:not-allowed;background:#f6f5f2}
   .btn.icon{padding:4px 7px}
+  .recbar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    padding:14px 18px;margin:0 0 18px;border:1px solid var(--line);border-radius:12px;
+    background:linear-gradient(180deg,#fff,#fbfaf6)}
+  .recbar .rb{min-width:220px;flex:1 1 320px}
+  .recbar .rb b{display:block;font-size:13.5px;font-weight:640;margin-bottom:3px}
+  .recbar .rb span{font-size:12px;color:var(--dim);line-height:1.7}
+  .recbar .btn{flex:0 0 auto}
+  @media(max-width:700px){ .recbar .btn{width:100%;justify-content:center} }
 
   .card{background:var(--panel);border:1px solid var(--line);border-radius:11px}
   .box{padding:14px 16px}
@@ -294,7 +304,10 @@
     .nav .lbl{display:none}
     .sidefoot{display:none}
     .top{padding:0 14px;height:46px;gap:8px}
-    .top .crumb{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+    /* crumb 本身是 flex，text-overflow 对它无效——会把场景名硬切一半。
+       要让里面的 b 去省略，才出得来「仓库管理…」 */
+    .top .crumb{white-space:nowrap;overflow:hidden;min-width:0}
+    .top .crumb b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
     .top .right{flex:0 0 auto;white-space:nowrap;display:flex;gap:7px}
     .steps{display:none}
     .top .hubstep{display:none}
@@ -2685,8 +2698,14 @@ function viewHubPlans(){
   $("#view").innerHTML = `<div class="page">
     <div class="pagehd"><div><h1>每块用什么做？</h1>
       <p>三件事要定：<b>功能模块</b>用什么实现、模块之间的<b>胶水</b>怎么接、
-      整台东西跑在什么<b>底座</b>上。都默认选了推荐，不想逐个看就点右上角「全用推荐」。</p></div>
+      整台东西跑在什么<b>底座</b>上。都默认选了推荐——不想逐项看，就点下面的「全部按推荐」一步到底。</p></div>
       <div class="right"><span class="badge mute">${mods.length} 模块 · ${cells.length} 格</span></div></div>
+
+    <div class="recbar">
+      <div class="rb"><b>三件事都不用改？</b>
+        <span>${mods.length} 个模块 · ${GLUE.length} 项胶水 · ${BASE.length} 项底座一次全取推荐方案，弹窗确认后直接进下一步。</span></div>
+      <button class="btn primary xl" id="bRecAll">全部按推荐 →</button>
+    </div>
     <div class="secttl first"><b>① 功能模块</b><span>${mods.length} 个，每个 2–4 个做法</span></div>
     <div class="plans">${rows}</div>
     ${gsec("glue", "② 模块之间的胶水", "10 项 · 每个新模块都要从这里穿过去", GLUE)}
@@ -2747,17 +2766,38 @@ function viewHubPlans(){
     save(); go("#/hub-wire");
   };
   $("#bNext3").onclick = $("#bNext4").onclick = next;
-  $("#bRec").onclick = () => {
+  /* 全用推荐：模块、胶水、底座一次铺平。
+     底座的外壳要跟着形态走——CLI 形态下把外壳刷回 Tauri，等于把用户刚选的形态又改掉了。 */
+  const applyRecs = () => {
     S.hub.plans = {};
     mods.forEach(m => { S.hub.plans[m.id] = (m.provs.find(p => p.lv === "rec") || m.provs[0]).id; });
     S.hub.glue = {}; S.hub.base = {};
     GLUE.forEach(g => { S.hub.glue[g.id] = (g.provs.find(p => p.lv === "rec") || g.provs[0]).id; });
-    BASE.forEach(g => { S.hub.base[g.id] = (g.provs.find(p => p.lv === "rec") || g.provs[0]).id; });
+    BASE.forEach(g => {
+      const rec = (g.provs.find(p => p.lv === "rec") || g.provs[0]).id;
+      S.hub.base[g.id] = (g.id === "bs-shell" && g.provs.some(p => p.id === formDef().base)) ? formDef().base : rec;
+    });
     mods.forEach(m => repaintPlan(m.id));
     GLUE.forEach(g => repaintG("glue", g.id));
     BASE.forEach(g => repaintG("base", g.id));
-    saveLater(); toast("模块、胶水、底座都已用推荐方案");
+    saveLater();
   };
+  /* 铺平之后不直接跳走：先问一句要不要下一步，免得点一下就被带离这一页 */
+  const askNext = () => {
+    modal(`<div class="mh"><b>都按推荐选好了</b><button class="x" data-x="1">✕</button></div>
+      <div class="mb">
+        <p>${mods.length} 个模块、${GLUE.length} 项胶水、${BASE.length} 项底座的实现已换成<b>推荐方案</b>。
+        这一页没有别的要填了，下一步把它们摊成能力格、画出谁接谁。</p>
+        <div class="kv"><b>模块</b><span>${mods.length} 个 · ${cells.length} 格</span></div>
+        <div class="kv"><b>胶水</b><span>${GLUE.length} 项</span></div>
+        <div class="kv"><b>底座</b><span>${BASE.length} 项 · 外壳跟着形态走（${esc(formDef().nm)}）</span></div>
+        <p style="color:var(--faint);font-size:11.5px;line-height:1.7">想逐项核对就留在这页，改完再点右下角「下一步：看连线图」。</p>
+      </div>`,
+      `<button class="btn" data-x="1">留在这页看看</button><button class="btn primary" id="mNext">下一步：看连线图</button>`);
+    $("#modal").querySelectorAll("[data-x]").forEach(x => x.onclick = closeModal);
+    $("#mNext").onclick = () => { closeModal(); next(); };
+  };
+  $("#bRec").onclick = $("#bRecAll").onclick = () => { applyRecs(); askNext(); };
   $("#bMods").onclick = $("#bBack2").onclick = () => go("#/hub-mods");
 }
 
