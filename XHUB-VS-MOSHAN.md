@@ -124,12 +124,15 @@ manifest 声明五类关系，扫描器求值后直接标状态并**拦截打开
 
 | 墨山格 | 从 x-hub 抄什么 | 真实代价 |
 | --- | --- | --- |
-| `ai.agent.tools` | 能力注册表 + 三档权限 + 拒绝回传 + 截断口径 | 4,611 行 Rust（`agent/`） |
-| `plugin.runtime` | manifest 五类关系 + 四形态 + 桥 API 表 | `xhub_api.rs` 128KB + `extension.rs` 88KB |
-| `plugin.market` | Ed25519 验签 + 安装计数 + 一键更新 | `market.rs` 45KB |
-| `release.updater` | 跳级保护 `minimumUpgradable` + 流式下载 + sha256 + 自替换回滚 | `updater.rs` 49KB |
+| `ai.agent.tool` | 能力注册表 + 三档权限 + 拒绝回传 + 截断口径 | 4,611 行 Rust（`agent/`） |
+| `app.plugin` | manifest 五类关系 + 四形态 + 桥 API 表 | `xhub_api.rs` 128KB + `extension.rs` 88KB |
+| `app.plugin`（市场那半） | Ed25519 验签 + 安装计数 + 一键更新 | `market.rs` 45KB |
+| `app.update` | 跳级保护 `minimumUpgradable` + 流式下载 + sha256 + 自替换回滚 | `updater.rs` 49KB |
 | `app.window` | 10 入口壳 + label 路由 + 轻窗分 chunk | `App.vue` 9KB + `vite.config.ts` 6KB |
-| `sync.e2ee` | scrypt 派生 + chacha20poly1305 + 跨端测试向量 | `sync/` + 小程序侧对等实现 |
+| `app.sync` | scrypt 派生 + chacha20poly1305 + 跨端测试向量 | `sync/` + 小程序侧对等实现 |
+
+> 注：`app.plugin` / `app.update` / `app.sync` 这三格在写这份对照时库里还没有（原有 app 域只有 data / auth / ui / file / edge），
+> 已于随后的「第 7 批」补齐（连同 `app.window` / `app.todo` / `app.clip` / `app.launch`，共 7 格 93 个方案）。
 
 补充一个更软的用法：**x-hub 的 85 条约定就是 85 条「顺序/选型错了会返工什么」的真实数据**。墨山 `seed06.py` 里硬件格已经有「选错要返工什么」这个字段，软件格基本空着——这 85 条正好是填充材料。
 

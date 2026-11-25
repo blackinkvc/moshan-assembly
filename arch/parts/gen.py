@@ -14,6 +14,7 @@ import seed03  # noqa: E402
 import seed04  # noqa: E402
 import seed05  # noqa: E402
 import seed06  # noqa: E402
+import seed07  # noqa: E402
 
 COMPS = seed01.COMPS
 PRODS = seed01.PRODS
