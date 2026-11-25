@@ -566,6 +566,32 @@
   .achip:hover{border-color:#cfcabd}
   .achip.on{background:var(--ink);border-color:var(--ink);color:#fff}
   .animnote{font-size:11.5px;color:var(--faint);margin-top:7px;line-height:1.7}
+
+  /* ── 自动自检条：进页面就自己跑，不指望用户去点「走一遍」 ── */
+  .testbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 9px;
+    border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:8px 12px;transition:.25s}
+  .testbar.run{border-color:#ded8c8;background:#fdfcf7}
+  .testbar.ok{border-color:#cfe4d8;background:#f2f8f4}
+  .testbar.bad{border-color:#efd0ca;background:#fdf3f1}
+  .testbar .tst{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:560;white-space:nowrap}
+  .testbar .tdot{width:7px;height:7px;border-radius:50%;background:#c9c5ba;flex:0 0 auto}
+  .testbar.run .tdot{background:var(--amber);animation:tpulse .9s ease-in-out infinite}
+  .testbar.ok .tdot{background:var(--green)}
+  .testbar.bad .tdot{background:#b4483c}
+  @keyframes tpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.75)}}
+  .testbar .tnum{font-size:11.5px;color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .testbar .tline{flex:1 1 110px;min-width:70px;max-width:280px;height:5px;border-radius:20px;background:#f0eee7;overflow:hidden}
+  .testbar .tline i{display:block;height:100%;width:0;border-radius:20px;background:#b8922f;transition:width .1s linear,background .25s}
+  .testbar.ok .tline i{background:var(--green)}
+  .testbar.bad .tline i{background:#b4483c}
+  .testbar .tres{font-size:11.5px;color:var(--dim);line-height:1.55}
+  .testbar .tres b{font-weight:600;color:var(--ink)}
+  .testbar .tgo{color:#b4483c;text-decoration:underline;cursor:pointer;margin-left:8px}
+  .lg .okd{opacity:0;transition:opacity .16s}
+  .lg g.node[data-t="1"] .okd{opacity:1}
+  /* 正在测的那一格：金色描边，像探针压上去。
+     不能用 filter 做发光——节点的入场动画里就有 filter，fill:both 会把它盖掉 */
+  .lg g.node[data-c="1"] rect:first-child{stroke:#c9a227;stroke-width:2.2}
   .okline{margin-top:14px;font-size:12.5px;color:#2f6b4a;background:#eef6f1;border:1px solid #cfe4d8;
     border-radius:9px;padding:9px 12px}
   .gapbox.warn{background:#fdf3e3;border-color:#f0dcbc}
@@ -2807,6 +2833,8 @@ function viewHubPlans(){
    下面那张是「逻辑图」——底层视角：模块摊开成能力格之后，谁吐什么、谁吃什么。
    两张图看的是同一份东西，只是站的位置不同。 */
 const DOMHUE = {};
+/* 连线页「滚到才开测」用的滚动监听，换页时要摘掉，不然每进一次挂一个 */
+let wireScrollH = null;
 function domHue(dom){
   if(DOMHUE[dom] == null){
     const i = Math.max(0, D.domOrder.indexOf(dom));
@@ -2864,6 +2892,7 @@ function logicMapHTML(){
      改成按施工序铺格子：一行 8 个，铺满换列。从左往右就是从先做到后做，
      而且高度恒定，屏幕上看得全。依赖用曲线连，交叉是必然的，但读得出流向。 */
   const seq = r.order.filter(c => picks.includes(c));
+  const IDX = {}; seq.forEach((c, i) => IDX[c] = i);
   const ROWS = Math.min(8, Math.max(3, Math.ceil(seq.length / 6)));
   const NW = 120, NH = 29, GX = 176, GY = 33;
   const cols = Math.max(1, Math.ceil(seq.length / ROWS));
@@ -2892,9 +2921,11 @@ function logicMapHTML(){
       ? `M${x1} ${y1} L${x2} ${y2}`
       : `M${x1} ${y1} C${(x1 + x2) / 2} ${y1} ${(x1 + x2) / 2} ${y2} ${x2} ${y2}`;
     const len = Math.abs(x2 - x1) + Math.abs(y2 - y1) + 40;
+    /* 线跟着「两端都测过了」才画出来：原来按边序号铺时间，会出现线先画好、格子后落的错位感 */
+    const dly = Math.max(0, Math.max(IDX[e.a] || 0, IDX[e.b] || 0) * 45 - 190);
     return `<path class="edge" d="${d}" fill="none"
       stroke="hsl(${domHue((byId[e.a] || {}).dom || "app")} 45% 62%)" stroke-width="1.2" opacity=".55"
-      style="--len:${len};--ed:${i * 22}ms"/>`;
+      style="--len:${len};--ed:${dly}ms"/>`;
   }).join("");
   const missSVG = missing.map(m => {
     const B = xy[m.b]; if(!B) return "";
@@ -2912,6 +2943,7 @@ function logicMapHTML(){
         fill="hsl(${domHue(c.dom)} 62% 96%)" stroke="hsl(${domHue(c.dom)} 45% 70%)"/>
       <rect x="${p.x}" y="${p.y}" width="3" height="${NH}" rx="1.5" fill="hsl(${domHue(c.dom)} 55% 58%)"/>
       <text x="${p.x + 9}" y="${p.y + 18.5}" font-size="10.5" fill="#3a3831">${esc(short)}</text>
+      ${cls ? "" : `<circle class="okd" cx="${p.x + NW - 7}" cy="${p.y + NH - 7}" r="2.2" fill="#2f6f4e"/>`}
       ${cls === "bad" ? `<circle cx="${p.x + NW - 7}" cy="${p.y + 7}" r="3" fill="#c2534a"/>` : ""}
       ${cls === "warn" ? `<circle cx="${p.x + NW - 7}" cy="${p.y + 7}" r="3" fill="#c8932a"/>` : ""}
     </g>`;
@@ -2924,11 +2956,57 @@ function logicMapHTML(){
     </svg>
   </div>`;
 }
+/* 自动自检：进页面就自己跑一遍，从第一格测到最后一格。
+   为什么要自动：用户不会主动去点「走一遍」，他只会看这页一眼就往下走——
+   所以「能不能接上」得当场演给他看，跑完直接把结论写在那条上。 */
 function playLogic(){
   const svg = $("#lgmap"); if(!svg) return;
-  svg.classList.remove("play");
-  void svg.getBoundingClientRect();
-  svg.classList.add("play");
+  cancelAnimationFrame(playLogic._raf || 0);
+  const ns = [...svg.querySelectorAll("g.node")], n = ns.length;
+  const tb = $("#tbar"), st = $("#tst"), num = $("#tnum"),
+        fill = $("#tfill"), res = $("#tres");
+  let cur = null;
+  if(!tb) return;
+  const bad = +(tb.dataset.bad || 0), dead = +(tb.dataset.dead || 0), lines = +(tb.dataset.lines || 0);
+  ns.forEach(g => g.removeAttribute("data-t"));
+  tb.className = "testbar run";
+  st.innerHTML = `<i class="tdot"></i>正在测试连线`;
+  num.textContent = `0 / ${n} 格`;
+  fill.style.width = "0%"; res.textContent = "";
+  svg.classList.remove("play"); void svg.getBoundingClientRect(); svg.classList.add("play");
+  let done = 0;
+  const settle = () => {
+    tb.className = "testbar " + (bad || dead ? "bad" : "ok");
+    st.innerHTML = `<i class="tdot"></i>${bad || dead ? "自检没通过" : "自检通过"}`;
+    num.textContent = `${n} / ${n} 格`;
+    fill.style.width = "100%";
+    res.innerHTML = bad || dead
+      ? `<b>${bad} 个断点</b>${dead ? `、<b>${dead} 个死端</b>` : ""}　要的东西没人产出<span class="tgo" id="tgo">看哪里断了 →</span>`
+      : `<b>${n} 格 · ${lines} 条连线</b>全部接上，没有死端`;
+    const g2 = $("#tgo");
+    if(g2) g2.onclick = () => { const t = $("#view .gapbox") || $("#view .okline"); if(t) t.scrollIntoView({behavior:"smooth", block:"center"}); };
+  };
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches){
+    ns.forEach(g => g.dataset.t = "1"); settle(); return;
+  }
+  const STEP = 45, dur = n * STEP + 240, t0 = performance.now();
+  const tick = now => {
+    if(!document.body.contains(svg)) return;          // 中途切去别的页
+    /* rAF 给的时间戳是「这一帧开始」的时刻，可能比刚取的 t0 还早几十毫秒，
+       不夹一下会算出负的进度（分母变负数、ns[-2] 直接抛错，整条链就断了） */
+    const el = Math.max(0, now - t0);
+    const k = Math.min(n, Math.floor(el / STEP));
+    if(k !== done){
+      for(let i = done; i < k; i++) if(ns[i]) ns[i].dataset.t = "1";
+      done = k;
+      num.textContent = `${k} / ${n} 格`;
+      fill.style.width = Math.round(k / n * 100) + "%";
+    }
+    if(ns[k - 1] && ns[k - 1] !== cur){ if(cur) cur.removeAttribute("data-c"); cur = ns[k - 1]; cur.dataset.c = "1"; }
+    if(el < dur) playLogic._raf = requestAnimationFrame(tick);
+    else { ns.forEach(g => g.dataset.t = "1"); if(cur) cur.removeAttribute("data-c"); settle(); }
+  };
+  playLogic._raf = requestAnimationFrame(tick);
 }
 
 function viewHubWire(){
@@ -2943,7 +3021,8 @@ function viewHubWire(){
   $("#view").innerHTML = `<div class="page">
     <div class="pagehd"><div><h1>它们接得上吗？</h1>
       <p>两张图看同一份东西：<b>包图</b>是你看见的分组，<b>逻辑图</b>是模块摊开以后谁吃什么、谁吐什么。
-      红点是断点（要的东西没人产出），黄点是死端（做出来没人用）。点下面「走一遍」看它是怎么拼起来的。</p></div>
+      红点是断点（要的东西没人产出），黄点是死端（做出来没人用）。<b>进这一页就自动跑一遍自检</b>，
+      从第一格测到最后一格，接不接得上当场就知道——不用你去找。</p></div>
       <div class="right"><span class="badge ${bad ? "bad" : "ok"}">${bad ? bad + " 个断点" : "接得上"}</span>
         ${dead ? `<span class="badge warn" style="margin-left:6px">${dead} 个死端</span>` : ""}</div></div>
 
@@ -2951,11 +3030,17 @@ function viewHubWire(){
     ${packMapHTML()}
 
     <div class="secttl"><b>② 逻辑图</b><span>底层视角 · ${S.picks.length} 格 · 从左往右是施工顺序 · 图比屏幕宽时可以左右拖</span></div>
+    <div class="testbar" id="tbar" data-bad="${bad}" data-dead="${dead}" data-lines="${r.lines}">
+      <span class="tst" id="tst"><i class="tdot"></i>准备自检</span>
+      <span class="tnum" id="tnum">0 / ${S.picks.length} 格</span>
+      <span class="tline"><i id="tfill"></i></span>
+      <span class="tres" id="tres"></span>
+      <button class="btn sm ghost" id="bPlay">再跑一遍</button>
+    </div>
     <div class="wbar">
       <span class="faint" style="font-size:11.5px">装模块的动效</span>
       ${ANIMS.map(a => `<button class="achip ${anim === a.id ? "on" : ""}" data-anim="${a.id}" title="${esc(a.d)}">${a.nm}</button>`).join("")}
-      <button class="btn sm" id="bPlay" style="margin-left:auto">▶ 走一遍</button>
-      <button class="btn sm ghost" id="bPro2">${S.pro ? "专业 ✓" : "专业"}</button>
+      <button class="btn sm ghost" id="bPro2" style="margin-left:auto">${S.pro ? "专业 ✓" : "专业"}</button>
     </div>
     ${logicMapHTML()}
     <div class="animnote" id="animNote">${esc((ANIMS.find(a => a.id === anim) || ANIMS[0]).d)}</div>
@@ -2965,7 +3050,7 @@ function viewHubWire(){
       ${r.breaks.map(b => `<div class="gapbox"><b>断点 · ${esc(b.who)}</b>　需要「${esc(b.need)}」，勾选里没人产出。
         ${b.fix.length ? "补上：" + b.fix.map(esc).join("、") : "这一格要自己写或换方案。"}</div>`).join("")}
       ${r.dead.map(b => `<div class="gapbox warn"><b>死端 · ${esc(b.who)}</b>　产出的「${esc(b.type)}」没有任何模块接。</div>`).join("")}
-    </div>` : `<div class="okline">✓ ${S.picks.length} 格、${r.lines} 条连线全部接得上，没有死端。</div>`}
+    </div>` : ""}
 
     ${S.pro ? `<div class="card" style="overflow:hidden;margin-top:14px"><table class="protbl">
       <thead><tr><th style="width:30%">能力格</th><th>吃什么</th><th>吐什么</th><th style="width:18%">来自模块</th></tr></thead>
@@ -2987,7 +3072,28 @@ function viewHubWire(){
       <button class="btn primary lg" id="bNextW2">下一步：确认清单</button>
     </div>
   </div>`;
-  playLogic();
+  /* 包图有八行，逻辑图与这条状态条常常落在首屏下面。
+     进页面就开跑等于白跑——用户只看见包图，测完了也不知道。
+     所以改成「图真的进到视野里」才开始，跑一次就够。 */
+  const lgw = $("#view .lgwrap"), scroller = document.querySelector("main");
+  if(lgw){
+    let started = false;
+    const start = () => { if(started) return; started = true;
+      if(scroller && wireScrollH) scroller.removeEventListener("scroll", wireScrollH);
+      wireScrollH = null; playLogic(); };
+    const onScroll = () => {
+      const r = lgw.getBoundingClientRect();
+      /* 上沿进到视口 70% 以上、且还留一截在屏幕里，才算「人正看着它」 */
+      if(r.top < innerHeight * 0.7 && r.bottom > 120) start();
+    };
+    if(scroller){
+      if(wireScrollH) scroller.removeEventListener("scroll", wireScrollH);
+      wireScrollH = onScroll;
+      scroller.addEventListener("scroll", onScroll, {passive: true});
+    }
+    onScroll();
+    setTimeout(onScroll, 80);
+  } else playLogic();
   $("#bPlans").onclick = $("#bBack3").onclick = () => go("#/hub-plans");
   $("#bPMods").onclick = () => go("#/hub-mods");
   $("#bPlay").onclick = playLogic;
