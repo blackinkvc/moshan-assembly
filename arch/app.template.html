@@ -207,7 +207,8 @@
   .log .ok{color:var(--green)}
   .log .now{color:var(--ink);font-weight:600}
   .log .dim{color:var(--dim)}
-  .buildbar{display:flex;justify-content:center;gap:8px;margin-top:16px}
+  .buildbar{display:flex;justify-content:center;gap:8px;margin-top:16px;flex-wrap:wrap}
+  .buildbar .back{margin-right:auto}
 
   /* ── 完成页 ── */
   /* 注意：完成页容器不能叫 .done —— 阶段条里「已完成的步骤」也是 .s.done，
@@ -339,6 +340,25 @@
 
 
   /* ── 场景：选「我要做什么」 ── */
+  /* 12 个场景一张平铺网格太长了，用户在里头找不着。按「装给谁」分四组，
+     顶上一条吸顶索引：点一下就只看这一组，再点「全部」回来。 */
+  .scidx{position:sticky;top:52px;z-index:8;display:flex;gap:7px;align-items:center;flex-wrap:wrap;
+    padding:9px 0 10px;margin-bottom:2px;background:#fff;border-bottom:1px solid var(--line2)}
+  .scidx .lb{font-size:11.5px;color:var(--faint);margin-right:2px}
+  .scg{border:1px solid var(--line);background:#fff;border-radius:20px;padding:5px 12px;font-size:12.5px;
+    color:var(--dim);display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:.13s;font-weight:500}
+  .scg i{font-style:normal;font-size:10.5px;color:var(--faint);background:#f4f2ec;border-radius:10px;
+    padding:0 5px;line-height:15px}
+  .scg:hover{border-color:#d5d1c7;color:var(--ink)}
+  .scg.on{background:var(--brand);border-color:var(--brand);color:#fff}
+  .scg.on i{background:rgba(255,255,255,.18);color:#fff}
+  .scgh{display:flex;align-items:baseline;gap:9px;margin:16px 0 9px}
+  .scgh b{font-size:13.5px;font-weight:640}
+  .scgh span{font-size:11.5px;color:var(--faint)}
+  .scgh:first-child{margin-top:6px}
+  .sctip{font-size:12px;color:var(--dim);margin:6px 0 2px}
+  .sctip .lnk{border:0;background:none;padding:0;margin-left:8px;color:var(--ink);text-decoration:underline;
+    text-underline-offset:2px;cursor:pointer;font-size:12px}
   .scenes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
   .sc{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 14px;
     cursor:pointer;transition:.16s;display:flex;flex-direction:column;gap:7px}
@@ -401,7 +421,13 @@
   @media(max-width:1180px){.pk .plist{grid-template-columns:1fr}}
   @media(max-width:1100px){.plans.glue{grid-template-columns:1fr}}
   @media(max-width:900px){.scenes{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  @media(max-width:680px){.scenes{grid-template-columns:1fr}.pk .ph{flex-wrap:wrap}}
+  @media(max-width:680px){
+    .scenes{grid-template-columns:1fr}.pk .ph{flex-wrap:wrap}
+    .scidx{top:46px;gap:6px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:8px;
+      scrollbar-width:none;-ms-overflow-style:none}
+    .scidx::-webkit-scrollbar{display:none}
+    .scg{flex:0 0 auto}
+    .scidx .lb{display:none}}
 
   .hubmods{display:flex;flex-direction:column;gap:16px}
   .hm{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 14px;
@@ -671,15 +697,62 @@
 
   @media(max-width:1080px){.pcb .grid{grid-template-columns:repeat(2,minmax(0,1fr))}.styles{grid-template-columns:1fr}}
 
-  .starts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:16px}
+  .stepnav{display:flex;gap:9px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin-top:18px}
+  .stepnav .back{margin-right:auto}
+  /* 窄屏：上一步在上、下一步在下，各占一整行——拇指够得着，也不会两个挤成一团 */
+  @media(max-width:620px){
+    .stepnav{flex-direction:column;align-items:stretch;gap:8px}
+    .stepnav .back{margin-right:0}
+    .stepnav .btn{width:100%;justify-content:center;min-height:42px}
+  }
+
+  /* 首页两个入口。第一个是主入口：用色块、大图标、明确按钮告诉人「点这里开始」，
+     不要做成一张和普通卡片没差别的白卡（用户根本不知道能点）。 */
+  .starts{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:14px;margin-bottom:16px}
   .start{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;
     display:flex;gap:13px;align-items:center;cursor:pointer;transition:.15s}
   .start:hover{border-color:#cfcabd;box-shadow:0 8px 20px rgba(0,0,0,.05)}
+  .start:focus-visible{outline:2px solid #d8d3c4;outline-offset:2px}
   .start .ic{width:46px;height:46px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto}
   .start .ic.a{background:#eef4ef}
   .start .ic.b{background:#f6f3eb}
   .start b{font-size:14px;font-weight:640;display:block}
   .start p{margin:2px 0 0;font-size:12px;color:var(--dim);line-height:1.6}
+  .start .hx{min-width:0}
+
+  .start.hero{position:relative;overflow:hidden;padding:18px 20px;gap:16px;align-items:flex-start;
+    background:linear-gradient(135deg,#f2f5e8 0%,#e5eddd 55%,#f7f3e5 100%);
+    border-color:#ced3b6;box-shadow:0 1px 2px rgba(60,58,53,.04)}
+  /* 右上角一个很淡的光斑，把主入口和右边那张普通卡片区分开 */
+  .start.hero:after{content:"";position:absolute;right:-40px;top:-60px;width:180px;height:180px;
+    border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.9),rgba(255,255,255,0) 70%);
+    pointer-events:none}
+  .start.hero:hover{transform:translateY(-2px);border-color:#b8b09a;box-shadow:0 14px 30px rgba(60,58,53,.11)}
+  .start.hero .ic{width:56px;height:56px;border-radius:15px;background:#fff;border:1px solid #e2ddca;
+    box-shadow:0 2px 8px rgba(60,58,53,.07)}
+  .start.hero .kick{display:inline-block;font-size:10.5px;letter-spacing:.08em;color:#7a7458;background:#fff;
+    border:1px solid #e3dfce;border-radius:20px;padding:1px 9px;margin-bottom:6px}
+  .start.hero b{font-size:18px;letter-spacing:-.2px}
+  .start.hero p{font-size:12.5px;color:#5c5a53;max-width:56ch}
+  .start.hero .go{margin-left:auto;flex:0 0 auto;align-self:center;display:inline-flex;align-items:center;gap:8px;
+    background:var(--brand);color:#fff;border-radius:10px;padding:13px 20px;font-size:14px;font-weight:650;
+    box-shadow:0 6px 16px rgba(60,58,53,.18);transition:.16s;white-space:nowrap}
+  .start.hero .go em{font-style:normal;transition:transform .16s}
+  .start.hero:hover .go{background:#2b2a26;box-shadow:0 10px 22px rgba(60,58,53,.26)}
+  .start.hero:hover .go em{transform:translateX(3px)}
+  /* 一直轻轻呼吸，眼睛能扫到；系统开了「减少动态效果」就不动 */
+  .start.hero .go{animation:heroBreathe 3s ease-in-out infinite}
+  @keyframes heroBreathe{
+    0%,100%{box-shadow:0 4px 12px rgba(60,58,53,.14)}
+    50%{box-shadow:0 9px 24px rgba(60,58,53,.28)}}
+  @media(prefers-reduced-motion:reduce){
+    .start.hero .go{animation:none}
+    .start.hero:hover{transform:none}}
+  @media(max-width:980px){
+    .start.hero{flex-wrap:wrap;gap:12px}
+    .start.hero .hx{flex:1 1 240px}
+    .start.hero .go{width:100%;justify-content:center;margin-left:0}
+  }
   .dftbox{margin-top:14px}
   .dft{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line2);cursor:pointer;border-radius:6px}
   .dft:last-child{border-bottom:0}
@@ -927,6 +1000,26 @@ const SCENES = [
    out:"一个主播旁边的第二块屏：按秒推进脚本、实时看数据、下播自动出复盘",
    why:"它的时间粒度是「秒」，所以日程包（排期与提醒）+ 实时推送 + 媒体包是核心。"},
 ];
+
+/* 12 个场景分四组，按「装给谁用」分——不按行业分。
+   场景页顶上是这条索引，点一下只看一组；分组只是导航，不影响算法。 */
+const SCAT = [
+  {id:"self", nm:"自己天天用", hint:"装在自己电脑上，一个人用、天天开", ids:["hub","nas","imagegen"]},
+  {id:"biz",  nm:"开门做生意", hint:"有客人、有订单、要对得上账", ids:["shop","cafe","wms","sling"]},
+  {id:"prod", nm:"做产品上线", hint:"做出来给别人用，出事要能救", ids:["idle","saas","live"]},
+  {id:"hw",   nm:"要接硬件", hint:"连设备、读传感器、往下发指令", ids:["drone","hotspot"]},
+];
+/* 场景页上一次看的是哪一类。放在模块级而不是 S.hub 里：
+   从工作台进来时还没有 hub，塞进去会丢，回来又跳回「全部」。
+   （这里不能读 S —— 上面 1000 行处 S 还没定义，会踩 TDZ。） */
+let lastSg = "all";
+/* 漏一个场景就会「查不到」，所以在启动时对一次账（控制台会报，界面上不吵人） */
+(function(){
+  const seen = SCAT.reduce((n, g) => n.concat(g.ids), []);
+  const miss = SCENES.filter(s => !seen.includes(s.id)).map(s => s.id);
+  const ghost = seen.filter(id => !SCENES.some(s => s.id === id));
+  if(miss.length || ghost.length) console.warn("[SCAT] 分组与场景不一致", {miss, ghost});
+})();
 
 /* ────────── 胶水：模块之间的缝 ──────────
    它们不属于任何一个功能，但每加一个模块都要从这里穿过去。先有缝，后加模块才不用改已装好的部分。 */
@@ -1997,7 +2090,7 @@ function topbar(crumb, steps, right){
 
 /* ────────── 草稿：把当前进度存下来，回头接着做 ────────── */
 const ROUTE_NM = {"hub-scene":"场景","hub-style":"形态","hub-mods":"包","hub-plans":"方案","hub-wire":"连线",
-                  confirm:"确认", build:"组装", done:"交付", trial:"交付", pack:"交付", new:"需求", plan:"选型", home:"工作台"};
+                  confirm:"确认", build:"组装", done:"交付", trial:"试用", pack:"打包", new:"需求", plan:"选型", home:"工作台"};
 function ago(ts){
   const d = Date.now() - ts;
   if(d < 0 || d < 60000) return "刚刚";
@@ -2078,9 +2171,10 @@ function draftOpen(id){
   if(isHub){ S.cov = hubCov(); if(!S.picks.length) S.picks = hubCells(S.hub.mods); }
   else if(S.need){ S.cov = matchNeed(S.need); }
   save();
-  /* 组装/交付那两步的状态留在内存里、存不进草稿，所以退回到「确认」重开一次 */
+  /* 组装/交付那两步的运行时状态存不进草稿，所以退回到「试用」重开一次——
+     试用用的就是打包出去的那份文档，打开就能点，比回到确认清单更有用。 */
   let to = d.route || (isHub ? "#/hub-mods" : "#/plan");
-  if(to === "#/build" || to === "#/done") to = "#/confirm";
+  if(to === "#/build" || to === "#/done") to = isHub ? "#/trial" : "#/confirm";
   if(to === "#/trial" || to === "#/pack"){ if(!isHub) to = "#/confirm"; }
   toast(`已恢复「${d.nm}」`);
   go(to);
@@ -2162,7 +2256,8 @@ function viewHome(){
       <button class="btn sm ghost" data-ddel="${d.id}" title="删除这份草稿">✕</button>
     </div>`;
   }).join("") : `<div class="empty" style="padding:6px 0 2px">还没有草稿。在任意一步右上角点「存草稿」，
-    下次打开工作台在这里接着做——中台的风格、模块、方案都会原样带回来。</div>`;
+    下次打开工作台在这里接着做——中台的场景、形态、模块、方案都会原样带回来，
+    停在试用/打包那两步的草稿，点开就直接回到试用页，里面点过的东西也还在。</div>`;
   $("#view").innerHTML = `<div class="page">
     <div class="pagehd">
       <div><h1>工作台</h1><p>${S.projects.length} 个装配项目 · ${drafts.length
@@ -2170,21 +2265,25 @@ function viewHome(){
       <div class="right"><button class="btn" id="bLib">浏览模块库</button><button class="btn primary" id="bNew2">＋ 新建装配</button></div>
     </div>
     <div class="starts">
-      <div class="start" id="bHub" role="button" tabindex="0">
-        <div class="ic a">${art("shell", 26)}</div>
-        <div><b>装一个自己用的东西</b>
+      <div class="start hero" id="bHub" role="button" tabindex="0" aria-label="开始装配：从 12 个场景里挑一个">
+        <div class="ic a">${art("shell", 30)}</div>
+        <div class="hx">
+          <span class="kick">从这里开始</span>
+          <b>装一个自己用的东西</b>
           <p>${SCENES.length} 个场景 · ${PACKS.length} 个包 · ${HUB.length} 个模块。
-            选场景、定装多满、勾包、挑胶水与底座，像往主板上插模块一样装起来</p></div>
+            选场景、定装多满、勾包、挑胶水与底座，像往主板上插模块一样装起来</p>
+        </div>
+        <span class="go" aria-hidden="true">开始装配 <em>→</em></span>
       </div>
-      <div class="start" id="bAsk" role="button" tabindex="0">
+      <div class="start" id="bAsk" role="button" tabindex="0" aria-label="从一句话需求开始">
         <div class="ic b">${art("ai", 26)}</div>
-        <div><b>从一句话需求开始</b>
+        <div class="hx"><b>从一句话需求开始</b>
           <p>写清「拿什么进来、变成什么出去」，系统反推要哪些能力格</p></div>
       </div>
     </div>
     <div class="grid3">${cards}</div>
     <div class="card box dftbox">
-      <div class="bh">草稿箱 <span class="sp">${drafts.length} 份 · 存在这台电脑的浏览器里</span>
+      <div class="bh">草稿箱 <span class="sp">${drafts.length} 份 · 存在这台电脑的浏览器里${drafts.some(d => /#\/(trial|pack|done|build)$/.test(d.route || "")) ? " · 做完的草稿点开直接进试用" : ""}</span>
         <button class="btn sm ghost" id="bDftExp">导出</button>
         <button class="btn sm ghost" id="bDftImp">导入</button></div>
       <div class="dftlist">${dftHTML}</div>
@@ -2267,7 +2366,7 @@ function viewHome(){
 
 /* ────────── 视图：需求 ────────── */
 function viewNew(){
-  topbar(`工作台 <span>/</span> <b>新建装配</b>`, 0, `<button class="btn sm ghost" id="bBack">返回</button>`);
+  topbar(`工作台 <span>/</span> <b>新建装配</b>`, 0, `<button class="btn sm ghost" id="bBack">← 上一步：回工作台</button>`);
   const eg = [
     "拍一张小票照片，自动识别金额和商品名，记到账本里，按月出统计图表，还能问这个月买菜花了多少",
     "我想做个个人生活助手，记录每天的饮食、睡眠和心情，到点提醒我喝水睡觉，每周给我一份总结",
@@ -2349,20 +2448,38 @@ function hubLabel(){
 /* 场景：从「我要做什么」开始选，而不是从「要哪个模块」开始 */
 function viewHubScene(){
   topbar(`工作台 <span>/</span> <b>个人中台</b>`, hubSteps(0),
-    `<button class="btn sm ghost" id="bHome">返回工作台</button>`);
+    `<button class="btn sm ghost" id="bHome">← 上一步：回工作台</button>`);
   const cur = (S.hub && S.hub.scene) || null;
+  /* 记住上次看的是哪组，来回翻的时候不跳回「全部」 */
+  let g = lastSg;
+  if(g !== "all" && !SCAT.some(x => x.id === g)) g = "all";
+  const sceneCard = sc => `
+    <div class="sc ${cur === sc.id ? "on" : ""}" data-sc="${sc.id}" title="${esc(sc.why)}">
+      <div class="sh"><span class="sico">${art(sc.art, 22, "currentColor")}</span><b>${esc(sc.nm)}</b></div>
+      <div class="ss">${esc(sc.sub)}</div>
+      <div class="so"><em>装出来</em>${esc(sc.out)}</div>
+      <div class="sp">${sc.packs.map(pid => { const p = packOf(pid);
+        return `<span style="--h:${p.hue}">${esc(p.nm)}</span>`; }).join("")}</div>
+    </div>`;
+  const body = (gg) => (gg === "all" ? SCAT : SCAT.filter(x => x.id === gg)).map(gp => `
+    <div class="scgh"><b>${esc(gp.nm)}</b><span>${esc(gp.hint)}</span></div>
+    <div class="scenes">${gp.ids.map(id => SCENES.find(s => s.id === id)).filter(Boolean).map(sceneCard).join("")}</div>`
+  ).join("");
+  const tip = gg => {
+    const gp = SCAT.find(x => x.id === gg);
+    return !gp ? "" : `<div class="sctip">只看「${esc(gp.nm)}」这一类，${gp.ids.length} 个场景
+      <button class="lnk" data-g="all">看全部 ${SCENES.length} 个</button></div>`;
+  };
   $("#view").innerHTML = `<div class="page">
     <div class="pagehd"><div><h1>你要装的是什么？</h1>
       <p>先选场景——它决定默认装哪些包。选完在下一步可以任意增删包与模块，场景只是个起点。</p></div>
-      <div class="right"><span class="badge mute">${SCENES.length} 个场景</span></div></div>
-    <div class="scenes">${SCENES.map(sc => `
-      <div class="sc ${cur === sc.id ? "on" : ""}" data-sc="${sc.id}" title="${esc(sc.why)}">
-        <div class="sh"><span class="sico">${art(sc.art, 22, "currentColor")}</span><b>${esc(sc.nm)}</b></div>
-        <div class="ss">${esc(sc.sub)}</div>
-        <div class="so"><em>装出来</em>${esc(sc.out)}</div>
-        <div class="sp">${sc.packs.map(pid => { const p = packOf(pid);
-          return `<span style="--h:${p.hue}">${esc(p.nm)}</span>`; }).join("")}</div>
-      </div>`).join("")}</div>
+      <div class="right"><span class="badge mute">${SCENES.length} 个场景 · ${SCAT.length} 类</span></div></div>
+    <div class="scidx" id="scidx">
+      <span class="lb">分类</span>
+      <button class="scg ${g === "all" ? "on" : ""}" data-g="all">全部 <i>${SCENES.length}</i></button>
+      ${SCAT.map(gp => `<button class="scg ${g === gp.id ? "on" : ""}" data-g="${gp.id}">${esc(gp.nm)} <i>${gp.ids.length}</i></button>`).join("")}
+    </div>
+    <div id="scbody">${tip(g)}${body(g)}</div>
     <div class="card box" style="margin-top:14px;font-size:12.5px;color:var(--dim);line-height:1.9">
       <b style="color:var(--ink)">场景不是模板。</b>
       它只是替你勾好一批包——每个包背后仍然是能力格，最后一样要过连通检查。
@@ -2370,14 +2487,30 @@ function viewHubScene(){
     </div>
   </div>`;
   $("#bHome").onclick = () => go("#/home");
-  document.querySelectorAll("[data-sc]").forEach(c => c.onclick = () => {
-    const id = c.dataset.sc;
-    const keepSty = (S.hub && S.hub.sty) || "mid";
-    S.hub = hubNew(id, keepSty);
-    S.picks = hubCells(S.hub.mods);
-    S.need = sceneById(id).nm;
-    save(); go("#/hub-style");
-  });
+  const bind = () => {
+    document.querySelectorAll("[data-sc]").forEach(c => c.onclick = () => {
+      const id = c.dataset.sc;
+      const keepSty = (S.hub && S.hub.sty) || "mid";
+      S.hub = hubNew(id, keepSty);
+      S.picks = hubCells(S.hub.mods);
+      S.need = sceneById(id).nm;
+      save(); go("#/hub-style");
+    });
+    /* 筛选后那条「看全部」是重新渲染出来的，得跟着绑 */
+    document.querySelectorAll("#scbody [data-g]").forEach(b => b.onclick = () => pickG(b.dataset.g));
+  };
+  bind();
+  const pickG = gg => {
+    g = gg; lastSg = gg;
+    if(S.hub) S.hub.sg = gg;
+    document.querySelectorAll(".scidx [data-g]").forEach(x => x.classList.toggle("on", x.dataset.g === g));
+    $("#scbody").innerHTML = tip(g) + body(g);
+    bind();
+    const box = document.querySelector("main");
+    if(box){ const t = document.querySelector(".scidx").getBoundingClientRect().top;
+      if(t < 40) box.scrollTo({top: 0, behavior: "smooth"}); }
+  };
+  document.querySelectorAll(".scidx [data-g]").forEach(b => b.onclick = () => pickG(b.dataset.g));
 }
 
 /* 风格：三种密度。勾多少由「场景的包 × 风格」算，不是写死一份列表 */
@@ -2393,6 +2526,7 @@ function hubNew(sceneId, styId, extra){
     mem: open.mem || 16,
     model: open.model || "qwen2.5:3b",
     min: !!open.min,
+    sg: open.sg || "all",
     plans: open.plans || {}, glue: open.glue || {}, base: open.base || {}
   };
   Object.assign(o, extra || {});
@@ -2459,8 +2593,8 @@ function viewHubStyle(){
         所以「先做简约、以后再补」不会返工。换形态或规格会按新规则重算勾选，你手改过的会重置。
       </div>
 
-      <div style="display:flex;gap:9px;justify-content:flex-end;margin-top:18px">
-        <button class="btn" id="bBack">上一步：换场景</button>
+      <div class="stepnav">
+        <button class="btn back" id="bBack">← 上一步：换场景</button>
         <button class="btn primary lg" id="bNext">下一步：看包</button>
       </div>
     </div>`;
@@ -2576,8 +2710,8 @@ function viewHubMods(){
       <span class="faint" style="font-size:11.5px">下一步给每块挑实现方案</span>
       <button class="btn primary" id="bNextM" ${S.hub.mods.length ? "" : "disabled"} style="margin-left:auto">下一步</button>
     </div>
-    <div style="display:flex;gap:9px;justify-content:flex-end;margin-top:18px">
-      <button class="btn" id="bBack">上一步：换形态/规格</button>
+    <div class="stepnav">
+      <button class="btn back" id="bBack">← 上一步：换形态/规格</button>
       <button class="btn primary" id="bNext2" ${S.hub.mods.length ? "" : "disabled"}>下一步：选方案</button>
     </div>
   </div>`;
@@ -2752,8 +2886,8 @@ function viewHubPlans(){
       <span class="badge ok">${mods.length} 模块 · ${cells.length} 格 · ${GLUE.length} 胶水 · ${BASE.length} 底座</span>
       <button class="btn primary" id="bNext3" style="margin-left:auto">下一步：看连线图</button>
     </div>
-    <div style="display:flex;gap:9px;justify-content:flex-end;margin-top:18px">
-      <button class="btn" id="bBack2">上一步：改包</button>
+    <div class="stepnav">
+      <button class="btn back" id="bBack2">← 上一步：改包</button>
       <button class="btn primary lg" id="bNext4">下一步：看连线图</button>
     </div>
   </div>`;
@@ -3067,8 +3201,8 @@ function viewHubWire(){
       <span class="badge ${bad ? "bad" : "ok"}">${S.picks.length} 格 · ${r.lines} 条连线 · ${S.hub.mods.length} 个模块</span>
       <button class="btn primary" id="bNextW" style="margin-left:auto" ${bad ? "" : ""}>下一步：确认清单</button>
     </div>
-    <div style="display:flex;gap:9px;justify-content:flex-end;margin-top:18px">
-      <button class="btn" id="bBack3">上一步：改方案</button>
+    <div class="stepnav">
+      <button class="btn back" id="bBack3">← 上一步：改方案</button>
       <button class="btn primary lg" id="bNextW2">下一步：确认清单</button>
     </div>
   </div>`;
@@ -3174,6 +3308,7 @@ function viewPlan(){
         ${breaksHTML}
         ${r.dead.length ? `<div class="warnbox">⚠ 有 ${[...new Set(r.dead.map(d => d.who))].length} 格做出来没去处（${esc(r.dead[0].who)} → ${esc(r.dead[0].type)}…），加一格界面或发布。</div>` : ""}
         <div class="cta" style="margin-top:12px">
+          <button class="btn back" id="bPlanBack" style="justify-content:center">← 上一步：${isHub ? "改模块" : "改需求"}</button>
           <button class="btn primary" id="bNext" ${(!S.picks.length || r.breaks.length) ? "disabled" : ""}>
             ${r.breaks.length ? "先修 " + r.breaks.length + " 处断点" : "下一步：确认清单"}</button>
           <div class="hint">${S.picks.length ? S.picks.length + " 格 · " + r.lines + " 条连线" : "还没有勾任何格"}</div>
@@ -3191,12 +3326,15 @@ function viewPlan(){
       </div>` : ""}`;
   };
 
-  const mobHTML = r => `<span class="badge ${r.breaks.length ? "bad" : "ok"}">${r.breaks.length ? r.breaks.length + " 处断点" : "全通"}</span>
+  const mobHTML = r => `<button class="btn back" id="bPlanBackM">← 上一步：${isHub ? "改模块" : "改需求"}</button>
+      <span class="badge ${r.breaks.length ? "bad" : "ok"}">${r.breaks.length ? r.breaks.length + " 处断点" : "全通"}</span>
       <span class="faint" style="font-size:11.5px">${S.picks.length} 格 · ${r.lines} 条线</span>
       <button class="btn primary" id="bNext2" ${(!S.picks.length || r.breaks.length) ? "disabled" : ""}
         style="margin-left:auto">${r.breaks.length ? "先修断点" : "下一步"}</button>`;
 
   const bindNext = () => {
+    const goBack = () => go(isHub ? "#/hub-mods" : "#/new");
+    ["bPlanBack", "bPlanBackM"].forEach(id => { const bk = $("#" + id); if(bk) bk.onclick = goBack; });
     const nx = $("#bNext"); if(nx) nx.onclick = () => go("#/confirm");
     const nx2 = $("#bNext2"); if(nx2) nx2.onclick = () => go("#/confirm");
   };
@@ -3400,7 +3538,7 @@ function viewConfirm(){
   if(!S.cov) S.cov = {core: [], rec: [], scene: [], gaps: [], hits: {}};
   const r = check(S.picks);
   topbar(isHub ? `工作台 <span>/</span> <b>${esc(sceneName())}</b>` : `工作台 <span>/</span> <b>确认清单</b>`, isHub ? hubSteps(5) : 2,
-    `<button class="btn sm ghost" id="bBack">返回选型</button>`);
+    `<button class="btn sm ghost" id="bBack">← 上一步：${isHub ? "回连线图" : "回选型"}</button>`);
   // 中台模式下这张表不列方案（方案在上面的模块表里已经选过了），改成「这一格是谁带来的、排第几步」
   const ownOf = cid => {
     const m = S.hub.mods.map(hubMod).find(x => x && x.cells.includes(cid));
@@ -3498,8 +3636,8 @@ function viewConfirm(){
         </div>
       </aside>
     </div>
-    <div style="display:flex;gap:9px;justify-content:flex-end;margin-top:18px">
-      <button class="btn" id="bBack2">返回修改</button>
+    <div class="stepnav">
+      <button class="btn back" id="bBack2">← 上一步：回连线图</button>
       ${isHub ? `<button class="btn" id="bWire">看连线图</button>` : ""}
       <button class="btn" id="bExport">导出清单</button>
       <button class="btn primary lg" id="bStart" ${S.picks.length ? "" : "disabled"}>确认开工，开始组装</button>
@@ -3710,6 +3848,7 @@ function renderBuild(){
     <div class="stage">${names.map((n, i) => `<div class="s ${i === stage ? "on" : (i < stage ? "done" : "")}"><i></i>${n}</div>`).join("")}</div>
     <div class="log" id="log">${b.logs.map(l => `<div class="${l.c}"><span class="t">${l.t}</span>  ${esc(l.s)}</div>`).join("")}</div>
     <div class="buildbar">
+      <button class="btn back" id="bBBack">← 上一步：回确认清单</button>
       ${b.done
         ? `<button class="btn primary" id="bFin">查看结果</button>`
         : `<button class="btn" id="bPause">${b.paused ? "继续" : "暂停"}</button>
@@ -3731,6 +3870,9 @@ function renderBuild(){
     $("#bYes").onclick = () => { S.build = null; closeModal(); go("#/home"); toast("已中止"); };
   };
   const fin = $("#bFin"); if(fin) fin.onclick = () => go("#/done");
+  /* 组装跑到一半发现选错了也能退：已装好的保留，回确认页改完再进来接着装 */
+  const bk = $("#bBBack");
+  if(bk) bk.onclick = () => { if(b.pct > 0 && !b.done) b.paused = true; go("#/confirm"); };
 }
 
 /* ────────── 视图：完成 ────────── */
@@ -3738,6 +3880,13 @@ function renderBuild(){
    试用和打包出去的是同一份文档：这里生成完整 HTML 字符串，
    页面里用 iframe.srcdoc 跑，打包时原文写进 zip 的 index.html。
    好处是「试的」和「带走的」不会分叉。 */
+/* 试用数据的存储键按「装配签名」分桶：
+   原来所有中台共用一个键，A 草稿的待办会串到 B 草稿里；分桶之后每套装配各存各的。 */
+function sigOf(s){
+  let h = 5381;
+  for(let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
 function trialData(){
   const isHub = !!(S.hub && S.hub.mods.length);
   /* 最小包：只留地基（core 里必装的那几块）+ 扩展系统。
@@ -3757,6 +3906,7 @@ function trialData(){
   const r = check(picks);
   const memo = isHub ? memSim() : null;
   return {
+    sig: isHub ? sigOf([S.hub.scene, S.hub.sty, S.hub.form, ids.slice().sort().join(",")].join("|")) : "need",
     form: isHub ? formDef().id : "app",
     formNm: isHub ? formDef().nm : "自定义",
     plat: isHub ? platOf().slice() : [],
@@ -3924,7 +4074,8 @@ function trialRuntime(D){
   const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const pad = n => (n < 10 ? "0" : "") + n;
   const ts = () => { const d = new Date(); return (d.getMonth()+1) + "-" + d.getDate() + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); };
-  const K = "moshan.trial.v1";
+  /* 每套装配一份数据：同一个草稿再打开，里面点过的东西还在；换一套不会串味 */
+  const K = "moshan.trial.v2:" + (D.sig || "x");
   const save = () => { try { localStorage.setItem(K, JSON.stringify(ST)); } catch(e){} };
 
   const seed = () => ({
@@ -4404,7 +4555,7 @@ function trialRuntime(D){
           <button class="btn p" id="dtExp">导出全部数据</button>
           <button class="btn" id="dtReset">清空并恢复示例</button>
         </div>
-        <div class="hint">模拟版把数据塞在浏览器的 <b>localStorage</b> 里（键 <code>moshan.trial.v1</code>），
+        <div class="hint">模拟版把数据塞在浏览器的 <b>localStorage</b> 里（每套装配一个键，<code>moshan.trial.v2:*</code>），
           上限几 MB。真实版本是 <b>SQLite 单文件 + WAL</b>：零运维、整库能拷走、备份就是一个 zip。<br>
           选中方案：${esc((D.mods.find(m => m.id === "data") || {}).prov ? D.mods.find(m => m.id === "data").prov.n : "—")}</div>
       </div>`;
@@ -4502,18 +4653,28 @@ function viewTrial(){
       </div>
     </div>
     <iframe class="trialbox" id="tFrame" title="模拟中台"></iframe>
-    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+    <div class="stepnav" style="margin-top:16px">
+      <button class="btn back" id="bTBack">← 上一步：回确认清单</button>
       <button class="btn primary" id="bTPack2">就这样，打包 →</button>
     </div>
   </div>`;
   const mount = () => { $("#tFrame").srcdoc = trialDoc(); };
   mount();
   $("#bTReset").onclick = () => {
-    try { localStorage.removeItem("moshan.trial.v1"); } catch(e){}
+    /* 键是按装配分桶的，所以清的时候把整族都清掉，不然换了形态还有残留 */
+    try {
+      const kill = [];
+      for(let i = 0; i < localStorage.length; i++){
+        const k = localStorage.key(i);
+        if(k && k.indexOf("moshan.trial") === 0) kill.push(k);
+      }
+      kill.forEach(k => localStorage.removeItem(k));
+    } catch(e){}
     mount(); toast("试用数据已重置");
   };
   $("#bTMods").onclick = () => go("#/hub-mods");
   $("#bTPlans").onclick = () => go("#/hub-plans");
+  $("#bTBack").onclick = () => go("#/confirm");
   $("#bTPack").onclick = $("#bTPack2").onclick = () => go("#/pack");
 }
 
@@ -4801,6 +4962,7 @@ function viewPack(){
     </div>
 
     <div style="display:flex;gap:9px;flex-wrap:wrap">
+      <button class="btn back" id="bPBack2" style="margin-right:auto">← 上一步：回试用</button>
       <button class="btn primary lg" id="bZipDown">下载 .zip（${kb} KB）</button>
       <button class="btn" id="bOnlyHtml">只要 index.html</button>
       <button class="btn" id="bExpP">导出清单 .md</button>
@@ -4820,7 +4982,7 @@ function viewPack(){
     (S.hub.min ? "moshan-min" : "moshan-hub") + ".zip");
   $("#bOnlyHtml").onclick = () => dl(new Blob([htmlDoc], {type:"text/html;charset=utf-8"}), "试用版.html");
   $("#bExpP").onclick = exportMd;
-  $("#bPBack").onclick = () => go("#/trial");
+  $("#bPBack").onclick = $("#bPBack2").onclick = () => go("#/trial");
   $("#bPAgain").onclick = () => { S.need = ""; S.hub = null; save(); go("#/hub-style"); };
   $("#bMin").onclick = () => { S.hub.min = !S.hub.min; save(); route(); };
   document.querySelectorAll("[data-mem]").forEach(b => b.onclick = () => {
@@ -4861,18 +5023,22 @@ ${files}
   └─ <span class="d">README.md</span><span class="m">         ← 每格做什么、为什么选这个方案</span></div>
     <div class="donebtns">
       ${isHub
-        ? `<button class="btn primary" id="bTrial">先试用一下</button>
+        ? `<button class="btn" id="bDoneBack">← 上一步：回组装</button>
+           <button class="btn primary" id="bTrial">先试用一下</button>
            <button class="btn" id="bPack">打包带走</button>
            <button class="btn ghost" id="bDraft2">存草稿</button>
            <button class="btn ghost" id="bExp2">导出清单</button>
            <button class="btn ghost" id="bAgain">再做一个中台</button>`
-        : `<button class="btn primary" id="bOpen">打开项目目录</button>
+        : `<button class="btn" id="bDoneBack">← 上一步：回组装</button>
+           <button class="btn primary" id="bOpen">打开项目目录</button>
            <button class="btn" id="bExp2">导出清单</button>
            <button class="btn ghost" id="bAgain">再做一个</button>`}
     </div>
   </div>`;
   if($("#bTrial")) $("#bTrial").onclick = () => go("#/trial");
   if($("#bPack")) $("#bPack").onclick = () => go("#/pack");
+  /* 组装状态可能已经没了（草稿恢复进来），那就退回确认页 */
+  $("#bDoneBack").onclick = () => go(S.build ? "#/build" : "#/confirm");
   if($("#bDraft2")) $("#bDraft2").onclick = () => draftBox($("#bDraft2"));
   if($("#bOpen")) $("#bOpen").onclick = () => toast("原型：这里会打开本地项目目录");
   $("#bExp2").onclick = exportMd;
