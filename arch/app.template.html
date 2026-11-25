@@ -376,7 +376,7 @@
   /* 方案页的三段标题与胶水卡 */
   .secttl{display:flex;align-items:baseline;gap:9px;margin:18px 0 10px;scroll-margin-top:70px}
   .secttl.first{margin-top:12px}
-  .secttl b{font-size:14px;font-weight:650}
+  .secttl b{font-size:14px;font-weight:650;white-space:nowrap}
   .secttl span{font-size:11.5px;color:var(--faint)}
   .pm .pdot{width:22px;height:22px;display:grid;place-items:center;border-radius:6px;flex:0 0 auto;
     background:hsl(var(--h) 62% 96%);border:1px solid hsl(var(--h) 44% 89%)}
@@ -450,7 +450,8 @@
   .slot{height:54px;border-radius:7px;border:1px dashed rgba(170,205,188,.35);
     display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(170,205,188,.55);
     text-align:center;padding:0 6px;line-height:1.35;background:rgba(0,0,0,.10)}
-  .mchip{height:54px;border-radius:7px;background:#efe9da;color:#2a2824;padding:6px 8px 12px;
+  .mchip{height:54px;border-radius:7px;color:#2a2824;padding:6px 8px 12px;
+    background:linear-gradient(hsl(var(--h,45) 52% 93%),hsl(var(--h,45) 44% 86%));
     display:flex;align-items:center;justify-content:center;text-align:center;font-size:11.5px;line-height:1.3;
     position:relative;box-shadow:0 1px 2px rgba(0,0,0,.25),inset 0 -1px 0 rgba(0,0,0,.06)}
   .mchip .nm{font-weight:600}
@@ -464,6 +465,171 @@
     100%{transform:none;opacity:1}
   }
   @media(prefers-reduced-motion:reduce){.mchip.just,.hm.just .tick{animation:none}}
+
+  /* ── 形态·规格·平台：三组竖着排 ── */
+  .pgrp{margin-bottom:20px}
+  .pgt{display:flex;align-items:baseline;gap:10px;margin:0 0 9px}
+  .pgt b{font-size:13.5px;font-weight:650}
+  .pgt span{font-size:11.5px;color:var(--faint)}
+  .sty.frm{align-items:flex-start}
+  .sty.frm .fico{width:44px;height:44px;border-radius:11px;background:#f4f2ec;border:1px solid var(--line2);
+    display:grid;place-items:center;color:#6a675d}
+  .sty.frm.on .fico{background:#f0efe9;border-color:#cfcabd;color:var(--ink)}
+  .plats{display:flex;flex-wrap:wrap;gap:9px}
+  .plat{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--panel);
+    border-radius:9px;padding:8px 12px;cursor:pointer;transition:.14s;font-size:12.5px}
+  .plat:hover{border-color:#cfcabd}
+  .plat .pi{display:grid;place-items:center;width:20px;height:20px;border-radius:6px;background:#f1efe8;color:#6a675d}
+  .plat b{font-weight:600}
+  .plat .pn{font-size:10.5px;color:var(--faint)}
+  .plat.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .plat.on .pi{background:rgba(255,255,255,.16);color:#fff}
+  .plat.on .pn{color:rgba(255,255,255,.6)}
+  .plat.no{opacity:.45;cursor:not-allowed;border-style:dashed}
+  .hintline{font-size:11.5px;color:var(--dim);line-height:1.75;background:#faf9f6;border:1px dashed var(--line);
+    border-radius:8px;padding:8px 10px;margin-top:9px}
+  .hintline b{color:var(--ink)}
+
+  /* ── 模块卡上的「多包」标 ── */
+  .hm .nm .mp{font-size:10px;color:hsl(var(--h) 40% 34%);background:hsl(var(--h) 62% 95%);
+    border:1px solid hsl(var(--h) 44% 86%);border-radius:20px;padding:1px 6px;font-weight:500;white-space:nowrap}
+  .proline{margin-top:5px;display:flex;flex-direction:column;gap:2px}
+  .proline .ce{font:10px/1.5 ui-monospace,Menlo,monospace;color:#8b8880;display:flex;gap:6px}
+  .proline .ce em{font-style:normal;color:#6a675d;flex:0 0 auto}
+  .proline .ce i{font-style:normal;color:#a19d92}
+  .proon{background:var(--ink);border-color:var(--ink);color:#fff}
+  .proon:hover{background:#3a3830}
+  .protbl{width:100%;border-collapse:collapse;font-size:12px}
+  .protbl th{text-align:left;font-size:10.5px;color:var(--faint);font-weight:500;padding:6px 10px;
+    border-bottom:1px solid var(--line2);background:#faf9f7}
+  .protbl td{padding:7px 10px;border-bottom:1px solid var(--line2);vertical-align:top}
+  .protbl tr:last-child td{border-bottom:0}
+  .protbl .mono{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#5f5d55}
+
+  /* ── 包图：左包右模块，中间连线 ── */
+  .pmap{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:8px 12px}
+  .prow{display:grid;grid-template-columns:178px minmax(0,1fr);gap:12px;align-items:start;
+    padding:7px 0;border-top:1px dashed var(--line2)}
+  .prow:first-child{border-top:0}
+  .pnode{display:flex;align-items:center;gap:7px;border:1px solid hsl(var(--h) 42% 86%);
+    background:hsl(var(--h) 60% 97%);border-radius:8px;padding:5px 9px;font-size:12px}
+  .pnode .pd{display:grid;place-items:center}
+  .pnode b{font-weight:600;color:hsl(var(--h) 34% 24%);font-size:12px;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .pnode i{margin-left:auto;font-style:normal;font-size:10.5px;color:hsl(var(--h) 30% 44%)}
+  .pchips{display:flex;flex-wrap:wrap;gap:5px;padding-top:1px}
+  .mnode{display:inline-flex;align-items:center;gap:4px;border:1px solid hsl(var(--h) 40% 86%);
+    background:hsl(var(--h) 55% 97%);border-radius:6px;padding:3px 7px;font-size:11.5px;
+    color:hsl(var(--h) 32% 26%);overflow:hidden;white-space:nowrap}
+  .mnode em{font-style:normal;font-size:9.5px;color:#fff;background:hsl(var(--h) 45% 58%);
+    border-radius:20px;padding:0 4px;flex:0 0 auto}
+
+  /* ── 逻辑图：能力格 DAG ── */
+  .lgwrap{border:1px solid var(--line);border-radius:12px;overflow-x:auto;background:
+    linear-gradient(#fbfaf7,#fbfaf7) padding-box,repeating-linear-gradient(0deg,transparent,transparent 21px,rgba(0,0,0,.03) 21px,rgba(0,0,0,.03) 22px);
+    padding:6px;overflow:hidden}
+  .lg .node rect{transition:opacity .2s}
+  .lg .edge{stroke-dasharray:var(--len);stroke-dashoffset:var(--len)}
+  .lg.play .edge{animation:edgeDraw .5s linear forwards;animation-delay:var(--ed)}
+  @keyframes edgeDraw{to{stroke-dashoffset:0}}
+  .lg.play .node{animation:ndLego .42s cubic-bezier(.2,1.5,.4,1) both;animation-delay:var(--d)}
+  .lg[data-anim="flat"].play .node{animation:ndFlat .3s steps(3,end) both;animation-delay:var(--d)}
+  .lg[data-anim="lego"].play .node{animation:ndLego .42s cubic-bezier(.2,1.5,.4,1) both;animation-delay:var(--d)}
+  .lg[data-anim="solder"].play .node{animation:ndSolder .5s ease-out both;animation-delay:var(--d)}
+  .lg[data-anim="glow"].play .node{animation:ndGlow .6s ease-out both;animation-delay:calc(var(--d) + 160ms)}
+  .lg[data-anim="stack"].play .node{animation:ndStack .5s cubic-bezier(.2,1.3,.4,1) both;animation-delay:var(--d)}
+  @keyframes ndFlat{0%{opacity:0;transform:translateY(-12px)}100%{opacity:1;transform:none}}
+  @keyframes ndLego{0%{opacity:0;transform:translateY(-16px) scale(.94)}
+    62%{opacity:1;transform:translateY(2px) scale(1.02)}100%{transform:none}}
+  @keyframes ndSolder{0%{opacity:0;transform:translateX(-18px)}
+    70%{opacity:1;transform:translateX(1px);filter:drop-shadow(0 0 6px rgba(201,162,39,.9))}
+    100%{transform:none;filter:none}}
+  @keyframes ndGlow{0%{opacity:0;filter:brightness(1.9)}100%{opacity:1;filter:none}}
+  @keyframes ndStack{0%{opacity:0;transform:translateY(-10px) rotate(-4deg)}100%{transform:none}}
+  @keyframes dashIn{to{stroke-dashoffset:0}}
+  .wbar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:9px}
+  .achip{border:1px solid var(--line);background:var(--panel);border-radius:20px;padding:3px 10px;
+    font-size:11.5px;cursor:pointer;color:#57544c;transition:.14s}
+  .achip:hover{border-color:#cfcabd}
+  .achip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .animnote{font-size:11.5px;color:var(--faint);margin-top:7px;line-height:1.7}
+  .okline{margin-top:14px;font-size:12.5px;color:#2f6b4a;background:#eef6f1;border:1px solid #cfe4d8;
+    border-radius:9px;padding:9px 12px}
+  .gapbox.warn{background:#fdf3e3;border-color:#f0dcbc}
+
+  /* ── 确认页的四个小卡 ── */
+  .dgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:10px}
+  .dcard{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:10px 12px}
+  .dcard span{display:block;font-size:10.5px;color:var(--faint)}
+  .dcard b{display:block;font-size:16px;font-weight:640;margin:2px 0 1px}
+  .dcard i{font-style:normal;font-size:11px;color:var(--dim);line-height:1.5;display:block}
+
+  /* ── 内存模拟 ── */
+  .memcard{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:13px 14px}
+  .memtop{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+  .memb{display:flex;gap:18px}
+  .memb>div b{display:block;font-size:19px;font-weight:640;line-height:1.2}
+  .memb>div b.a{color:#b4483c}
+  .memb>div span{font-size:10.5px;color:var(--faint)}
+  .memctl{margin-left:auto;display:flex;flex-direction:column;gap:7px}
+  .memctl .row2{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .memctl .row2>span{font-size:11px;color:var(--dim);min-width:96px}
+  .membar{height:9px;border-radius:20px;background:#f1efe8;display:flex;overflow:hidden;margin:12px 0 7px}
+  .membar .seg{height:100%}
+  .membar .seg.over{background:repeating-linear-gradient(45deg,#d8b0a8,#d8b0a8 4px,#c98f84 4px,#c98f84 8px)}
+  .memlg{display:flex;flex-wrap:wrap;gap:12px;font-size:11px;color:var(--dim)}
+  .memlg span{display:flex;align-items:center;gap:5px}
+  .memlg i{width:8px;height:8px;border-radius:2px;display:block}
+  .memnote{font-size:11.5px;color:#57544c;line-height:1.75;margin-top:8px;border-top:1px dashed var(--line);padding-top:8px}
+
+  /* ── 安装说明 ── */
+  .inst{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:11px}
+  .icard{border:1px solid var(--line);border-radius:11px;background:var(--panel);padding:11px 13px}
+  .icard .ih{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .icard .ih b{font-size:13px}
+  .irow{display:flex;gap:8px;font-size:11.5px;line-height:1.75;color:var(--dim);padding:4px 0;
+    border-top:1px solid var(--line2)}
+  .irow:first-of-type{border-top:0}
+  .irow em{font-style:normal;color:var(--ink);flex:0 0 62px;font-weight:600}
+  .irow code{font:11px/1.4 ui-monospace,Menlo,monospace;background:#f4f2ec;border-radius:4px;padding:1px 4px}
+
+  /* ── 最小包开关 ── */
+  .minbox{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:11px;
+    background:var(--panel);padding:11px 13px}
+  .minbox.on{border-color:#bcd8c8;background:#f7fbf8}
+  .switch{width:38px;height:22px;border-radius:20px;background:#dcd8cd;position:relative;cursor:pointer;
+    flex:0 0 auto;transition:.16s}
+  .switch:after{content:"";position:absolute;width:18px;height:18px;border-radius:50%;background:#fff;
+    top:2px;left:2px;transition:.16s;box-shadow:0 1px 2px rgba(0,0,0,.18)}
+  .switch.on{background:#3f7d5a}
+  .switch.on:after{left:18px}
+
+  /* ── 装完的模拟结果 ── */
+  .resgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .rcell{border:1px solid var(--line);border-radius:10px;background:#fbfaf7;padding:9px 11px}
+  .rcell span{display:block;font-size:10.5px;color:var(--faint)}
+  .rcell b{display:block;font-size:16px;font-weight:640;line-height:1.3}
+  .rcell b.ok{color:#2f6b4a}.rcell b.a{color:#b4483c}
+  .rcell i{font-style:normal;font-size:11px;color:var(--dim);display:block;line-height:1.5}
+
+  /* ── 组装台：动效变体 ── */
+  .pcb .pcbfoot{margin-top:10px;font:10.5px/1.4 ui-monospace,Menlo,monospace;color:#7fa792;
+    border-top:1px dashed rgba(170,205,188,.25);padding-top:7px;position:relative}
+  .pcb[data-anim="flat"] .mchip.just{animation:pcbFlat .34s steps(3,end) both}
+  .pcb[data-anim="lego"] .mchip.just{animation:plugIn .5s cubic-bezier(.2,1.5,.35,1) both}
+  .pcb[data-anim="solder"] .mchip.just{animation:pcbSolder .5s ease-out both}
+  .pcb[data-anim="glow"] .mchip.just{animation:pcbGlow .55s ease-out both}
+  .pcb[data-anim="stack"] .mchip.just{animation:pcbStack .5s cubic-bezier(.2,1.3,.4,1) both}
+  .pcb[data-anim="lego"] .mchip{box-shadow:0 3px 0 #b9b3a1,0 6px 10px rgba(0,0,0,.3)}
+  @keyframes pcbFlat{0%{opacity:0;transform:translateY(-20px)}100%{opacity:1;transform:none}}
+  @keyframes pcbSolder{0%{opacity:0;transform:translateX(-24px)}
+    70%{opacity:1;transform:translateX(2px);box-shadow:0 0 12px rgba(255,201,64,.95)}
+    100%{transform:none;box-shadow:0 0 0 2px rgba(201,162,39,.8)}}
+  @keyframes pcbGlow{0%{opacity:0;filter:brightness(2)}100%{opacity:1;filter:none}}
+  @keyframes pcbStack{0%{opacity:0;transform:translateY(-14px) rotate(-5deg)}100%{transform:none}}
+  @media(max-width:1080px){.dgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .prow{grid-template-columns:1fr;gap:5px}}
+
   @media(max-width:1080px){.pcb .grid{grid-template-columns:repeat(2,minmax(0,1fr))}.styles{grid-template-columns:1fr}}
 
   .starts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:16px}
@@ -605,50 +771,78 @@ function art(k, s, color){
 
 /* ────────── 包：用户视角的分组 ──────────
    一个包 = 一件「成套出现」的事。用户不关心 app.board 是什么，只关心「要不要看板」。
-   包有等级与色相，模块默认继承包的等级；等级决定默认勾不勾（必装/推荐默认勾）。 */
+   包有等级与色相，模块默认继承包的等级；等级决定默认勾不勾（必装/推荐默认勾）。
+   mb = 这个包装进来大概要吃多少内存（MB），打包前算「装得下吗」用它。 */
 const PACKS = [
-  {id:"core", nm:"地基包", tier:"must", hue:220, art:"shell",
+  {id:"core", nm:"地基包", tier:"must", hue:220, art:"shell", mb:70,
    sub:"外壳、数据、模块总线、备份。叉掉任何一个，装出来的东西都是半成品。"},
-  {id:"ai", nm:"AI 接入包", tier:"rec", hue:275, art:"ai",
+  {id:"ai", nm:"AI 接入包", tier:"rec", hue:275, art:"ai", mb:55,
    sub:"对话、模型接口、工具调用、读代码库与文件树。所有「让 AI 参与」的功能都从这里接。"},
-  {id:"note", nm:"可视化笔记跟踪包", tier:"rec", hue:152, art:"note",
+  {id:"llm", nm:"本地模型包", tier:"rec", hue:320, art:"chip", mb:24,
+   sub:"在自己机器上跑模型：选型与预算、权重拉取、推理服务。数据不出门，代价是内存与速度。"},
+  {id:"note", nm:"可视化笔记跟踪包", tier:"rec", hue:152, art:"note", mb:40,
    sub:"速记、看板与甘特、知识地层、双链、进度跟踪。把「记下来」变成「看得见进展」。"},
-  {id:"sched", nm:"日程包", tier:"rec", hue:26, art:"cal",
+  {id:"sched", nm:"日程包", tier:"rec", hue:26, art:"cal", mb:28,
    sub:"待办、日历、到点提醒、专注计时。时间这条线单独成包，因为它天天用。"},
-  {id:"beauty", nm:"美化包", tier:"rec", hue:342, art:"palette",
+  {id:"beauty", nm:"美化包", tier:"rec", hue:342, art:"palette", mb:6,
    sub:"主题令牌、动效、图标、版式。不装也能跑，装了以后才像「一个产品」。"},
-  {id:"data", nm:"数据包", tier:"rec", hue:196, art:"data",
+  {id:"data", nm:"数据包", tier:"rec", hue:196, art:"data", mb:35,
    sub:"全局搜索、导入导出、素材库、剪贴板、启动器、多端同步。数据进得来、找得到、带得走。"},
-  {id:"auto", nm:"自动化包", tier:"opt", hue:48, art:"bolt",
+  {id:"auto", nm:"自动化包", tier:"opt", hue:48, art:"bolt", mb:12,
    sub:"触发器、后台任务、定时、Webhook。「当…就…」自己跑，不用你点。"},
-  {id:"collab", nm:"协作包", tier:"opt", hue:252, art:"users",
+  {id:"collab", nm:"协作包", tier:"opt", hue:252, art:"users", mb:22,
    sub:"账号、权限、分享链接、批注。一个人用不需要，给别人看就需要。"},
-  {id:"media", nm:"图像流水线包", tier:"opt", hue:302, art:"img",
+  {id:"media", nm:"图像流水线包", tier:"opt", hue:302, art:"img", mb:85,
    sub:"生图、素材库、修图、放大修复。从一句话到能发出去的一张图。"},
-  {id:"dev", nm:"开发工具包", tier:"opt", hue:208, art:"code",
+  {id:"dev", nm:"开发工具包", tier:"opt", hue:208, art:"code", mb:110,
    sub:"代码编辑、终端、API 调试、Git 面板。把开发要用的几件塞进同一个窗口。"},
-  {id:"hw", nm:"硬件连接包", tier:"opt", hue:12, art:"chip",
+  {id:"hw", nm:"硬件连接包", tier:"opt", hue:12, art:"chip", mb:15,
    sub:"串口读数、蓝牙、配网、固件升级。软件要去碰一台真设备时用。"},
-  {id:"biz", nm:"交易包", tier:"opt", hue:96, art:"cart",
+  {id:"biz", nm:"交易包", tier:"opt", hue:96, art:"cart", mb:50,
    sub:"商品、库存、订单、支付、物流、会员。凡是「收钱发货」都绕不开这六格。"},
-  {id:"geo", nm:"位置包", tier:"opt", hue:178, art:"map",
+  {id:"geo", nm:"位置包", tier:"opt", hue:178, art:"map", mb:55,
    sub:"底图、定位、轨迹围栏。东西在哪、去过哪、有没有越界。"},
-  {id:"game", nm:"游戏包", tier:"opt", hue:262, art:"loop",
+  {id:"game", nm:"游戏包", tier:"opt", hue:262, art:"loop", mb:22,
    sub:"主循环、存档与离线结算、数值、商店。时间连续的那类软件的地基。"},
-  {id:"ops", nm:"运维包", tier:"opt", hue:232, art:"monitor",
-   sub:"部署、监控、告警、日志、自动更新。东西做出来以后的事。"},
+  {id:"ops", nm:"运维包", tier:"opt", hue:232, art:"monitor", mb:30,
+   sub:"部署、监控、告警、日志、安装包与签名。东西做出来以后的事。"},
 ];
 const packOf = id => PACKS.find(p => p.id === id) || PACKS[0];
-const packMods = pid => HUB.filter(m => m.pk === pid);
+/* 一个模块可以同时属于几个包——「日历」既在日程包里，也在笔记跟踪包里，
+   这很正常。pk 是主包（决定默认勾选与场景归属），pks 是所有包。 */
+const packMods = pid => HUB.filter(m => m.pks.includes(pid));
 const hue = (h, s, l) => `hsl(${h} ${s}% ${l}%)`;
+/* 模块同时属于多包：pk 已经是主包，这里只补「另外那几个包」 */
+const EXTRA_PK = {
+  board:["sched"],      // 看板与甘特：排期那面也是日程
+  track:["sched"],      // 进度跟踪：带截止日就是日程
+  todo:["note"],        // 待办：也能当笔记用
+  remind:["auto"],      // 提醒调度：本质是个定时器
+  search:["note"],      // 全局搜索：搜的最多就是笔记
+  gallery:["data"],     // 素材库：也是文件管理
+  dock:["media"],       // 文件与素材库：图库那面
+  sync:["collab"],      // 多端同步：多人用就需要
+  aifile:["dev"],       // 文件树读取：读代码库
+  aigit:["dev"],        // Git 与代码库
+  gitbox:["ai"],        // Git 面板：AI 也要读提交
+  job:["ops"],          // 后台任务：运维也要看
+  log:["dev"],          // 日志与追踪：排 bug 时在用
+  imagegen:["ai"],      // 生图：本质是调模型
+  edit:["ai"],          // 修图
+  upscale:["ai"],       // 放大修复
+  member:["collab"],    // 会员与积分：会员就是账号
+  save:["data"],        // 存档与离线结算：存档就是数据
+  gshop:["biz"],        // 商店与内购：收钱那面
+  aitool:["auto"],      // 工具调用：能自己干活
+};
 
 /* ────────── 场景：从「我要做什么」开始，而不是从「要哪个模块」开始 ──────────
    packs 是这个场景默认要的包；用户仍可增删。风格再决定「勾多满」。 */
 const SCENES = [
-  {id:"hub", nm:"个人中台", art:"shell", must:["core"], packs:["core","note","sched","ai","beauty","data"],
+  {id:"hub", nm:"个人中台", art:"shell", must:["core"], packs:["core","note","sched","ai","llm","beauty","data"],
    sub:"装在自己电脑上、天天开的那一个窗口",
    out:"一个常驻桌面的工作台：今天做什么、随手记、Ctrl+K 搜、AI 帮你看",
-   why:"它要的是「常驻 + 本地数据 + 天天用」，所以地基、笔记、日程、AI、美化、数据六件都成立。"},
+   why:"它要的是「常驻 + 本地数据 + 天天用」，所以地基、笔记、日程、AI、美化、数据六件都成立。本地模型包可选：不想把日程与笔记发给云端的人，会把它勾上。"},
   {id:"wms", nm:"仓库管理系统", art:"box", must:["core","biz"], packs:["core","biz","data","hw","ops"],
    sub:"收货、上架、拣货、盘点、发货",
    out:"一台能扫码入库、按库位找货、扣减不出错的库存系统",
@@ -665,10 +859,10 @@ const SCENES = [
    sub:"主循环、离线收益、数值曲线、内购",
    out:"一个能挂机产出、关掉再回来还在算、数值不崩的小游戏",
    why:"放置类的难点全在「时间」：主循环与存档必须一起装，否则离线收益一定算错。"},
-  {id:"imagegen", nm:"AI 生图开发台", art:"img", must:["core","media"], packs:["core","media","ai","data","beauty"],
+  {id:"imagegen", nm:"AI 生图开发台", art:"img", must:["core","media"], packs:["core","media","ai","llm","data","beauty"],
    sub:"提示词、批量生图、挑图、修图、放大",
    out:"一条从一句话到一组可用图的流水线，带素材库与版本对比",
-   why:"生图不是「调一次接口」：要批量、要比对、要留参数，所以素材库与数据包一起装。"},
+   why:"生图不是「调一次接口」：要批量、要比对、要留参数，所以素材库与数据包一起装。提示词改写用本地小模型最划算。"},
   {id:"hotspot", nm:"移动热点（含硬件）", art:"wifi", must:["core","hw"], packs:["core","hw","ops","beauty"],
    sub:"随身 WiFi：设备管理、流量统计、限速、看板",
    out:"一个能看到谁连着、用了多少流量、能一键踢人的管理面",
@@ -689,7 +883,7 @@ const SCENES = [
    sub:"注册登录、订阅计费、租户隔离、后台看板",
    out:"一个能收订阅费、能看留存、出事能回滚的多租户后台",
    why:"SaaS 与单机最大的差别是「多租户 + 计费 + 可运维」，协作包与运维包不可省。"},
-  {id:"live", nm:"直播场控", art:"pulse", must:["core","sched"], packs:["core","sched","ai","media","ops"],
+  {id:"live", nm:"直播场控", art:"pulse", must:["core","sched"], packs:["core","sched","ai","media","ops","data"],
    sub:"脚本、提词、弹幕、上下架、复盘",
    out:"一个主播旁边的第二块屏：按秒推进脚本、实时看数据、下播自动出复盘",
    why:"它的时间粒度是「秒」，所以日程包（排期与提醒）+ 实时推送 + 媒体包是核心。"},
@@ -764,10 +958,11 @@ const GLUE = [
    胶水解决「模块怎么接」，底座解决「整台东西怎么跑、发到哪、怎么活下去」。 */
 const BASE = [
   {id:"bs-shell", nm:"运行时外壳", art:"shell", cells:["app.window"],
-   sub:"装成桌面程序、还是跑在浏览器里",
+   sub:"装成桌面程序、跑在浏览器里、还是干脆没有界面",
    provs:[{id:"tauri", n:"Tauri 2", lv:"rec", k:"开源", note:"系统 WebView，包体 10MB 级；系统能力要写一点 Rust"},
           {id:"electron", n:"Electron", lv:"ok", k:"开源", note:"什么都能碰、答案好搜；150MB 包体 + 200MB 常驻"},
-          {id:"web", n:"纯 Web / PWA", lv:"warn", k:"开源", note:"零安装，但没有托盘、没有全局快捷键、开不了别的程序"}]},
+          {id:"web", n:"纯 Web / PWA", lv:"warn", k:"开源", note:"零安装，但没有托盘、没有全局快捷键、开不了别的程序"},
+          {id:"cli", n:"单文件 CLI（Go / Node SEA）", lv:"ok", k:"开源", note:"没有界面就没有渲染器：一个 5–20MB 的二进制，启动几十毫秒，内存几 MB"}]},
   {id:"bs-lang", nm:"语言与框架", art:"code", cells:["app.ui"],
    sub:"前端用什么写，后端用什么跑",
    provs:[{id:"react", n:"React + Vite", lv:"rec", k:"开源", note:"生态最大、招人与搜答案都容易；包体适中"},
@@ -882,6 +1077,29 @@ const HUB = [
    {id:"vlm", n:"多模态模型直调", lv:"rec", k:"闭源", note:"GPT/Claude/Gemini 都能看图；注意图片要先压到长边 1568 以内省 token"},
    {id:"ocr", n:"PaddleOCR / Tesseract 先转文字", lv:"ok", k:"开源", note:"只要文字时比大模型便宜得多，也更快；版面复杂时不如 VLM"},
    {id:"local", n:"本地 VLM（Qwen-VL 等）", lv:"ok", k:"开源", note:"隐私最好；要显卡，小模型对表格与手写识别一般"}]},
+
+/* ── 本地模型包 ── */
+{id:"llmfit", nm:"模型选型与预算", pk:"llm", tier:"rec", art:"chart", cells:["ai.model.fit"],
+ sub:"按你这台机器的内存算：能跑几 B、哪个量化、大概每秒几个字",
+ provs:[
+   {id:"table", n:"一张预算表（自研）", lv:"rec", k:"做法", note:"「参数 × 量化 → 权重 GB」+「上下文 → KV cache」两张小表，选型就是查表比余量；约 80 行"},
+   {id:"ps", n:"读 ollama ps 的真实占用", lv:"ok", k:"开源", note:"跑起来以后看真实内存与是否 offload 到 CPU，用来校准自己的估算表——比抄博客数字准"},
+   {id:"meta", n:"按 gguf 元数据精算", lv:"ok", k:"开源", note:"头里有参数量、量化类型、张量形状，再按 n_ctx 算 KV cache；准但要多写 100 行"},
+   {id:"ask", n:"就三档：小/中/大", lv:"warn", k:"做法", note:"不给数字，只给「小 1.5B / 中 3B / 大 7B」；省事，但用户在 8G 机器上选「大」就崩"}]},
+{id:"llmpull", nm:"权重下载与校验", pk:"llm", tier:"rec", art:"cloud", cells:["ai.model.pull"],
+ sub:"几 GB 的文件：断点续传、sha256 校验、镜像回退",
+ provs:[
+   {id:"opull", n:"ollama pull", lv:"rec", k:"开源", note:"分块、断点、内容寻址、校验全有；代价是权重进它的 blobs 目录，别的工具读不到"},
+   {id:"hf", n:"huggingface-cli / hf", lv:"ok", k:"开源", note:"拿到裸 gguf，任何推理器都能用；国内必须配镜像，否则慢到放弃"},
+   {id:"self", n:"自写 Range 分块 + sha256", lv:"ok", k:"做法", note:"约 200 行，换来完全可控的进度与镜像切换；要嵌进安装器时值得"},
+   {id:"manual", n:"让用户自己下 hf 文件", lv:"warn", k:"做法", note:"零开发量；但「下哪个、放哪、怎么改名」会劝退一半人"}]},
+{id:"llmrt", nm:"本地推理服务", pk:"llm", tier:"rec", art:"chip", cells:["ai.model.local"],
+ sub:"在你机器上跑权重：一个本地端口，OpenAI 兼容就行",
+ provs:[
+   {id:"ollama", n:"Ollama", lv:"rec", k:"开源", note:"一条命令跑起来，生态最全，OpenAI 兼容端点；默认监听 127.0.0.1:11434"},
+   {id:"llamacpp", n:"llama.cpp（llama-server）", lv:"ok", k:"开源", note:"量化格式多、可嵌进自己的程序，单二进制无依赖；要自己配参数"},
+   {id:"lmstudio", n:"LM Studio（给非技术用户）", lv:"ok", k:"闭源", note:"有图形界面能点，适合把软件交给不写代码的人；不能随包分发"},
+   {id:"vllm", n:"vLLM", lv:"warn", k:"开源", note:"要并发吞吐才用它；单机交互反而重，还要 Python 与 CUDA"}]},
 
 /* ── 可视化笔记跟踪包 ── */
 {id:"note", nm:"速记与知识库", pk:"note", tier:"rec", art:"note", cells:["kb.ingest","kb.manage"],
@@ -1261,7 +1479,17 @@ const HUB = [
    {id:"self", n:"自研清单 + Ed25519 验签", lv:"rec", k:"做法", note:"验签 → 比 semver → sha256 → 两步改名自替换，失败回滚"},
    {id:"tauri", n:"Tauri 官方 updater", lv:"ok", k:"开源", note:"清单、签名、重启都是现成的；渠道要自己再包一层"},
    {id:"none", n:"不做，放 Releases 链接", lv:"ok", k:"做法", note:"0 成本；但用户永远停在旧版本，你修的 bug 只在一半人身上生效"}]},
+{id:"installer", nm:"安装包与签名", pk:"ops", tier:"rec", art:"print", cells:["app.pkg"],
+ sub:"dmg / exe / AppImage / apk，以及「系统不信任你」这件事怎么过",
+ provs:[
+   {id:"tauri", n:"Tauri bundler（签名另配）", lv:"rec", k:"开源", note:"一条命令出三平台安装包；dmg 要公证、exe 要证书，否则用户会看到「已损坏」与「已保护你的电脑」"},
+   {id:"builder", n:"electron-builder", lv:"ok", k:"开源", note:"dmg/exe/AppImage/deb 全支持，签名与自动更新钩子齐；包体 100MB 起"},
+   {id:"source", n:"只发源码 / 单文件（不签名路线）", lv:"ok", k:"做法", note:"用户自己 npm i && npm run dev，产物是他本机编译的——没 quarantine、没别人的签名，所以不会被拦。代价是要装工具链"},
+   {id:"sign", n:"买证书签名 + 公证", lv:"warn", k:"闭源", note:"Apple 99 美元/年、Windows 证书约 2000 元/年；唯一「发给陌生人也不吓人」的做法"}]},
 ];
+
+/* 一个模块可以属于多包：pk 是主包，pks 是全部。挂完才能被 packMods 查。 */
+HUB.forEach(m => { m.pks = [m.pk, ...(EXTRA_PK[m.id] || []).filter(p => p !== m.pk)]; });
 
 const TIER = {
   must: ["必装", "去掉就立不起来", "var(--green)"],
@@ -1269,15 +1497,76 @@ const TIER = {
   opt:  ["可选", "用得上再加", "var(--faint)"],
 };
 
-/* 风格只决定「勾多满」，具体勾哪些由场景的包决定 */
+/* ────────── 形态：这一版做成什么样子 ──────────
+   形态决定三件事：哪些模块根本不适用（CLI 没有看板）、底座默认选哪个、打包出什么东西。 */
+const FORMS = [
+  {id:"web", nm:"网页", art:"globe", base:"web",
+   d:"浏览器打开，一个网址就是全部。跨平台、零安装，代价是碰不到系统深处。",
+   keep:"发出去：<b>静态托管</b>或直接发一个 HTML"},
+  {id:"app", nm:"软件", art:"shell", base:"tauri",
+   d:"装在本机的程序：托盘、全局快捷键、开机自启、能读写本地文件。",
+   keep:"发出去：<b>dmg / exe / AppImage / apk</b>"},
+  {id:"cli", nm:"CLI（无图形）", art:"term", base:"cli",
+   d:"没有界面，一行命令干一件事。最省的形态，也最容易脚本化与自动化。",
+   keep:"发出去：<b>单文件二进制</b>或 npm/brew 包"},
+];
+/* 形态不适用哪些模块：CLI 没有画面，网页拿不到系统能力，安装包只在「软件」里有意义 */
+const FORM_NO = {
+  cli: ["shell","board","cal","gallery","imagegen","edit","upscale","theme","motion","icons","layout","map","locate","trace"],
+  web: ["installer"],
+  app: [],
+};
+const formOf = () => (S.hub && S.hub.form) || "app";
+const formDef = id => FORMS.find(f => f.id === (id || formOf())) || FORMS[1];
+const formOk = (m, form) => !(FORM_NO[form || formOf()] || []).includes(m.id);
+
+/* ────────── 平台：装到哪几个系统上（可多选） ────────── */
+const PLATS = [
+  {id:"mac", nm:"macOS", art:"chip", note:"dmg 未签名会被 Gatekeeper 拦，见安装说明"},
+  {id:"win", nm:"Windows", art:"chip", note:"exe 未签名会撞 SmartScreen"},
+  {id:"linux", nm:"Linux", art:"term", note:"AppImage 要 chmod +x；deb 有依赖"},
+  {id:"android", nm:"安卓", art:"wifi", note:"apk 要放开未知来源；上架商店要签名与审核"},
+];
+const PLAT_NO = { cli:["android"], web:[] };   // CLI 在安卓上只能 Termux，不算正经支持
+const platOf = () => ((S.hub && S.hub.plat && S.hub.plat.length) ? S.hub.plat : ["mac","win"]);
+const platOk = (pid, form) => !((PLAT_NO[form || formOf()] || []).includes(pid));
+
+/* 规格只决定「勾多满」，具体勾哪些由场景的包决定 */
 const STYLES = [
-  {id:"min", nm:"极简", d:"只勾必装：外壳、数据仓、模块总线。打开就是一块看板，其余功能一个不加。",
+  {id:"min", nm:"简约", d:"只勾必装：外壳、数据仓、模块总线。打开就是一块空白看板，其余功能一个不加。",
    keep:"留的扩展位：<b>模块插槽</b>——以后加模块不用改布局，插进去即成一格。"},
-  {id:"mid", nm:"中等", d:"把这个场景推荐的包整包装上：日常够用，又不至于塞满。",
+  {id:"mid", nm:"均衡", d:"把这个场景推荐的包整包装上：日常够用，又不至于塞满。",
    keep:"留的扩展位：<b>侧栏 + 卡片网格</b>——加一个模块只多一个入口与一张卡。"},
-  {id:"full", nm:"功能齐全", d:"场景涉及的包全开，连可选模块也一起装。",
+  {id:"full", nm:"齐全", d:"场景涉及的包全开，连可选模块也一起装。",
    keep:"留的扩展位：<b>扩展系统</b>——以后的功能做成扩展，不动主程序。"},
 ];
+
+/* ────────── 五种「装模块」动效：连通图与组装台共用同一套 ────────── */
+const ANIMS = [
+  {id:"flat",  nm:"平涂方块", d:"像俄罗斯方块：一块块从上面落下来，落定即上色，没有厚度。"},
+  {id:"lego",  nm:"立体乐高", d:"带厚度与投影，按下去还有一下回弹，像把积木压进凸点。"},
+  {id:"solder",nm:"焊接", d:"芯片滑进槽位，引脚处闪一下火花，然后焊点亮起。"},
+  {id:"glow",  nm:"电路点亮", d:"先出线路，再沿线路跑一遍光，模块随后亮起。"},
+  {id:"stack", nm:"卡片堆叠", d:"像发牌：微微错开、带点旋转地落下，最后对齐成一行。"},
+];
+
+/* ────────── 本地模型的档位表 ──────────
+   gb = 权重文件大小；ram = 跑起来实际占的内存（含 KV cache 与运行时，约 1.3–1.6 倍）；
+   tps = 在「刚好装得下」的机器上的大致出字速度。数字是标定值，不是猜的：
+   Q4_K_M 大约每 B 参数 0.6–0.7GB，KV cache 在 4k 上下文下约 0.5–1.5GB。 */
+const LLM_MODELS = [
+  {id:"qwen2.5:0.5b", nm:"Qwen2.5 0.5B", q:"Q4_K_M", gb:0.4, ram:1.1, tps:150, use:"分类、打标签、抽取字段"},
+  {id:"llama3.2:1b",  nm:"Llama 3.2 1B",  q:"Q4_K_M", gb:0.8, ram:1.7, tps:95,  use:"短摘要、改写、路由"},
+  {id:"qwen2.5:1.5b", nm:"Qwen2.5 1.5B", q:"Q4_K_M", gb:1.1, ram:2.2, tps:78,  use:"中文摘要、轻问答"},
+  {id:"qwen2.5:3b",   nm:"Qwen2.5 3B",   q:"Q4_K_M", gb:2.0, ram:3.4, tps:42,  use:"通用问答、写小段代码"},
+  {id:"llama3.2:3b",  nm:"Llama 3.2 3B",  q:"Q4_K_M", gb:2.0, ram:3.4, tps:42,  use:"英文写作、指令跟随"},
+  {id:"qwen2.5:7b",   nm:"Qwen2.5 7B",   q:"Q4_K_M", gb:4.7, ram:6.6, tps:22,  use:"主力：写作、代码、分析"},
+  {id:"qwen2.5-coder:7b", nm:"Qwen2.5-Coder 7B", q:"Q4_K_M", gb:4.7, ram:6.8, tps:20, use:"补全与改代码"},
+  {id:"qwen2.5:14b",  nm:"Qwen2.5 14B",  q:"Q4_K_M", gb:9.0, ram:12.2, tps:11, use:"复杂推理；16G 内存起步"},
+  {id:"nomic-embed", nm:"nomic-embed-text", q:"F16", gb:0.27, ram:0.6, tps:0, use:"向量检索（配合知识库）"},
+];
+const modelOf = id => LLM_MODELS.find(m => m.id === (id || (S.hub && S.hub.model))) || LLM_MODELS[3];
+const memBudget = () => (S.hub && S.hub.mem) || 16;
 
 /* 场景 + 风格 → 默认勾哪些模块。
    极简与场景无关（只留地基），中等勾场景包的必装+推荐，齐全把场景包全勾上。 */
@@ -1294,19 +1583,29 @@ function packTierEff(pid){
 }
 function modTierEff(m, sceneId){
   const sc = sceneById(sceneId || (S.hub || {}).scene || "hub");
-  const boosted = packOf(m.pk).tier === "opt" && (sc.must || []).includes(m.pk);
+  /* 只有一种情况会升档：这格所在的某个包被场景列为 must，而那个包本身是可选包。
+     不能按「它所有包里最高的一档」算——那样 ai+dev 里的可选模块会被 ai 的推荐档带上来，
+     均衡档会莫名多出十几个模块。 */
+  const boosted = m.pks.some(pid => packOf(pid).tier === "opt" && (sc.must || []).includes(pid));
   return boosted && m.tier === "opt" ? "rec" : m.tier;
 }
-function defaultMods(sceneId, styId){
+/* 场景 + 规格 + 形态 → 默认勾哪些模块。
+   简约与场景无关（只留地基），均衡勾场景包的必装+推荐，齐全把场景包全勾上。
+   形态在最后一道过滤：CLI 下没有看板、没有主题、没有地图。 */
+function defaultMods(sceneId, styId, form){
   const pids = scenePacks(sceneId);
-  if(styId === "min") return HUB.filter(m => m.tier === "must").map(m => m.id);
-  if(styId === "mid") return HUB.filter(m => pids.includes(m.pk) && modTierEff(m, sceneId) !== "opt").map(m => m.id);
-  return HUB.filter(m => pids.includes(m.pk)).map(m => m.id);
+  const f = form || formOf();
+  const ok = m => formOk(m, f);
+  if(styId === "min") return HUB.filter(m => m.tier === "must" && ok(m)).map(m => m.id);
+  if(styId === "mid") return HUB.filter(m => ok(m) && m.pks.some(p => pids.includes(p)) && modTierEff(m, sceneId) !== "opt").map(m => m.id);
+  return HUB.filter(m => ok(m) && m.pks.some(p => pids.includes(p))).map(m => m.id);
 }
-function styCount(styId, sceneId){
-  const mods = defaultMods(sceneId, styId);
+function styCount(styId, sceneId, form){
+  const mods = defaultMods(sceneId, styId, form);
   return {n: mods.length, cells: hubCells(mods).length};
 }
+function modPacks(m){ return m.pks.map(packOf); }
+/* 这格在界面上用哪个包的颜色：优先用它在这一页所属的包 */
 const sceneName = () => sceneById((S.hub || {}).scene || "hub").nm;
 
 /* 风格示意插画：三种密度画在同一套坐标里，差别一眼能看出来 */
@@ -1430,14 +1729,20 @@ function matchNeed(need){
 }
 
 /* ────────── 连通检查 ────────── */
-function check(picks){
+function check(picks, form){
+  /* CLI 形态没有图形界面：终端本身就是入口，也是输出。
+     所以 X（界面）在这里算「系统天然提供」，R/F（记录与产物）算「打印出来了」。
+     不这么特判，任何 CLI 组合都会被判成「缺界面、产出没人接」——那是判据错了，不是方案错了。 */
+  const cli = ((form || (S.hub && S.hub.form)) === "cli");
+  const ext = cli ? [...D.ext, "X"] : D.ext;
+  const term = cli ? ["X", "Q", "E", "S", "R", "F"] : ["X", "Q", "E", "S"];
   const given = {};
   picks.forEach(c => (W[c] || [null, []])[1].forEach(x => (given[x] = given[x] || []).push(c)));
   const breaks = [];
   picks.forEach(cid => {
     if(cid === "app.ui") return;
     (W[cid] || [[], []])[0].forEach(grp => {
-      const ok = grp.some(x => D.ext.includes(x) || (given[x] || []).some(o => o !== cid));
+      const ok = grp.some(x => ext.includes(x) || (given[x] || []).some(o => o !== cid));
       if(!ok){
         const fix = [];
         grp.forEach(x => (D.patch[x] || []).forEach(p => { if(!picks.includes(p) && byId[p]) fix.push(byId[p].name); }));
@@ -1452,7 +1757,7 @@ function check(picks){
       // 手工钉的前后关系：网关接的是主控吐出来的数据
       const af = (D.after || {})[cid];
       if(af && picks.indexOf(af) >= 0 && !placed.has(af)) return false;
-      return cid === "app.ui" || (W[cid] || [[], []])[0].every(grp => grp.some(x => D.ext.includes(x) || done.has(x)));
+      return cid === "app.ui" || (W[cid] || [[], []])[0].every(grp => grp.some(x => ext.includes(x) || done.has(x)));
     });
     if(!ready.length){ order.push(...pool); break; }
     const used = cid => {
@@ -1478,7 +1783,7 @@ function check(picks){
     const outs = (W[cid] || [null, []])[1];
     /* 只要这一格有「终点型」产出（界面/动作/事件/会话），剩下的中间产物就不算死端：
        全文检索的片段可能没人接，但它的结果本来就摆在界面上给人看 */
-    if(outs.some(x => ["X", "Q", "E", "S"].includes(x))) return;
+    if(outs.some(x => term.includes(x))) return;
     outs.forEach(x => {
       if(!picks.some(o => o !== cid && (W[o] || [[], []])[0].some(g => g.includes(x)))) dead.push({who: byId[cid].name, type: TC[x]});
     });
@@ -1500,14 +1805,15 @@ const S = {
     {id:"p3", name:"个人生活助手", need:"我想做个个人生活助手，记录每天的饮食、睡眠和心情，到点提醒我喝水睡觉，每周给我一份总结", state:"draft", pct:0, at:"3 天前"}
   ],
   build: null,
-  hub: null,       // {sty, mods:[], plans:{}} —— 个人中台那条路走完就一直留着
-  drafts: []       // 手动存的草稿：{id,nm,kind,at,route,need,picks,sels,hub}
+  hub: null,       // {scene, form, sty, plat, anim, mem, model, min, mods:[], plans:{}, glue:{}, base:{}}
+  drafts: [],      // 手动存的草稿：{id,nm,kind,at,route,need,picks,sels,hub}
+  pro: false       // 专业模式：多露一层底层，不是另一套页面
 };
 /* 存储不可用时（预览面板 iframe 沙箱、隐私模式、file:// 限制）只降级为「不记忆」，
    绝不能把异常抛到点击回调里——否则点卡片的跳转也会被一起吞掉 */
 let LSOK = true, MEM = null;
 function save(){
-  const data = {need:S.need, picks:S.picks, sels:S.sels, hub:S.hub, drafts:S.drafts};
+  const data = {need:S.need, picks:S.picks, sels:S.sels, hub:S.hub, drafts:S.drafts, pro:S.pro};
   MEM = data;
   const raw = JSON.stringify(data);
   try{
@@ -1524,7 +1830,7 @@ function save(){
 /* 连续勾选时别每点一下都同步序列化落盘：合并成一次，页面隐藏/关闭时补写 */
 let _saveT = 0;
 function saveLater(){
-  MEM = {need:S.need, picks:S.picks, sels:S.sels, hub:S.hub, drafts:S.drafts};
+  MEM = {need:S.need, picks:S.picks, sels:S.sels, hub:S.hub, drafts:S.drafts, pro:S.pro};
   clearTimeout(_saveT);
   _saveT = setTimeout(() => { _saveT = 0; save(); }, 260);
 }
@@ -1546,6 +1852,7 @@ function load(){
     if(o.picks) S.picks = o.picks;
     if(Array.isArray(o.drafts)) S.drafts = o.drafts;
     if(o.hub && o.hub.mods && o.hub.mods.length) S.hub = o.hub;
+    if(o.pro) S.pro = true;
   }catch(e){}
 }
 
@@ -1576,18 +1883,20 @@ function providerOf(cid, pid){ return (byId[cid].pv || []).find(p => p.id === pi
 
 /* ────────── 路由 ────────── */
 const ROUTES = ["home", "new", "plan", "confirm", "build", "done", "lib",
-                "hub-scene", "hub-style", "hub-mods", "hub-plans", "trial", "pack"];
+                "hub-scene", "hub-style", "hub-mods", "hub-plans", "hub-wire", "trial", "pack"];
 
-/* 侧栏「当前装配」随流程变形：中台走六步，一句话需求走五步。两条线共用同一个壳 */
+/* 侧栏「当前装配」随流程变形：中台走八步，一句话需求走五步。两条线共用同一个壳 */
 let CUR = "home";
 const FLOW = {
-  hub:  [["hub-scene","◧","场景"],["hub-style","◩","风格"],["hub-mods","▤","包"],
-         ["hub-plans","◈","方案"],["confirm","✓","确认"],["build","⚙","组装"],["pack","⇩","交付"]],
+  hub:  [["hub-scene","◧","场景"],["hub-style","◩","形态"],["hub-mods","▤","包"],
+         ["hub-plans","◈","方案"],["hub-wire","⌗","连线"],["confirm","✓","确认"],
+         ["build","⚙","组装"],["pack","⇩","交付"]],
   need: [["new","＋","写需求"],["plan","◈","选型"],["confirm","✓","确认"],
          ["build","⚙","组装"],["done","✓","完成"]]
 };
 const FLOWIDX = {
-  hub:  {"hub-scene":0, "hub-style":1, "hub-mods":2, "hub-plans":3, confirm:4, build:5, done:6, trial:6, pack:6},
+  hub:  {"hub-scene":0, "hub-style":1, "hub-mods":2, "hub-plans":3, "hub-wire":4,
+         confirm:5, build:6, done:7, trial:7, pack:7},
   need: {new:0, plan:1, confirm:2, build:3, done:4}
 };
 function renderNav(name){
@@ -1616,12 +1925,12 @@ function route(){
   const hasHub = !!(S.hub && S.hub.mods.length);
   if(name === "plan" && !S.need && !hasHub){ location.hash = "#/new"; return; }
   if(name === "confirm" && !S.need && !hasHub){ location.hash = "#/new"; return; }
-  if((name === "hub-mods" || name === "hub-plans") && !hasHub){ location.hash = "#/hub-scene"; return; }
+  if((name === "hub-mods" || name === "hub-plans" || name === "hub-wire") && !hasHub){ location.hash = "#/hub-scene"; return; }
   if((name === "trial" || name === "pack") && !hasHub){ location.hash = "#/hub-scene"; return; }
   renderNav(name);
   ({home:viewHome, new:viewNew, plan:viewPlan, confirm:viewConfirm, build:viewBuild, done:viewDone, lib:viewLib,
     "hub-scene":viewHubScene, "hub-style":viewHubStyle, "hub-mods":viewHubMods, "hub-plans":viewHubPlans,
-    trial:viewTrial, pack:viewPack})[name]();
+    "hub-wire":viewHubWire, trial:viewTrial, pack:viewPack})[name]();
   $("main").scrollTop = 0;
 }
 function go(h){ flushSave(); if(location.hash === h) route(); else location.hash = h; }
@@ -1637,14 +1946,19 @@ function topbar(crumb, steps, right){
   /* 只要有活儿在手，每页顶栏都带一个「存草稿」——草稿不是某个页面专属功能 */
   const canDraft = CUR !== "home" && CUR !== "lib" && !!(S.need || (S.hub && S.hub.mods.length));
   const dft = canDraft ? `<button class="btn sm ghost" id="bDraft" title="把当前进度存成草稿，回头接着做">存草稿</button>` : "";
-  $("#top").innerHTML = `<div class="crumb">${crumb}</div>${st}<div class="right">${dft}${right || ""}</div>`;
+  /* 专业模式：同一页多露一层底层（能力格、吃什么吐什么、接线）。不是另一套页面。 */
+  const pro = (CUR !== "home" && CUR !== "lib")
+    ? `<button class="btn sm ${S.pro ? "proon" : "ghost"}" id="bPro" title="显示底层：能力格编号、吃什么、吐什么、谁接谁">专业${S.pro ? " ✓" : ""}</button>` : "";
+  $("#top").innerHTML = `<div class="crumb">${crumb}</div>${st}<div class="right">${pro}${dft}${right || ""}</div>`;
   const bd = $("#bDraft");
   if(bd) bd.onclick = () => draftBox(bd);
+  const bp = $("#bPro");
+  if(bp) bp.onclick = () => { S.pro = !S.pro; save(); route(); };
 }
 
 /* ────────── 草稿：把当前进度存下来，回头接着做 ────────── */
-const ROUTE_NM = {"hub-scene":"场景","hub-style":"风格","hub-mods":"包","hub-plans":"方案", confirm:"确认",
-                  build:"组装", done:"交付", trial:"交付", pack:"交付", new:"需求", plan:"选型", home:"工作台"};
+const ROUTE_NM = {"hub-scene":"场景","hub-style":"形态","hub-mods":"包","hub-plans":"方案","hub-wire":"连线",
+                  confirm:"确认", build:"组装", done:"交付", trial:"交付", pack:"交付", new:"需求", plan:"选型", home:"工作台"};
 function ago(ts){
   const d = Date.now() - ts;
   if(d < 0 || d < 60000) return "刚刚";
@@ -1967,7 +2281,7 @@ function viewNew(){
 
 /* ────────── 视图：个人中台 ────────── */
 function hubSteps(n){
-  const names = ["场景", "风格", "包", "方案", "确认", "组装", "交付"];
+  const names = ["场景", "形态", "包", "方案", "连线", "确认", "组装", "交付"];
   return `<div class="hubstep" style="margin-left:14px">` + names.map((x, i) => {
     const cls = i < n ? "done" : (i === n ? "on" : "");
     return `<div class="s ${cls}"><em>${i < n ? "✓" : i + 1}</em>${x}</div>` +
@@ -1975,15 +2289,23 @@ function hubSteps(n){
   }).join("") + `</div>`;
 }
 function hubCov(){
-  /* 分组按「包」的等级走：包是必装，里面的格就是地基；包可选，就是场景格 */
+  /* 分组按「包」的等级走：包是必装，里面的格就是地基；包可选，就是场景格。
+     多包时按最靠前的一档算——一格只要有一个包是必装，它就是地基。 */
+  const rk = {must:0, rec:1, opt:2};
+  const bestTier = m => m.pks.reduce((acc, pid) => {
+    const t = packTierEff(pid);
+    return rk[t] < rk[acc] ? t : acc;
+  }, "opt");
   const pick = t => hubCells(S.hub.mods.filter(id => {
     const m = hubMod(id);
-    return m && packTierEff(m.pk) === t;
+    return m && bestTier(m) === t;
   }));
   return {core: pick("must"), rec: pick("rec"), scene: pick("opt"), gaps: [], hits: {}};
 }
 function hubStyleName(){ const s = STYLES.find(x => x.id === (S.hub || {}).sty); return s ? s.nm : "自定义"; }
-function hubLabel(){ return sceneName() + " · " + hubStyleName(); }
+function hubLabel(){
+  return sceneName() + " · " + formDef().nm + " · " + hubStyleName();
+}
 
 /* 场景：从「我要做什么」开始选，而不是从「要哪个模块」开始 */
 function viewHubScene(){
@@ -2012,9 +2334,7 @@ function viewHubScene(){
   document.querySelectorAll("[data-sc]").forEach(c => c.onclick = () => {
     const id = c.dataset.sc;
     const keepSty = (S.hub && S.hub.sty) || "mid";
-    S.hub = {scene: id, sty: keepSty, mods: defaultMods(id, keepSty),
-             plans: (S.hub && S.hub.plans) || {}, glue: (S.hub && S.hub.glue) || {},
-             base: (S.hub && S.hub.base) || {}};
+    S.hub = hubNew(id, keepSty);
     S.picks = hubCells(S.hub.mods);
     S.need = sceneById(id).nm;
     save(); go("#/hub-style");
@@ -2022,42 +2342,120 @@ function viewHubScene(){
 }
 
 /* 风格：三种密度。勾多少由「场景的包 × 风格」算，不是写死一份列表 */
+/* 建一份新的中台状态：形态/规格/平台/动效/预算都带着走，只重算模块 */
+function hubNew(sceneId, styId, extra){
+  const open = S.hub || {};
+  const o = {
+    scene: sceneId,
+    sty: styId || open.sty || "mid",
+    form: open.form || "app",
+    plat: (open.plat || ["mac","win"]).slice(),
+    anim: open.anim || "lego",
+    mem: open.mem || 16,
+    model: open.model || "qwen2.5:3b",
+    min: !!open.min,
+    plans: open.plans || {}, glue: open.glue || {}, base: open.base || {}
+  };
+  Object.assign(o, extra || {});
+  o.mods = defaultMods(sceneId, o.sty, o.form);
+  return o;
+}
+
 function viewHubStyle(){
   const sc = sceneById((S.hub && S.hub.scene) || "hub");
+  const cur = S.hub ? S.hub.sty : null;
+  const form = formOf();
+  const plats = platOf();
   topbar(`工作台 <span>/</span> <b>${esc(sc.nm)}</b>`, hubSteps(1),
     `<button class="btn sm ghost" id="bSc">换场景</button>
      <button class="btn sm ghost" id="bHome">返回工作台</button>`);
-  const cur = S.hub ? S.hub.sty : null;
-  $("#view").innerHTML = `<div class="page">
-    <div class="pagehd"><div><h1>装多满？</h1>
-      <p>场景已经定了要哪些包，这里只决定「第一版先装多少」。三种都能继续加，
-      区别只是打开时有多满。</p></div>
-      <div class="right"><span class="badge mute">${esc(sc.nm)}</span></div></div>
-    <div class="styles">${STYLES.map(s => {
-      const c = styCount(s.id, sc.id);
-      return `<div class="sty ${cur === s.id ? "on" : ""}" data-sty="${s.id}">
-        ${styleArt(s.id)}
-        <div class="nm">${s.nm}<span class="n">${c.n} 个模块 · ${c.cells} 格</span></div>
-        <div class="d">${s.d}</div>
-        <div class="keep">${s.keep}</div>
-      </div>`; }).join("")}</div>
-    <div class="card box" style="margin-top:14px;font-size:12.5px;color:var(--dim);line-height:1.9">
-      <b style="color:var(--ink)">三种风格不是三套代码。</b>
-      它们共用同一批包与能力格，差别只在默认勾了哪些模块——
-      所以「先做极简、以后再补」不会返工。换风格会按新密度重算勾选，你手改过的会重置。
-    </div>
-  </div>`;
-  $("#bHome").onclick = () => go("#/home");
-  $("#bSc").onclick = () => go("#/hub-scene");
-  document.querySelectorAll("[data-sty]").forEach(c => c.onclick = () => {
-    const s = STYLES.find(x => x.id === c.dataset.sty);
-    S.hub = {scene: sc.id, sty: s.id, mods: defaultMods(sc.id, s.id),
-             plans: (S.hub && S.hub.plans) || {}, glue: (S.hub && S.hub.glue) || {},
-             base: (S.hub && S.hub.base) || {}};
-    S.picks = hubCells(S.hub.mods);
-    S.need = sc.nm + " · " + s.nm;
-    save(); go("#/hub-mods");
-  });
+  const noCount = HUB.filter(m => !formOk(m, form) && m.pks.some(p => sc.packs.includes(p))).length;
+  const draw = () => {
+    $("#view").innerHTML = `<div class="page">
+      <div class="pagehd"><div><h1>做成什么样、装多满？</h1>
+        <p>三件事分三组选：<b>上面三个选一个形态</b>，<b>下面三个选一个规格</b>，最后多选要装到哪些系统。
+        形态决定哪些模块根本不适用，规格决定默认勾多满。</p></div>
+        <div class="right"><span class="badge mute">${esc(sc.nm)}</span></div></div>
+
+      <div class="pgrp">
+        <div class="pgt"><b>① 形态</b><span>这一版做成什么东西 · 三选一</span></div>
+        <div class="styles">${FORMS.map(f => `
+          <div class="sty frm ${form === f.id ? "on" : ""}" data-form="${f.id}">
+            <div class="fico">${art(f.art, 30, "currentColor")}</div>
+            <div class="nm">${f.nm}<span class="n">${f.id === "cli" ? "无图形" : (f.id === "web" ? "零安装" : "本机程序")}</span></div>
+            <div class="d">${f.d}</div>
+            <div class="keep">${f.keep}</div>
+          </div>`).join("")}</div>
+        ${noCount ? `<div class="hintline">${formDef().nm}形态下，这个场景里另有 <b>${noCount}</b> 个模块不适用（例如 CLI 没有看板与地图），已自动排除。</div>` : ""}
+      </div>
+
+      <div class="pgrp">
+        <div class="pgt"><b>② 规格</b><span>第一版装多满 · 三选一</span></div>
+        <div class="styles">${STYLES.map(s => {
+          const c = styCount(s.id, sc.id, form);
+          return `<div class="sty ${cur === s.id ? "on" : ""}" data-sty="${s.id}">
+            ${styleArt(s.id)}
+            <div class="nm">${s.nm}<span class="n">${c.n} 个模块 · ${c.cells} 格</span></div>
+            <div class="d">${s.d}</div>
+            <div class="keep">${s.keep}</div>
+          </div>`; }).join("")}</div>
+      </div>
+
+      <div class="pgrp">
+        <div class="pgt"><b>③ 平台</b><span>装到哪几个系统上 · 可多选，影响安装说明与内存底线</span></div>
+        <div class="plats">${PLATS.map(p => {
+          const ok = platOk(p.id, form);
+          const on = ok && plats.includes(p.id);
+          return `<div class="plat ${on ? "on" : ""} ${ok ? "" : "no"}" data-plat="${p.id}" title="${esc(ok ? p.note : formDef().nm + " 形态不支持 " + p.nm)}">
+            <span class="pi">${art(p.art, 18, on ? "#fff" : "currentColor")}</span>
+            <b>${p.nm}</b>
+            <span class="pn">${ok ? (on ? "要" : "不要") : "不适用"}</span>
+          </div>`; }).join("")}</div>
+        <div class="hintline">安卓的内存底线比桌面低一档：同一份东西，在手机上要先砍掉本地模型再谈。</div>
+      </div>
+
+      <div class="card box" style="margin-top:16px;font-size:12.5px;color:var(--dim);line-height:1.9">
+        <b style="color:var(--ink)">三组不是三套代码。</b>
+        它们共用同一批包与能力格，差别只在默认勾了哪些模块、底座默认选什么、打包出什么文件——
+        所以「先做简约、以后再补」不会返工。换形态或规格会按新规则重算勾选，你手改过的会重置。
+      </div>
+
+      <div style="display:flex;gap:9px;justify-content:flex-end;margin-top:18px">
+        <button class="btn" id="bBack">上一步：换场景</button>
+        <button class="btn primary lg" id="bNext">下一步：看包</button>
+      </div>
+    </div>`;
+    $("#bHome").onclick = () => go("#/home");
+    $("#bSc").onclick = $("#bBack").onclick = () => go("#/hub-scene");
+    $("#bNext").onclick = () => { S.picks = hubCells(S.hub.mods); save(); go("#/hub-mods"); };
+    document.querySelectorAll("[data-form]").forEach(c => c.onclick = () => {
+      if(S.hub.form === c.dataset.form) return;
+      S.hub = hubNew(sc.id, S.hub.sty, {form:c.dataset.form});
+      /* 平台里不适用于新形态的项自动去掉 */
+      S.hub.plat = S.hub.plat.filter(pid => platOk(pid, c.dataset.form));
+      if(!S.hub.plat.length) S.hub.plat = ["mac","win"].filter(pid => platOk(pid, c.dataset.form));
+      save(); draw();
+    });
+    document.querySelectorAll("[data-sty]").forEach(c => c.onclick = () => {
+      const s = STYLES.find(x => x.id === c.dataset.sty);
+      S.hub = {scene: sc.id, sty: s.id, form: formOf(), plat: platOf(), anim: S.hub.anim,
+               mem: S.hub.mem, model: S.hub.model, min: S.hub.min,
+               mods: defaultMods(sc.id, s.id, formOf()),
+               plans: S.hub.plans || {}, glue: S.hub.glue || {}, base: S.hub.base || {}};
+      S.picks = hubCells(S.hub.mods);
+      S.need = sc.nm + " · " + formDef().nm + " · " + s.nm;
+      save(); go("#/hub-mods");
+    });
+    document.querySelectorAll("[data-plat]").forEach(c => c.onclick = () => {
+      const pid = c.dataset.plat;
+      if(!platOk(pid)) { toast(formDef().nm + " 形态不支持 " + PLATS.find(p => p.id === pid).nm); return; }
+      const has = S.hub.plat.includes(pid);
+      S.hub.plat = has ? S.hub.plat.filter(x => x !== pid) : [...S.hub.plat, pid];
+      if(!S.hub.plat.length){ S.hub.plat = [pid]; toast("至少留一个平台"); }
+      save(); draw();
+    });
+  };
+  draw();
 }
 
 /* 包与模块：按包成组。包有颜色、有全选；模块跟着包上色，一眼能分开 */
@@ -2069,26 +2467,38 @@ function viewHubMods(){
     const m = hubMod(id);
     if(m && !S.hub.plans[id]) S.hub.plans[id] = (m.provs.find(p => p.lv === "rec") || m.provs[0]).id;
   });
-  const sc = sceneById(S.hub.scene);
+  const sc = sceneById(S.hub.scene), form = formOf();
   const inScene = pid => sc.packs.includes(pid);
-  const order = [...sc.packs.map(packOf), ...PACKS.filter(p => !sc.packs.includes(p.id))];
+  const seen = new Set();
+  const order = [...sc.packs.map(packOf), ...PACKS].filter(p => !seen.has(p.id) && seen.add(p.id));
   topbar(`工作台 <span>/</span> <b>${esc(sc.nm)}</b>`, hubSteps(2),
-    `<button class="btn sm ghost" id="bSty">换风格</button>
+    `<button class="btn sm ghost" id="bSty">换形态/规格</button>
      <button class="btn sm ghost" id="bHome2">返回工作台</button>`);
   const warn = () => {
-    const lost = HUB.filter(m => m.tier === "must" && packTierEff(m.pk) === "must" && !S.hub.mods.includes(m.id));
+    const lost = HUB.filter(m => m.tier === "must" && modTierEff(m, sc.id) === "must" && !S.hub.mods.includes(m.id));
     return lost.length ? `<div class="warnbox">⚠ 你叉掉了地基：<b>${lost.map(m => esc(m.nm)).join("、")}</b>。
       界面或数据会缺一块——不会报错，但装出来是半成品。</div>` : "";
   };
+  /* 一格可能同时属于几个包：卡片上标出来，免得用户在两个包里看到同一个模块以为是两个 */
+  const otherPacks = (m, pid) => m.pks.filter(x => x !== pid).map(x => packOf(x).nm);
+  const proWrap = m => !S.pro ? "" : `<div class="proline">${m.cells.map(c => {
+    const w = W[c] || [[], []];
+    const tn = t => (TC[t] || t);
+    const need = w[0].length ? w[0].map(g => g.map(tn).join(" 或 ")).join(" ＋ ") : "源头";
+    return `<span class="ce"><em>${c}</em><i>要 ${need} → 出 ${w[1].map(tn).join("、") || "无"}</i></span>`;
+  }).join("")}</div>`;
   const modCard = (m, p) => {
     const on = S.hub.mods.includes(m.id);
+    const others = otherPacks(m, p.id);
     return `<div class="hm ${on ? "" : "off"}" data-mid="${m.id}" style="--h:${p.hue}">
       <div class="ico">${art(m.art, 24, hue(p.hue, 52, 40))}</div>
       <div>
         <div class="nm">${esc(m.nm)}${m.tier === "must" ? `<span class="tk">必装</span>` : ""}
+          ${others.length ? `<span class="mp" title="也属于：${esc(others.join("、"))}">+${others.length} 包</span>` : ""}
           <span class="mc">${m.provs.length} 个方案</span></div>
         <div class="sb">${esc(m.sub)}</div>
         <div class="cells">${m.cells.map(c => `<span>${c}</span>`).join("")}</div>
+        ${proWrap(m)}
       </div>
       <div class="act">
         ${on ? `<button class="x" data-x="${m.id}" title="不要这个">✕</button>` : ""}
@@ -2116,9 +2526,9 @@ function viewHubMods(){
 
   $("#view").innerHTML = `<div class="page">
     <div class="pagehd"><div><h1>要哪几包？</h1>
-      <p>场景是 <b>${esc(sc.nm)}</b>，风格是 <b>${esc(hubStyleName())}</b>。
+      <p>场景 <b>${esc(sc.nm)}</b>、形态 <b>${formDef().nm}</b>、规格 <b>${esc(hubStyleName())}</b>。
       包是一成套的功能：整包勾上最省事，也可以只留包里的一两个模块。
-      必装包与推荐包默认已勾，都能叉掉。</p></div>
+      同一个模块出现在两个包里是正常的——勾一次，两边都算。</p></div>
       <div class="right"><span class="badge mute" id="modCnt">已选 ${S.hub.mods.length} 个模块</span></div></div>
     <div id="warnHost">${warn()}</div>
     <div class="packs">${order.map(packHTML).join("")}</div>
@@ -2128,7 +2538,7 @@ function viewHubMods(){
       <button class="btn primary" id="bNextM" ${S.hub.mods.length ? "" : "disabled"} style="margin-left:auto">下一步</button>
     </div>
     <div style="display:flex;gap:9px;justify-content:flex-end;margin-top:18px">
-      <button class="btn" id="bBack">上一步：换风格</button>
+      <button class="btn" id="bBack">上一步：换形态/规格</button>
       <button class="btn primary" id="bNext2" ${S.hub.mods.length ? "" : "disabled"}>下一步：选方案</button>
     </div>
   </div>`;
@@ -2154,10 +2564,8 @@ function viewHubMods(){
     box.classList.toggle("off", !on.length);
     const list = box.querySelector(".plist");
     list.innerHTML = ms.map(m => modCard(m, p)).join("");
-    bindCards();
     box.querySelector(".pn").textContent = on.length + "/" + ms.length;
     box.querySelector(".pall").textContent = on.length === ms.length ? "全不选" : "全选";
-    counters();
   };
   const toggle = id => {
     const has = S.hub.mods.includes(id);
@@ -2166,7 +2574,10 @@ function viewHubMods(){
     S.picks = hubCells(S.hub.mods);
     S.cov = null;
     saveLater();
-    const m = hubMod(id); repaintPack(m ? m.pk : "core");
+    /* 一格挂在几个包里就重画几个包——否则另一个包里的同一张卡还显示旧勾选 */
+    const m = hubMod(id);
+    (m ? m.pks : ["core"]).forEach(repaintPack);
+    bindCards(); counters();
     const card = document.querySelector(`#view [data-mid="${id}"]`);
     if(card){ card.classList.remove("just"); void card.offsetWidth; card.classList.add("just");
       setTimeout(() => card.classList.remove("just"), 320); }
@@ -2190,7 +2601,10 @@ function viewHubMods(){
       }
     });
     S.picks = hubCells(S.hub.mods); S.cov = null;
-    saveLater(); repaintPack(pid);
+    saveLater();
+    const touched = new Set([].concat.apply([], ms.map(m => m.pks)));
+    touched.forEach(repaintPack);
+    bindCards(); counters();
   });
   $("#bSty").onclick = $("#bBack").onclick = () => go("#/hub-style");
   $("#bHome2").onclick = () => go("#/home");
@@ -2206,10 +2620,15 @@ function viewHubPlans(){
   const mods = S.hub.mods.map(hubMod).filter(Boolean);
   const cells = hubCells(S.hub.mods);
   const sc = sceneById(S.hub.scene);
-  /* 胶水与底座跟模块一样要有确定值：缺省就选推荐，导出与打包读到的都是同一份 */
+  /* 胶水与底座跟模块一样要有确定值：缺省就选推荐，导出与打包读到的都是同一份。
+     底座的「运行时外壳」跟着形态走——选了 CLI 就不该默认 Tauri。 */
   S.hub.glue = S.hub.glue || {}; S.hub.base = S.hub.base || {};
   GLUE.forEach(g => { if(!S.hub.glue[g.id]) S.hub.glue[g.id] = (g.provs.find(p => p.lv === "rec") || g.provs[0]).id; });
-  BASE.forEach(g => { if(!S.hub.base[g.id]) S.hub.base[g.id] = (g.provs.find(p => p.lv === "rec") || g.provs[0]).id; });
+  BASE.forEach(g => {
+    if(S.hub.base[g.id]) return;
+    if(g.id === "bs-shell" && g.provs.some(p => p.id === formDef().base)){ S.hub.base[g.id] = formDef().base; return; }
+    S.hub.base[g.id] = (g.provs.find(p => p.lv === "rec") || g.provs[0]).id;
+  });
   topbar(`工作台 <span>/</span> <b>${esc(sc.nm)}</b>`, hubSteps(3),
     `<button class="btn sm ghost" id="bMods">改包</button>
      <button class="btn sm" id="bRec">全用推荐</button>`);
@@ -2272,13 +2691,25 @@ function viewHubPlans(){
     <div class="plans">${rows}</div>
     ${gsec("glue", "② 模块之间的胶水", "10 项 · 每个新模块都要从这里穿过去", GLUE)}
     ${gsec("base", "③ 底座", "9 项 · 整台东西跑在什么上面、怎么发出去", BASE)}
+    ${S.pro ? `<div class="secttl"><b>④ 底层：每一格吃什么、吐什么</b>
+      <span>${cells.length} 格 · 这就是「能不能接上」的判据，下一步会画成图</span></div>
+      <div class="card" style="overflow:hidden"><table class="protbl">
+        <thead><tr><th style="width:34%">能力格</th><th>吃什么</th><th>吐什么</th><th style="width:22%">谁带来它</th></tr></thead>
+        <tbody>${cells.map(cid => {
+          const c = byId[cid] || {}, w = W[cid] || [[], []];
+          const own = S.hub.mods.map(hubMod).find(x => x && x.cells.includes(cid));
+          return `<tr><td><b>${esc(c.name || cid)}</b><div class="sub">${cid}</div></td>
+            <td class="mono">${w[0].length ? w[0].map(g => g.map(t => esc(TC[t] || t)).join(" 或 ")).join(" ＋ ") : '<span class="faint">源头格</span>'}</td>
+            <td class="mono">${w[1].length ? w[1].map(t => esc(TC[t] || t)).join("、") : '<span class="faint">终点格</span>'}</td>
+            <td class="faint" style="font-size:11.5px">${esc(own ? own.nm : "（公共）")}</td></tr>`;
+        }).join("")}</tbody></table></div>` : ""}
     <div class="mobar">
       <span class="badge ok">${mods.length} 模块 · ${cells.length} 格 · ${GLUE.length} 胶水 · ${BASE.length} 底座</span>
-      <button class="btn primary" id="bNext3" style="margin-left:auto">下一步：连通检查</button>
+      <button class="btn primary" id="bNext3" style="margin-left:auto">下一步：看连线图</button>
     </div>
     <div style="display:flex;gap:9px;justify-content:flex-end;margin-top:18px">
       <button class="btn" id="bBack2">上一步：改包</button>
-      <button class="btn primary lg" id="bNext4">下一步：连通检查</button>
+      <button class="btn primary lg" id="bNext4">下一步：看连线图</button>
     </div>
   </div>`;
 
@@ -2312,8 +2743,8 @@ function viewHubPlans(){
   const next = () => {
     S.cov = hubCov();
     S.picks = hubCells(S.hub.mods);
-    S.need = sc.nm + " · " + hubStyleName() + " · " + S.hub.mods.length + " 个模块";
-    save(); go("#/plan");
+    S.need = sc.nm + " · " + formDef().nm + " · " + hubStyleName() + " · " + S.hub.mods.length + " 个模块";
+    save(); go("#/hub-wire");
   };
   $("#bNext3").onclick = $("#bNext4").onclick = next;
   $("#bRec").onclick = () => {
@@ -2331,6 +2762,206 @@ function viewHubPlans(){
 }
 
 /* ────────── 视图：选型 ────────── */
+/* ────────── 连线：两张图 + 一次装模块的动画 ──────────
+   上面那张是「包图」——用户视角：哪些包、包里装了哪几块，一个模块属于两个包就画两条线。
+   下面那张是「逻辑图」——底层视角：模块摊开成能力格之后，谁吐什么、谁吃什么。
+   两张图看的是同一份东西，只是站的位置不同。 */
+const DOMHUE = {};
+function domHue(dom){
+  if(DOMHUE[dom] == null){
+    const i = Math.max(0, D.domOrder.indexOf(dom));
+    DOMHUE[dom] = (205 + i * 41) % 360;
+  }
+  return DOMHUE[dom];
+}
+/* 逻辑图的层次：按「谁给它输入」排。断点格（没人产）放第一层，好看出断在哪 */
+function wireLevels(picks){
+  const given = {};
+  picks.forEach(c => (W[c] || [[], []])[1].forEach(t => (given[t] = given[t] || []).push(c)));
+  const lv = {}, seen = {};
+  const of = cid => {
+    if(lv[cid] != null) return lv[cid];
+    if(seen[cid]) return 0;                       // 环：直接落第 0 层，别递归爆栈
+    seen[cid] = 1;
+    const req = (W[cid] || [[], []])[0];
+    let max = -1;
+    req.forEach(grp => grp.forEach(t => (given[t] || []).forEach(p => {
+      if(p !== cid && picks.includes(p)) max = Math.max(max, of(p));
+    })));
+    lv[cid] = max + 1;
+    return lv[cid];
+  };
+  picks.forEach(of);
+  return lv;
+}
+function packMapHTML(){
+  const mods = S.hub.mods.map(hubMod).filter(Boolean);
+  const used = PACKS.filter(p => mods.some(m => m.pks.includes(p.id)));
+  /* 按包分行：一行一个包，右边是它装的模块。
+     同一个模块出现在两行不是重复——它确实同时属于两个包，两行都亮着就说明这一点。 */
+  return `<div class="pmap">
+    ${used.map(p => {
+      const ms = mods.filter(m => m.pks.includes(p.id));
+      return `<div class="prow" style="--h:${p.hue}">
+        <div class="pnode" data-pk="${p.id}">
+          <span class="pd">${art(p.art, 15, hue(p.hue, 50, 40))}</span>
+          <b>${esc(p.nm)}</b><i>${ms.length}</i>
+        </div>
+        <div class="pchips">${ms.map(m => {
+          const others = m.pks.filter(x => x !== p.id).map(x => packOf(x).nm);
+          return `<span class="mnode" style="--h:${p.hue}" title="${esc(others.length ? "也在：" + others.join("、") : m.nm)}">
+            ${esc(m.nm)}${others.length ? `<em>+${others.length}</em>` : ""}</span>`;
+        }).join("")}</div>
+      </div>`;
+    }).join("")}
+  </div>`;
+}
+function logicMapHTML(){
+  const picks = S.picks.slice(), r = check(picks);
+  const cli = ((S.hub && S.hub.form) === "cli");
+  const ext = cli ? [...D.ext, "X"] : D.ext;
+  /* 布局不用「依赖层级」——层级的代价是某一层挤十几个、其他层空着，图会又高又散。
+     改成按施工序铺格子：一行 8 个，铺满换列。从左往右就是从先做到后做，
+     而且高度恒定，屏幕上看得全。依赖用曲线连，交叉是必然的，但读得出流向。 */
+  const seq = r.order.filter(c => picks.includes(c));
+  const ROWS = Math.min(8, Math.max(3, Math.ceil(seq.length / 6)));
+  const NW = 120, NH = 29, GX = 176, GY = 33;
+  const cols = Math.max(1, Math.ceil(seq.length / ROWS));
+  const Wd = cols * GX + NW + 24, Ht = ROWS * GY + 46;
+  const xy = {};
+  seq.forEach((c, i) => { xy[c] = {x: 14 + Math.floor(i / ROWS) * GX, y: 34 + (i % ROWS) * GY}; });
+  const given = {};
+  picks.forEach(c => (W[c] || [[], []])[1].forEach(t => (given[t] = given[t] || []).push(c)));
+  const badCell = new Set(r.breaks.map(b => b.cid));
+  const deadCell = new Set(r.dead.map(b => picks.find(c => (byId[c] || {}).name === b.who)));
+  const edges = [], missing = [];
+  picks.forEach(cid => {
+    const req = (W[cid] || [[], []])[0];
+    req.forEach(grp => {
+      const okP = [];
+      grp.forEach(t => (given[t] || []).forEach(p => { if(p !== cid) okP.push([p, t]); }));
+      if(okP.length) okP.forEach(([p, t]) => edges.push({a: p, b: cid, t}));
+      else if(!grp.some(t => ext.includes(t))) missing.push({b: cid, t: grp});
+    });
+  });
+  const edgeSVG = edges.map((e, i) => {
+    const A = xy[e.a], B = xy[e.b]; if(!A || !B) return "";
+    const x1 = A.x + NW, y1 = A.y + NH / 2, x2 = B.x, y2 = B.y + NH / 2;
+    /* 同一个格子里的短边直接走直线，跨列的走曲线 */
+    const d = Math.abs(x2 - x1) < 6
+      ? `M${x1} ${y1} L${x2} ${y2}`
+      : `M${x1} ${y1} C${(x1 + x2) / 2} ${y1} ${(x1 + x2) / 2} ${y2} ${x2} ${y2}`;
+    const len = Math.abs(x2 - x1) + Math.abs(y2 - y1) + 40;
+    return `<path class="edge" d="${d}" fill="none"
+      stroke="hsl(${domHue((byId[e.a] || {}).dom || "app")} 45% 62%)" stroke-width="1.2" opacity=".55"
+      style="--len:${len};--ed:${i * 22}ms"/>`;
+  }).join("");
+  const missSVG = missing.map(m => {
+    const B = xy[m.b]; if(!B) return "";
+    return `<g class="miss"><path d="M${B.x - 22} ${B.y + NH / 2} L${B.x} ${B.y + NH / 2}"
+      stroke="#c2534a" stroke-width="1.6" stroke-dasharray="3 3"/>
+      <text x="${B.x - 26}" y="${B.y + NH / 2 - 4}" text-anchor="end" font-size="9" fill="#c2534a">缺 ${esc(m.t.map(t => TC[t] || t).join("/"))}</text></g>`;
+  }).join("");
+  const nodes = seq.map((cid, i) => {
+    const p = xy[cid], c = byId[cid] || {};
+    const nm = (c.name || cid);
+    const short = nm.length > 8 ? nm.slice(0, 8) + "…" : nm;
+    const cls = badCell.has(cid) ? "bad" : (deadCell.has(cid) ? "warn" : "");
+    return `<g class="node ${cls}" style="--d:${i * 45}ms" data-cid="${cid}">
+      <rect x="${p.x}" y="${p.y}" width="${NW}" height="${NH}" rx="6"
+        fill="hsl(${domHue(c.dom)} 62% 96%)" stroke="hsl(${domHue(c.dom)} 45% 70%)"/>
+      <rect x="${p.x}" y="${p.y}" width="3" height="${NH}" rx="1.5" fill="hsl(${domHue(c.dom)} 55% 58%)"/>
+      <text x="${p.x + 9}" y="${p.y + 18.5}" font-size="10.5" fill="#3a3831">${esc(short)}</text>
+      ${cls === "bad" ? `<circle cx="${p.x + NW - 7}" cy="${p.y + 7}" r="3" fill="#c2534a"/>` : ""}
+      ${cls === "warn" ? `<circle cx="${p.x + NW - 7}" cy="${p.y + 7}" r="3" fill="#c8932a"/>` : ""}
+    </g>`;
+  }).join("");
+  return `<div class="lgwrap">
+    <svg class="lg" id="lgmap" data-anim="${(S.hub && S.hub.anim) || "lego"}"
+      viewBox="0 0 ${Wd} ${Ht}" preserveAspectRatio="xMinYMin meet" style="width:${Wd}px;height:${Ht}px">
+      <g class="edges">${edgeSVG}${missSVG}</g>
+      <g class="nodes">${nodes}</g>
+    </svg>
+  </div>`;
+}
+function playLogic(){
+  const svg = $("#lgmap"); if(!svg) return;
+  svg.classList.remove("play");
+  void svg.getBoundingClientRect();
+  svg.classList.add("play");
+}
+
+function viewHubWire(){
+  S.picks = hubCells(S.hub.mods); S.cov = hubCov();
+  const r = check(S.picks);
+  const sc = sceneById(S.hub.scene);
+  const anim = (S.hub && S.hub.anim) || "lego";
+  topbar(`工作台 <span>/</span> <b>${esc(sc.nm)}</b>`, hubSteps(4),
+    `<button class="btn sm ghost" id="bPlans">改方案</button>
+     <button class="btn sm ghost" id="bPMods">改包</button>`);
+  const bad = r.breaks.length, dead = r.dead.length;
+  $("#view").innerHTML = `<div class="page">
+    <div class="pagehd"><div><h1>它们接得上吗？</h1>
+      <p>两张图看同一份东西：<b>包图</b>是你看见的分组，<b>逻辑图</b>是模块摊开以后谁吃什么、谁吐什么。
+      红点是断点（要的东西没人产出），黄点是死端（做出来没人用）。点下面「走一遍」看它是怎么拼起来的。</p></div>
+      <div class="right"><span class="badge ${bad ? "bad" : "ok"}">${bad ? bad + " 个断点" : "接得上"}</span>
+        ${dead ? `<span class="badge warn" style="margin-left:6px">${dead} 个死端</span>` : ""}</div></div>
+
+    <div class="secttl first"><b>① 包图</b><span>用户视角 · ${PACKS.filter(p => S.hub.mods.map(hubMod).some(m => m && m.pks.includes(p.id))).length} 个包 · 同一个模块出现在两行，说明它同时属于两个包</span></div>
+    ${packMapHTML()}
+
+    <div class="secttl"><b>② 逻辑图</b><span>底层视角 · ${S.picks.length} 格 · 从左往右是施工顺序 · 图比屏幕宽时可以左右拖</span></div>
+    <div class="wbar">
+      <span class="faint" style="font-size:11.5px">装模块的动效</span>
+      ${ANIMS.map(a => `<button class="achip ${anim === a.id ? "on" : ""}" data-anim="${a.id}" title="${esc(a.d)}">${a.nm}</button>`).join("")}
+      <button class="btn sm" id="bPlay" style="margin-left:auto">▶ 走一遍</button>
+      <button class="btn sm ghost" id="bPro2">${S.pro ? "专业 ✓" : "专业"}</button>
+    </div>
+    ${logicMapHTML()}
+    <div class="animnote" id="animNote">${esc((ANIMS.find(a => a.id === anim) || ANIMS[0]).d)}</div>
+
+    ${bad || dead ? `<div class="card box" style="margin-top:14px">
+      <div class="bh">检查结果</div>
+      ${r.breaks.map(b => `<div class="gapbox"><b>断点 · ${esc(b.who)}</b>　需要「${esc(b.need)}」，勾选里没人产出。
+        ${b.fix.length ? "补上：" + b.fix.map(esc).join("、") : "这一格要自己写或换方案。"}</div>`).join("")}
+      ${r.dead.map(b => `<div class="gapbox warn"><b>死端 · ${esc(b.who)}</b>　产出的「${esc(b.type)}」没有任何模块接。</div>`).join("")}
+    </div>` : `<div class="okline">✓ ${S.picks.length} 格、${r.lines} 条连线全部接得上，没有死端。</div>`}
+
+    ${S.pro ? `<div class="card" style="overflow:hidden;margin-top:14px"><table class="protbl">
+      <thead><tr><th style="width:30%">能力格</th><th>吃什么</th><th>吐什么</th><th style="width:18%">来自模块</th></tr></thead>
+      <tbody>${r.order.filter(c => S.picks.includes(c)).map(cid => {
+        const c = byId[cid] || {}, w = W[cid] || [[], []];
+        const own = S.hub.mods.map(hubMod).find(x => x && x.cells.includes(cid));
+        return `<tr><td><b>${esc(c.name || cid)}</b><div class="sub">${cid}</div></td>
+          <td class="mono">${w[0].length ? w[0].map(g => g.map(t => esc(TC[t] || t)).join(" 或 ")).join(" ＋ ") : "—"}</td>
+          <td class="mono">${w[1].length ? w[1].map(t => esc(TC[t] || t)).join("、") : "—"}</td>
+          <td class="faint" style="font-size:11.5px">${esc(own ? own.nm : "（公共）")}</td></tr>`;
+      }).join("")}</tbody></table></div>` : ""}
+
+    <div class="mobar">
+      <span class="badge ${bad ? "bad" : "ok"}">${S.picks.length} 格 · ${r.lines} 条连线 · ${S.hub.mods.length} 个模块</span>
+      <button class="btn primary" id="bNextW" style="margin-left:auto" ${bad ? "" : ""}>下一步：确认清单</button>
+    </div>
+    <div style="display:flex;gap:9px;justify-content:flex-end;margin-top:18px">
+      <button class="btn" id="bBack3">上一步：改方案</button>
+      <button class="btn primary lg" id="bNextW2">下一步：确认清单</button>
+    </div>
+  </div>`;
+  playLogic();
+  $("#bPlans").onclick = $("#bBack3").onclick = () => go("#/hub-plans");
+  $("#bPMods").onclick = () => go("#/hub-mods");
+  $("#bPlay").onclick = playLogic;
+  $("#bPro2").onclick = () => { S.pro = !S.pro; save(); go("#/hub-wire"); };
+  $("#bNextW").onclick = $("#bNextW2").onclick = () => { S.cov = hubCov(); save(); go("#/confirm"); };
+  document.querySelectorAll("[data-anim]").forEach(b => b.onclick = () => {
+    S.hub.anim = b.dataset.anim; save();
+    document.querySelectorAll(".achip").forEach(x => x.classList.toggle("on", x.dataset.anim === S.hub.anim));
+    const svg = $("#lgmap"); if(svg) svg.dataset.anim = S.hub.anim;
+    const n = $("#animNote"); if(n) n.textContent = (ANIMS.find(a => a.id === S.hub.anim) || ANIMS[0]).d;
+    playLogic();
+  });
+}
+
 function modHTML(cid, checked, tier, plain){
   const c = byId[cid];
   const on = checked;
@@ -2522,6 +3153,80 @@ function detail(cid){
 }
 
 /* ────────── 视图：确认 ────────── */
+/* ────────── 内存模拟：装这台东西要吃掉多少 ──────────
+   三笔账：外壳（运行时本身）+ 选中的包（每包一个基数）+ 本地模型（权重 + KV cache）。
+   预算减掉系统与后台（桌面留 8G，安卓留 4G），剩下的才是「你的程序能用多少」。 */
+function memSim(){
+  const form = formOf();
+  const pick = ((S.hub && S.hub.base) || {})["bs-shell"] || formDef().base;
+  const shellMB = ({tauri:95, electron:225, web:45, cli:12}[pick] || 95);
+  const used = new Set();
+  S.hub.mods.forEach(id => { const m = hubMod(id); if(m) m.pks.forEach(p => used.add(p)); });
+  const packMB = [...used].reduce((n, p) => n + (packOf(p).mb || 0), 0);
+  const hasLLM = S.hub.mods.includes("llmrt") || S.hub.mods.includes("llmpull") || used.has("llm");
+  const mdl = hasLLM ? modelOf() : null;
+  const modelMB = mdl ? Math.round(mdl.ram * 1024) : 0;
+  const total = shellMB + packMB + modelMB;
+  const budget = memBudget() * 1024;
+  const floor = platOf().includes("android") ? 4096 : 8192;
+  const avail = Math.max(1024, budget - floor);
+  const pct = total / avail;
+  /* 装不下时给一条具体的降级建议：找一个放得下的最大模型 */
+  let down = null;
+  if(pct > 1 && mdl){
+    const room = avail - shellMB - packMB;
+    down = LLM_MODELS.filter(m => m.ram * 1024 <= room).sort((a, b) => b.ram - a.ram)[0] || null;
+  }
+  return {form, pick, shellMB, packMB, modelMB, total, budget, floor, avail, pct,
+          ok: pct <= 0.92, tight: pct > 0.75 && pct <= 0.92, mdl, down, packs: [...used]};
+}
+const mbTxt = n => n >= 1024 ? (n / 1024).toFixed(1) + " GB" : Math.round(n) + " MB";
+
+/* ────────── 安装说明：每个平台为什么会被拦、怎么过 ────────── */
+function installNotes(form, plats){
+  const P = {};
+  P.mac = [
+    {ty:"拦在哪", body: form === "app"
+      ? "dmg 第一次打开会提示「无法验证开发者」；如果没公证，还会直接说「已损坏，移到废纸篓」。<b>不是文件坏了</b>，是下载来的文件带了 quarantine 隔离属性。"
+      : "下载来的二进制/脚本第一次运行会提示「无法验证开发者」。"},
+    {ty:"怎么过", body: form === "app"
+      ? "右键 → 打开（只对这一次有效）；或 系统设置 → 隐私与安全性 → 仍要打开；或终端 <code>xattr -dr com.apple.quarantine /Applications/X.app</code>。"
+      : "终端 <code>chmod +x ./x</code> 后右键打开；或 <code>xattr -dr com.apple.quarantine ./x</code>。"},
+    {ty:"想彻底没有这一步", body:"两条路：① 买 Apple Developer（99 美元/年）做 Developer ID 签名 + <code>notarytool</code> 公证；② <b>发源码</b>——<code>git clone &amp;&amp; npm i &amp;&amp; npm run dev</code>，产物是用户本机编的，没有 quarantine、不经过别人的签名，所以系统不拦。源码路线零成本且最安全（用户看得见每一行），代价是他要装 Node / Rust 工具链。"},
+  ];
+  P.win = [
+    {ty:"拦在哪", body:"exe 没有代码签名证书时，SmartScreen 会弹「Windows 已保护你的电脑」，默认只有「不运行」一个按钮。"},
+    {ty:"怎么过", body:"点「更多信息」→「仍要运行」；或用 zip 绿色版（解压即用，能少一层）；企业内可用组策略白名单。"},
+    {ty:"想彻底没有这一步", body:"买 OV/EV 代码签名证书（约 2000 元/年）签名；EV 证书能立刻建立信誉，OV 要累积下载量。次选是发源码，或发 <code>.zip</code> 免安装版（不写注册表、不需要管理员权限）。"},
+  ];
+  P.linux = [
+    {ty:"拦在哪", body: form === "app" ? "AppImage 默认没有执行权限；deb 会缺 <code>libwebkit2gtk</code> 之类的运行时依赖。" : "下载的二进制没有执行权限。"},
+    {ty:"怎么过", body:"<code>chmod +x ./App.AppImage</code> 后双击；缺库就用 <code>apt install ./x.deb</code> 让包管理器补依赖；或直接 <code>./x</code> 看它报缺哪个 so。"},
+    {ty:"想彻底没有这一步", body:"打成 AppImage（自带运行时，最省心）或 flatpak；也可以直接给源码，一条 <code>make</code> 或 <code>npm run build</code>。"},
+  ];
+  P.android = [
+    {ty:"拦在哪", body:"apk 不能在应用商店之外直接装，系统会拦「未知来源」；商店上架还要签名与审核（个人开发者常被要求先做小规模测试）。"},
+    {ty:"怎么过", body:"设置 → 应用 → 特殊权限 → 安装未知应用 → 允许你的浏览器/文件管理器；装完关掉这个权限。"},
+    {ty:"想彻底没有这一步", body:"上 Google Play / 国内应用商店（要签名 + 审核 + 隐私政策）；或者做成 <b>PWA</b>——用浏览器打开后「添加到主屏幕」，不经过任何安装包。"},
+  ];
+  P.web = [
+    {ty:"怎么装", body:"没有安装这一步：给一个网址就能用。想常驻就「添加到桌面/主屏幕」（PWA）。"},
+    {ty:"注意", body:"必须走 HTTPS 才能用摄像头、定位、剪贴板这些能力；本地双击 <code>index.html</code> 时 <code>file://</code> 下这些 API 多半被禁。"},
+    {ty:"发出去", body:"静态托管（对象存储 + CDN、GitHub Pages、Vercel）都行；单文件 HTML 可以直接发微信，对方存下来双击就能开。"},
+  ];
+  P.cli = [
+    {ty:"怎么装", body:"<code>chmod +x ./tool</code> 后放进 <code>/usr/local/bin</code>；或者 <code>npm i -g</code> / <code>brew install</code> / <code>scoop install</code>。"},
+    {ty:"拦在哪", body:"macOS 会拦未签名的二进制（同上面的 quarantine）；Windows 会拦未签名的 exe。"},
+    {ty:"想彻底没有这一步", body:"发源码让用户自己 <code>go build</code> / <code>cargo build --release</code>；或者只发一个 <code>.sh</code>/<code>.py</code> 脚本，天然没有签名问题。"},
+  ];
+  const out = [];
+  (plats.length ? plats : ["mac"]).forEach(pid => {
+    const list = P[pid] || P.web;
+    out.push({pl: (PLATS.find(p => p.id === pid) || {}).nm || pid, items:list});
+  });
+  return out;
+}
+
 function viewConfirm(){
   const isHub = !!(S.hub && S.hub.mods.length);
   /* 草稿恢复、地址栏直达都会跳过「选型」那一步，cov 可能还没算——这里补齐，
@@ -2570,11 +3275,21 @@ function viewConfirm(){
   }).join("") : "";
   const builds = S.picks.filter(c => (prov(c) || {}).k === "build").length;
   const comm = S.picks.filter(c => (prov(c) || {}).k === "commercial").length;
+  const memo = isHub ? memSim() : null;
+  const plats = platOf().map(pid => (PLATS.find(p => p.id === pid) || {}).nm).filter(Boolean);
   $("#view").innerHTML = `<div class="page">
     <div class="pagehd"><div><h1>确认清单</h1>
       <p>${isHub
-        ? `${esc(hubLabel())}：${S.hub.mods.length} 个模块插在 ${S.picks.length} 格上。确认后按施工顺序逐格装。`
+        ? `${esc(hubLabel())}：${S.hub.mods.length} 个模块插在 ${S.picks.length} 格上，装到 ${esc(plats.join(" / ") || "—")}。确认后按施工顺序逐格装。`
         : "这是要装的全部内容。确认后按下面的顺序逐格组装，中途可以暂停。"}</p></div></div>
+    ${isHub ? `<div class="dgrid">
+      <div class="dcard"><span>形态</span><b>${formDef().nm}</b><i>${esc(formDef().keep.replace(/<[^>]+>/g, ""))}</i></div>
+      <div class="dcard"><span>规格</span><b>${esc(hubStyleName())}</b><i>${S.hub.mods.length} 个模块 · ${S.picks.length} 格</i></div>
+      <div class="dcard"><span>平台</span><b>${esc(plats.join(" / ") || "—")}</b><i>安装说明会按这几项给</i></div>
+      <div class="dcard"><span>内存占用</span><b>${mbTxt(memo.total)}</b><i>预算 ${mbTxt(memo.budget)}，装得下${memo.ok ? "" : "（超了）"}</i></div>
+    </div>
+    <div class="hintline" style="margin-bottom:14px">安装：${installNotes(formOf(), platOf()).map(x => `<b>${x.pl}</b> ${esc(x.items[0].body.replace(/<[^>]+>/g, "").slice(0, 34))}…`).join("　·　")}
+      打包页有每一步怎么过。</div>` : ""}
     ${isHub ? `<div class="card" style="overflow:hidden;margin-bottom:14px">
       <div class="bh" style="padding:12px 14px 10px;margin:0;border-bottom:1px solid var(--line2)">
         中台模块 · 你选的实现 <span class="sp">${S.hub.mods.length} 个</span></div>
@@ -2626,11 +3341,13 @@ function viewConfirm(){
     </div>
     <div style="display:flex;gap:9px;justify-content:flex-end;margin-top:18px">
       <button class="btn" id="bBack2">返回修改</button>
+      ${isHub ? `<button class="btn" id="bWire">看连线图</button>` : ""}
       <button class="btn" id="bExport">导出清单</button>
       <button class="btn primary lg" id="bStart" ${S.picks.length ? "" : "disabled"}>确认开工，开始组装</button>
     </div>
   </div>`;
-  $("#bBack").onclick = $("#bBack2").onclick = () => go("#/plan");
+  $("#bBack").onclick = $("#bBack2").onclick = () => go(isHub ? "#/hub-wire" : "#/plan");
+  if($("#bWire")) $("#bWire").onclick = () => go("#/hub-wire");
   $("#bExport").onclick = exportMd;
   $("#bStart").onclick = () => { startBuild(); go("#/build"); };
 }
@@ -2643,7 +3360,14 @@ function mdText(){
                     "| 模块 | 实现方案 | 等级 | 说明 |", "|---|---|---|---|"] : [];
   if(isHub){
     const LV = {rec:"推荐", ok:"能用", warn:"慎选", build:"自研"};
-    L.push("场景：" + sceneName() + "　风格：" + hubStyleName(), "");
+    L.push("场景：" + sceneName() + "　形态：" + formDef().nm + "　规格：" + hubStyleName(), "");
+    L.push("平台：" + platOf().map(x => (PLATS.find(p => p.id === x) || {}).nm).filter(Boolean).join(" / "), "");
+    {
+      const m = memSim();
+      L.push("内存：" + mbTxt(m.total) + " / 预算 " + mbTxt(m.budget) + "（外壳 " + mbTxt(m.shellMB)
+             + "、模块 " + mbTxt(m.packMB) + "、模型 " + (m.modelMB ? mbTxt(m.modelMB) : "无") + "）"
+             + (m.ok ? "" : "　⚠ 超出 " + mbTxt(m.total - m.avail)), "");
+    }
     S.hub.mods.forEach(id => {
       const m = hubMod(id), p = hubPlan(id);
       if(m && p) L.push(`| ${m.nm} | ${p.n} | ${LV[p.lv] || ""} | ${p.note} |`);
@@ -2657,6 +3381,11 @@ function mdText(){
     BASE.forEach(g => {
       const p = g.provs.find(x => x.id === (S.hub.base || {})[g.id]) || g.provs[0];
       L.push(`| ${g.nm} | ${p.n} | ${LV[p.lv] || ""} | ${p.note} |`);
+    });
+    L.push("", "## 安装（会被什么拦住）", "");
+    installNotes(formOf(), platOf()).forEach(n => {
+      L.push("### " + n.pl);
+      n.items.forEach(it => L.push("- **" + it.ty + "**：" + it.body.replace(/<[^>]+>/g, "")));
     });
     L.push("", "## 底层能力格", "");
   }else{
@@ -2777,18 +3506,22 @@ function viewBuild(){
   if(S.build && !S.build.done && !S.build.paused) setTimeout(tick, 300);
 }
 
-/* 中台：主板 + 插槽。每插一块，模块从上方落下、卡进槽位、焊点亮一下 */
+/* 中台：主板 + 插槽。每插一块，模块从上方落下、卡进槽位、焊点亮一下。
+   动效由 S.hub.anim 决定（连线圈里选的，那边和这里共用同一套）。 */
 function pcbHTML(b){
+  const anim = (S.hub && S.hub.anim) || "lego";
   const chips = b.order.map((id, i) => {
     const m = hubMod(id);
     if(!m) return "";
-    if(i < b.i) return `<div class="mchip ${i === b.i - 1 && !b.done ? "just" : ""}"><span class="nm">${esc(m.nm)}</span></div>`;
+    const pk = packOf(m.pk);
+    if(i < b.i) return `<div class="mchip ${i === b.i - 1 && !b.done ? "just" : ""}" style="--h:${pk.hue};--i:${i}"><span class="nm">${esc(m.nm)}</span></div>`;
     return `<div class="slot">${esc(m.nm)}</div>`;
   }).join("");
   const ins = b.i, tot = b.order.length;
-  return `<div class="pcb">
+  return `<div class="pcb" data-anim="${anim}">
     <div class="hd"><i>◼</i> ${esc(sceneName())} · 主板 <i style="margin-left:auto">${ins}/${tot} 已插上</i></div>
     <div class="grid">${chips}</div>
+    <div class="pcbfoot">${esc((ANIMS.find(a => a.id === anim) || ANIMS[0]).nm)} · ${esc(formDef().nm)} · ${esc(hubStyleName())}</div>
   </div>`;
 }
 
@@ -2848,10 +3581,49 @@ function renderBuild(){
    好处是「试的」和「带走的」不会分叉。 */
 function trialData(){
   const isHub = !!(S.hub && S.hub.mods.length);
-  const r = check(S.picks);
-  const mods = isHub ? S.hub.mods.map(hubMod).filter(Boolean) : [];
+  /* 最小包：只留地基（core 里必装的那几块）+ 扩展系统。
+     扩展系统是「以后下载模块」的入口，最小包里必须留着，不然后面加不上东西。 */
+  const min = !!(isHub && S.hub.min);
+  const all = isHub ? S.hub.mods.map(hubMod).filter(Boolean) : [];
+  const keepMin = m => (m.pks.includes("core") && m.tier === "must") || m.id === "plugin";
+  /* 最小包必须带「扩展系统」——它就是以后下载模块的入口。
+     用户没勾也要塞进去，不然这个包是个死的：既没法加东西，也没有商店页面。 */
+  const minSet = () => {
+    const a = all.filter(keepMin);
+    return a.some(m => m.id === "plugin") ? a : [...a, hubMod("plugin")];
+  };
+  const mods = min ? minSet() : all;
+  const ids = mods.map(m => m.id);
+  const picks = min ? hubCells(ids) : S.picks.slice();
+  const r = check(picks);
+  const memo = isHub ? memSim() : null;
   return {
-    name: isHub ? hubLabel() : (S.need || "装配结果"),
+    form: isHub ? formDef().id : "app",
+    formNm: isHub ? formDef().nm : "自定义",
+    plat: isHub ? platOf().slice() : [],
+    platNm: isHub ? platOf().map(x => (PLATS.find(p => p.id === x) || {}).nm).filter(Boolean) : [],
+    min: min,
+    anim: (S.hub && S.hub.anim) || "lego",
+    mem: memo ? {total: memo.total, budget: memo.budget, shell: memo.shellMB, pack: memo.packMB,
+                 model: memo.modelMB, ok: memo.ok, modelNm: memo.mdl ? memo.mdl.nm : "",
+                 tps: memo.mdl ? memo.mdl.tps : 0, gb: memo.mdl ? memo.mdl.gb : 0} : null,
+    shop: (() => {
+      if(!isHub) return [];
+      /* 一个模块可能挂在几个包里；商店里只出现一次，否则「还剩 N 个」会数重 */
+      const seenShop = {};
+      const cut = [];
+      PACKS.forEach(p => packMods(p.id).forEach(m => {
+        if(ids.includes(m.id) || seenShop[m.id]) return;
+        seenShop[m.id] = 1;
+        cut.push({id: p.id, nm: p.nm, hue: p.hue, tier: p.tier, m});
+      }));
+      return PACKS.map(p => ({
+        id: p.id, nm: p.nm, hue: p.hue, tier: p.tier,
+        mods: cut.filter(x => x.id === p.id).map(x => ({id: x.m.id, nm: x.m.nm, tier: x.m.tier,
+          sub: x.m.sub, why: x.m.pks.length > 1 ? "也在 " + x.m.pks.map(y => packOf(y).nm).join(" / ") : ""}))
+      })).filter(p => p.mods.length);
+    })(),
+    name: isHub ? (sceneById(S.hub.scene).nm + " · " + hubStyleName()) : (S.need || "装配结果"),
     style: isHub ? hubStyleName() : "自定义需求",
     need: S.need || "",
     at: (() => { const d = new Date(); const p = n => (n < 10 ? "0" : "") + n;
@@ -2861,12 +3633,11 @@ function trialData(){
       return {id:m.id, nm:m.nm, tier:m.tier, cells:m.cells,
               prov: p ? {n:p.n, k:p.k, lv:p.lv, note:p.note} : null};
     }),
-    cells: S.picks.slice(),
+    cells: picks.slice(),
     lines: r.lines,
     scene: isHub ? sceneById(S.hub.scene).nm : "",
-    packs: isHub ? [...new Set(mods.map(m => m.pk))].map(pid => {
-      const p = packOf(pid);
-      return {id:pid, nm:p.nm, tier:p.tier, hue:p.hue, n:mods.filter(m => m.pk === pid).length};
+    packs: isHub ? PACKS.filter(p => mods.some(m => m.pks.includes(p.id))).map(p => {
+      return {id:p.id, nm:p.nm, tier:p.tier, hue:p.hue, n:mods.filter(m => m.pks.includes(p.id)).length};
     }) : [],
     glue: isHub ? GLUE.map(g => {
       const pv = g.provs.find(x => x.id === (S.hub.glue || {})[g.id]) || g.provs[0];
@@ -2876,7 +3647,7 @@ function trialData(){
       const pv = g.provs.find(x => x.id === (S.hub.base || {})[g.id]) || g.provs[0];
       return {id:g.id, nm:g.nm, pick:pv.n, k:pv.k, why:g.sub};
     }) : [],
-    order: r.order.filter(c => S.picks.includes(c)).map(c => ({id:c, nm:(byId[c] || {}).name || c}))
+    order: r.order.filter(c => picks.includes(c)).map(c => ({id:c, nm:(byId[c] || {}).name || c}))
   };
 }
 
@@ -2968,6 +3739,22 @@ textarea.inp{min-height:84px;resize:vertical;line-height:1.7}
 .st{border:1px solid #e4e1d8;border-radius:9px;padding:9px 11px;background:#fbfaf7}
 .st b{display:block;font-size:19px;font-weight:640;line-height:1.2}
 .st span{font-size:11px;color:#96938a}
+.cliwrap{height:100%;display:flex;flex-direction:column;background:#1c1d1b;color:#d6d3c8;
+  font:12.5px/1.62 ui-monospace,SFMono-Regular,Menlo,monospace}
+.clibar{flex:0 0 auto;height:38px;display:flex;align-items:center;gap:8px;padding:0 12px;
+  border-bottom:1px solid #33352f;background:#232421;color:#b9b6aa;font-size:12px}
+.clibar b{color:#e6e3d8;font-weight:600}
+.clibar .badge{border-color:#3c3e37;background:#282a26;color:#a9a69a}
+.clibar .badge.sim{border-color:#4a4331;background:#39321f;color:#d9c58a}
+.cliscr{flex:1;min-height:0;overflow:auto;padding:14px 16px;white-space:pre-wrap}
+.cliscr .cmd{color:#8fb3a0}
+.cliscr .ok{color:#8fc7a5}
+.cliscr .err{color:#e08a80}
+.cliscr .dim{color:#85857b}
+.cliscr .grp{color:#d9c58a;margin-top:6px}
+.cliin{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:8px 14px 12px;border-top:1px solid #2c2e29}
+.cliin span{color:#7ba98c}
+.cliin input{flex:1;background:transparent;border:0;outline:none;color:#e6e3d8;font:inherit}
 @media(max-width:620px){.nav{width:112px}.hdr .badge.hide{display:none}main{padding:12px}.at{display:none}}`;
 }
 
@@ -3011,6 +3798,8 @@ function trialRuntime(D){
                ["launch","启动器"],["plugin","扩展"],["update","更新"],["sync","同步"],["data","数据"]];
   const have = id => D.mods.some(m => m.id === id);
   const tabs = NAV.filter(([id]) => have(id));
+  /* 最小包里只有地基，但「模块商店」这个入口必须在——不然用户以后没法加模块 */
+  if((D.shop || []).length) tabs.push(["shop", "模块商店"]);
   if(!ST.tab || !tabs.some(([id]) => id === ST.tab)) ST.tab = tabs.length ? tabs[0][0] : "data";
 
   const toast = txt => {
@@ -3024,6 +3813,119 @@ function trialRuntime(D){
   };
 
   const P = {};
+
+  /* ── CLI 形态：没有界面就没有面板，只有提示符。命令是真的会改 ST 的。 ── */
+  if(D.form === "cli"){
+    document.body.innerHTML = `<div class="cliwrap"><div class="clibar">
+        <b>${esc(D.name)}</b><span class="badge">CLI</span><span class="badge sim">模拟</span>
+        <span style="flex:1"></span><span class="badge">${D.mods.length} 模块 · ${D.cells.length} 格</span></div>
+      <div class="cliscr" id="scr"></div>
+      <div class="cliin"><span>$</span><input id="cin" autocomplete="off" spellcheck="false" placeholder="help"></div></div>`;
+    const scr = $("#scr"), inp = $("#cin");
+    const out = (t, c) => { const d = document.createElement("div"); if(c) d.className = c; d.textContent = t; scr.appendChild(d); scr.scrollTop = scr.scrollHeight; };
+    const cmds = {
+      help(){ out("可用命令："); ["todo  列出待办 / todo add <内容> / todo done <序号>",
+        "note  列出笔记 / note add <内容>", "board 列出看板三列", "search <词> 搜待办与笔记",
+        "stock 库存与占用", "status 这台东西装了什么", "clear 清屏"].forEach(x => out("  " + x)); },
+      todo(a){
+        if(a[0] === "add" && a[1]) { ST.todo.push({t:a.slice(1).join(" "), done:false, at:ts()}); save(); out("已添加：" + a.slice(1).join(" "), "ok"); return; }
+        if(a[0] === "done" && a[1]) { const i = +a[1] - 1; if(ST.todo[i]){ ST.todo[i].done = true; save(); out("已完成：" + ST.todo[i].t, "ok"); } else out("没有第 " + a[1] + " 条", "err"); return; }
+        if(!ST.todo.length) return out("（空）", "dim");
+        ST.todo.forEach((t, i) => out(`  ${i + 1}. [${t.done ? "x" : " "}] ${t.t}`));
+      },
+      note(a){
+        if(a[0] === "add" && a[1]) { ST.note.push({t:a.slice(1).join(" "), at:ts()}); save(); out("已记下", "ok"); return; }
+        if(!ST.note.length) return out("（空）", "dim");
+        ST.note.forEach((n, i) => out(`  ${i + 1}. ${n.t.split("\n")[0].slice(0, 60)}  ${n.at}`));
+      },
+      board(){
+        ["待办", "进行中", "已完成"].forEach((nm, ci) => {
+          out(nm, "grp"); ST.board.filter(b => b.c === ci).forEach(b => out("  · " + b.t));
+        });
+      },
+      search(q){
+        const w = (q || "").toLowerCase(); if(!w) return out("用法：search <词>");
+        const hit = [];
+        ST.todo.forEach(t => t.t.toLowerCase().includes(w) && hit.push(["待办", t.t]));
+        ST.note.forEach(n => n.t.toLowerCase().includes(w) && hit.push(["笔记", n.t.split("\n")[0]]));
+        if(!hit.length) return out("没搜到「" + q + "」", "dim");
+        hit.forEach(([k, t]) => out(`  [${k}] ${t.slice(0, 70)}`));
+      },
+      stock(){
+        out("SKU            名称              在库  占用", "grp");
+        ST.stock.forEach(s => out(`  ${s.sku.padEnd(14)} ${s.nm.padEnd(16)} ${String(s.qty).padStart(3)}   ${s.hold}`));
+        out("提示：扣减要用带条件的 UPDATE（qty >= n），先查后扣在大促那天必然超卖。", "dim");
+      },
+      status(){
+        out(D.name, "grp");
+        out(`  形态 ${D.formNm} · 平台 ${(D.platNm || []).join("/") || "—"} · 内存约 ${D.mem ? (D.mem.total / 1024).toFixed(1) + " GB" : "—"}`);
+        out("  模块：" + D.mods.map(m => m.nm).join("、"));
+        out("  能力格：" + D.cells.length + " 格 · 连线 " + D.lines + " 条");
+        if((D.shop || []).length) out("  没装：" + D.shop.map(p => p.nm + "(" + p.mods.length + ")").join("、") + "　用 shop 看怎么装", "dim");
+      },
+      shop(){
+        if(!(D.shop || []).length) return out("全都装上了。", "dim");
+        D.shop.forEach(p => { out(p.nm + "（" + p.mods.length + "）", "grp"); p.mods.forEach(m => out("  · " + m.nm + "　" + m.sub)); });
+        out("模拟版没有真的下载；真实版本这里会走「下载 → 校验 → 热加载」。", "dim");
+      },
+      clear(){ scr.innerHTML = ""; }
+    };
+    out(D.name + "　" + D.formNm + " · " + D.mods.length + " 个模块", "grp");
+    out("输入 help 看命令。这是模拟，数据存在浏览器里。", "dim");
+    inp.focus();
+    inp.addEventListener("keydown", e => {
+      if(e.key !== "Enter") return;
+      const line = inp.value.trim(); inp.value = "";
+      out("$ " + line, "cmd");
+      if(!line) return;
+      const [c, ...a] = line.split(/\s+/);
+      if(cmds[c]) { try { cmds[c](a); } catch(err){ out("出错：" + err.message, "err"); } }
+      else out("没有这个命令：" + c + "（输入 help）", "err");
+    });
+    return;
+  }
+
+  P.shop = el => {
+    const ins = () => { try { return JSON.parse(localStorage.getItem(K + ".inst") || "[]"); } catch(e){ return []; } };
+    const got = ins();
+    const packs = (D.shop || []);
+    const total = packs.reduce((n, p) => n + p.mods.length, 0);
+    el.innerHTML = `<div class="hd">模块商店<span class="c">${total} 个模块没装 · 按需下载</span></div>
+      <div class="card" style="margin-bottom:10px">
+        <div style="font-size:12.5px;line-height:1.7">
+          <b>最小包为什么留着这个页面：</b>先装一个能跑的地基（几十 MB），
+          其余模块你以后用到哪个再下哪个。下载是「拿一个包 + 校验 + 热加载」，不用重装主程序。
+        </div>
+      </div>
+      ${packs.map(p => `<div class="card" style="margin-bottom:9px;border-left:3px solid hsl(${p.hue} 55% 62%)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <b style="font-size:13px">${esc(p.nm)}</b>
+          <span class="badge">${p.mods.length} 个</span>
+          <span style="flex:1"></span>
+          <button class="btn" data-pall="${p.id}">整包安装</button>
+        </div>
+        ${p.mods.map(m => `<div class="row" data-mid="${m.id}" data-got="${got.includes(m.id) ? 1 : 0}">
+          <div class="tx"><b style="font-weight:600">${esc(m.nm)}</b>
+            <div style="font-size:11.5px;color:#96938a">${esc(m.sub)}${m.why ? "　·　" + esc(m.why) : ""}</div></div>
+          <button class="btn" data-ins="${m.id}">${got.includes(m.id) ? "已装 ✓" : "下载"}</button>
+        </div>`).join("")}
+      </div>`).join("")}
+      <div class="hint">点了「下载」只是把这一格标记成已装（模拟）。真实版本要做三件事：
+        <b>分块下载 + sha256 校验 + 装完热加载</b>，任一失败要能回滚到上一个可用版本。</div>`;
+    const mark = id => {
+      const cur = ins(); if(!cur.includes(id)) cur.push(id);
+      try { localStorage.setItem(K + ".inst", JSON.stringify(cur)); } catch(e){}
+      paint(); toast("已装（模拟）：" + ((D.shop.flatMap(p => p.mods).find(m => m.id === id) || {}).nm || id));
+    };
+    $$("[data-ins]", el).forEach(b => b.onclick = () => mark(b.dataset.ins));
+    $$("[data-pall]", el).forEach(b => b.onclick = () => {
+      const p = packs.find(x => x.id === b.dataset.pall);
+      const cur = ins();
+      p.mods.forEach(m => { if(!cur.includes(m.id)) cur.push(m.id); });
+      try { localStorage.setItem(K + ".inst", JSON.stringify(cur)); } catch(e){}
+      paint(); toast("整包已装（模拟）：" + p.nm);
+    });
+  };
 
   P.board = el => {
     const COLS = ["待办", "进行中", "已完成"], CN = ["#c9a227", "#3f7d5a", "#6b6960"];
@@ -3373,16 +4275,19 @@ function trialRuntime(D){
     <div class="hdr">
       <div class="dots"><i></i><i></i><i></i></div>
       <div class="ttl">${esc(D.name)}</div>
-      <span class="badge hide">${esc(D.style)}</span>
+      <span class="badge hide">${esc(D.formNm || D.style)}</span>
+      <span class="badge hide">${esc((D.platNm || []).join(" / "))}</span>
+      ${D.min ? `<span class="badge sim">最小包</span>` : ""}
       <span class="badge sim">模拟</span>
       <div style="flex:1"></div>
-      <span class="badge hide">${D.mods.length} 个模块 · ${D.cells.length} 格</span>
+      <span class="badge hide">${D.mods.length} 个模块 · ${D.cells.length} 格${D.mem ? " · " + (D.mem.total / 1024).toFixed(1) + " GB" : ""}</span>
     </div>
     <div class="bwrap">
       <div class="nav" id="nav"><div class="g">模块</div></div>
       <main id="main"></main>
     </div>
-    <div class="ftr"><span>模拟运行 · 数据存在本浏览器</span><div style="flex:1"></div><span>装配于 ${esc(D.at)}</span></div>
+    <div class="ftr"><span>${D.min ? "最小包：只装了地基，其余在「模块商店」里" : "模拟运行 · 数据存在本浏览器"}</span>
+      <div style="flex:1"></div><span>${esc(D.formNm || "")} · 装配于 ${esc(D.at)}</span></div>
   </div>`;
   $("#nav").innerHTML += tabs.map(([id, nm]) =>
     `<button data-tab="${id}" class="${ST.tab === id ? "on" : ""}">${nm}</button>`).join("");
@@ -3416,18 +4321,21 @@ function trialDoc(){
 function viewTrial(){
   const isHub = !!(S.hub && S.hub.mods.length);
   if(!isHub){ toast("试用只做给场景装配"); go("#/done"); return; }
-  topbar(`工作台 <span>/</span> <b>${esc(sceneName())}</b>`, hubSteps(6),
+  topbar(`工作台 <span>/</span> <b>${esc(sceneName())}</b>`, hubSteps(7),
     `<button class="btn sm ghost" id="bTMods">改模块</button>
      <button class="btn sm ghost" id="bTPlans">换方案</button>`);
   $("#view").innerHTML = `<div class="page">
     <div class="pagehd"><div><h1>先试用一下</h1>
-      <p>这就是按你选的 ${S.hub.mods.length} 个模块拼出来的中台。点一遍：加条待办、记条笔记、搜一下、跟 AI 说句话。
+      <p>这就是按你选的 ${S.hub.mods.length} 个模块拼出来的东西（${formDef().nm}形态）。
+      ${formDef().id === "cli" ? "输入 help 看有哪些命令——命令是真的会改数据。" : "点一遍：加条待办、记条笔记、搜一下、跟 AI 说句话。"}
       数据只活在这一页里，随便折腾。</p></div>
       <div class="right"><span class="badge mute">模拟 · 不接真后端</span></div></div>
     <div class="trialbar">
       <span class="badge ok">${S.hub.mods.length} 个模块</span>
       <span class="badge mute">${S.picks.length} 格</span>
-      <span class="faint" style="font-size:11.5px">觉得不对就回上一步改，改完回来再看</span>
+      <span class="badge mute">${formDef().nm}</span>
+      ${S.hub.min ? `<span class="badge warn">最小包 · 其余在商店里</span>` : ""}
+      <span class="faint" style="font-size:11.5px">${formDef().id === "cli" ? "CLI 形态：这里是一个能敲命令的终端，输入 help" : "觉得不对就回上一步改，改完回来再看"}</span>
       <div style="margin-left:auto;display:flex;gap:8px">
         <button class="btn sm" id="bTReset">重置试用数据</button>
         <button class="btn sm primary" id="bTPack">没问题，打包 →</button>
@@ -3506,10 +4414,18 @@ function zipStore(files){
 
 function packFiles(){
   const data = trialData();
+  const memo = memSim();
+  const form = formOf();
   const manifest = {
-    生成时间: data.at, 场景: data.scene || "—", 风格: data.style, 需求: data.need,
+    生成时间: data.at, 场景: data.scene || "—", 形态: formDef().nm, 规格: data.style, 需求: data.need,
+    平台: data.platNm, 最小包: !!data.min,
     模块数: data.mods.length, 能力格数: data.cells.length, 连线数: data.lines,
-    包: (data.packs || []).map(p => ({名称: p.nm, 等级: p.tier, 模块数: p.n})),
+    内存估算: {合计MB: memo.total, 预算MB: memo.budget, 外壳MB: memo.shellMB, 模块MB: memo.packMB,
+              模型MB: memo.modelMB, 装得下: memo.ok,
+              模型: memo.mdl ? {名称: memo.mdl.nm, 量化: memo.mdl.q, 权重GB: memo.mdl.gb,
+                                预估字每秒: memo.mdl.tps} : null},
+    包装: [...new Set(data.mods.flatMap(m => m.packs || []))].length ? data.packs.map(p => ({名称: p.nm, 等级: p.tier, 模块数: p.n})) : [],
+    未装模块: (data.shop || []).map(p => ({包: p.nm, 模块: p.mods.map(m => m.nm)})),
     胶水: (data.glue || []).map(g => ({项: g.nm, 做法: g.pick, 类型: g.k})),
     底座: (data.base || []).map(g => ({项: g.nm, 做法: g.pick, 类型: g.k})),
     模块: data.mods.map(m => ({ 名称: m.nm, 编号: m.id, 等级: TIER[m.tier] ? TIER[m.tier][0] : m.tier,
@@ -3520,11 +4436,13 @@ function packFiles(){
   const readme = `# ${data.name}
 
 装配于 ${data.at} · ${data.mods.length} 个模块 · ${data.cells.length} 格 · ${data.lines} 条连线
+形态 **${formDef().nm}** · 平台 ${data.platNm.join(" / ") || "—"} · 预计占用 ${mbTxt(memo.total)}${data.min ? " · 最小包" : ""}
 
 ## 怎么用
 
-双击 \`index.html\`，会打开一个**能点的模拟中台**：左侧是模块导航，待办能加能勾、速记能保存、
-搜索能跨三处找、AI 对话框能真的给你加待办。数据存在你浏览器的 localStorage 里，不上传任何地方。
+${data.form === "cli"
+  ? "双击 `index.html` 会打开一个能敲命令的终端：`todo`、`note`、`search 关键词`、`status`、`help`。\n数据存在你浏览器的 localStorage 里，不上传任何地方。"
+  : "双击 `index.html`，会打开一个**能点的模拟中台**：左侧是模块导航，待办能加能勾、速记能保存、\n搜索能跨三处找、AI 对话框能真的给你加待办。数据存在你浏览器的 localStorage 里，不上传任何地方。"}
 
 这是原型：界面与交互是真的，后端是假的。要变成真程序，按 \`模块清单.md\` 的施工顺序逐格落地。
 
@@ -3532,12 +4450,31 @@ function packFiles(){
 
 ${data.mods.map(m => `- **${m.nm}**（${m.cells.join(" / ")}）→ ${m.prov ? m.prov.n : "未选"}${m.prov ? "　" + m.prov.note : ""}`).join("\n")}
 
+${(data.shop || []).length ? `## 还没装的（最小包）
+
+这些模块没有打进包里，用「扩展系统」按需下载：
+
+${(data.shop || []).map(p => `- **${p.nm}**：${p.mods.map(m => m.nm).join("、")}`).join("\n")}
+` : ""}
 ## 胶水与底座
 
 模块之间怎么接、整台东西跑在哪：
 
 ${(data.glue || []).map(g => `- **胶水 · ${g.nm}** → ${g.pick}（${g.k}）　${g.why}`).join("\n")}
 ${(data.base || []).map(g => `- **底座 · ${g.nm}** → ${g.pick}（${g.k}）　${g.why}`).join("\n")}
+
+## 内存
+
+| 项 | 占用 |
+|---|---|
+| 运行时外壳 | ${mbTxt(memo.shellMB)} |
+| 模块与数据 | ${mbTxt(memo.packMB)}（${memo.packs.length} 个包） |
+| 本地模型 | ${memo.modelMB ? mbTxt(memo.modelMB) + "（" + memo.mdl.nm + " " + memo.mdl.q + "）" : "未启用"} |
+| **合计** | **${mbTxt(memo.total)}** |
+| 系统与后台预留 | ${mbTxt(memo.floor)} |
+| 机器内存 | ${mbTxt(memo.budget)} |
+
+${memo.ok ? `可用 ${mbTxt(memo.avail)}，还剩 ${mbTxt(memo.avail - memo.total)}。` : `超了 ${mbTxt(memo.total - memo.avail)}——${memo.down ? "把模型降到 " + memo.down.nm + " 就够。" : "换小模型或去掉可选包。"}`}
 
 ## 施工顺序
 
@@ -3547,53 +4484,164 @@ ${data.order.map((o, i) => `${i + 1}. ${o.nm}　\`${o.id}\``).join("\n")}
 
 1. **先跑通一条链**：数据仓 → 待办 → 界面。这三格通了，后面的都是加法。
 2. **方案是候选不是承诺**：标「自研」的格子要算 token 与返工成本，标「慎选」的多半有运维代价。
-3. **别一次装全**：这块中台是从「必装」起，用两周再决定要不要加可选模块。
+3. **别一次装全**：这块东西是从「必装」起，用两周再决定要不要加可选模块。
 `;
-  return {manifest, readme};
+  const install = `# 安装说明
+
+形态 **${formDef().nm}** · 平台 ${data.platNm.join(" / ") || "—"}
+
+先说一句：**被拦住的从来不是「你的程序不好」，是「系统不认识它」。**
+要么买证书让系统认识你，要么发源码让用户自己编——后者零成本，而且用户能看到每一行。
+
+${installNotes(form, platOf()).map(n => `## ${n.pl}
+
+${n.items.map(it => `**${it.ty}**　${it.body.replace(/<[^>]+>/g, "")}`).join("\n\n")}
+`).join("\n")}
+## 一张对照表
+
+| 平台 | 产物 | 默认会被拦 | 最快过法 | 彻底解决 |
+|---|---|---|---|---|
+| macOS | dmg / app | Gatekeeper：「无法验证开发者」或「已损坏」 | 右键 → 打开，或 \`xattr -dr com.apple.quarantine\` | Apple Developer 签名 + 公证（99 美元/年），或发源码 |
+| Windows | exe / msi | SmartScreen：「Windows 已保护你的电脑」 | 更多信息 → 仍要运行 | 代码签名证书（约 2000 元/年），或发 zip 绿色版 |
+| Linux | AppImage / deb | 没有执行权限 / 缺依赖 | \`chmod +x\`、\`apt install ./x.deb\` | AppImage 自带运行时，或发源码 |
+| 安卓 | apk | 未知来源被禁 | 设置里允许该来源安装 | 上架应用商店，或做成 PWA 加到主屏 |
+| 网页 | 网址 | 没有安装这一步 | — | 走 HTTPS；本地打开时摄像头/定位多半被禁 |
+| CLI | 单文件二进制 | 未签名二进制被拦 | \`chmod +x\`，右键打开 | 发源码让用户自己 \`build\`，或发脚本 |
+`;
+  return {manifest, readme, install};
 }
 
 /* ────────── 视图：打包 ────────── */
 function viewPack(){
   const isHub = !!(S.hub && S.hub.mods.length);
+  const form = formOf(), plats = platOf();
   const data = trialData();
-  const {manifest, readme} = packFiles();
+  const memo = memSim();
+  const {manifest, readme, install} = packFiles();
   const htmlDoc = trialDoc();
-  const zipBytes = zipStore([
+  const files = [
     {name:"index.html", data: htmlDoc},
     {name:"manifest.json", data: JSON.stringify(manifest, null, 2)},
     {name:"README.md", data: readme},
+    {name:"安装说明.md", data: install},
     {name:"模块清单.md", data: mdText()}
-  ]);
+  ];
+  if((data.shop || []).length) files.push({name:"modules.json", data: JSON.stringify({
+    说明: "最小包没有装这些模块。真实版本由「扩展系统」按这个清单去下，下完热加载。",
+    未装: data.shop.map(p => ({包: p.nm, 模块: p.mods.map(m => ({名称: m.nm, 编号: m.id}))}))
+  }, null, 2)});
+  const zipBytes = zipStore(files);
   const kb = (zipBytes.length / 1024).toFixed(1);
-  topbar(`工作台 <span>/</span> <b>${esc(sceneName())}</b>`, isHub ? hubSteps(6) : 4,
+  const notes = installNotes(form, plats);
+  const mm = memo;
+  const minN = (() => {
+    const a = S.hub.mods.map(hubMod).filter(m => m && m.pks.includes("core") && m.tier === "must");
+    return a.some(m => m.id === "plugin") ? a.length : a.length + 1;
+  })();
+  const bar = pct => Math.min(100, Math.round(pct * 100));
+  topbar(`工作台 <span>/</span> <b>${esc(sceneName())}</b>`, isHub ? hubSteps(7) : 4,
     `<button class="btn sm ghost" id="bPBack">回试用</button>`);
   $("#view").innerHTML = `<div class="page">
     <div class="pagehd"><div><h1>打包带走</h1>
-      <p>包里是四样东西：一个能直接双击打开的试用版中台、一份机器可读的清单、一份给人看的说明、
-      一份按能力格展开的施工表。</p></div>
-      <div class="right"><span class="badge ok">${kb} KB</span></div></div>
-    <div class="packlist">
-      <div class="row"><b>index.html</b><span>${(htmlDoc.length / 1024).toFixed(1)} KB · 刚才试的那个中台，双击即开，不依赖网络</span></div>
-      <div class="row"><b>manifest.json</b><span>${data.mods.length} 个模块 · ${data.cells.length} 格 · ${data.lines} 条连线 · 施工顺序</span></div>
-      <div class="row"><b>README.md</b><span>怎么用、装了什么、施工顺序、三个提醒</span></div>
-      <div class="row"><b>模块清单.md</b><span>按能力格展开的施工表，含每格选的方案与类型</span></div>
+      <p>先算算内存装不装得下，再看安装时会被什么拦住，最后选要不要最小包。
+      包里是 ${files.length} 个文件：一个能直接双击打开的试用版、清单、说明、安装说明${(data.shop || []).length ? "、模块商店清单" : ""}。</p></div>
+      <div class="right"><span class="badge ok">${kb} KB</span>
+        ${data.min ? `<span class="badge mute" style="margin-left:6px">最小包</span>` : ""}</div></div>
+
+    <div class="secttl first"><b>① 内存够不够</b><span>打包前先模拟一次 · 装完再看实际结果</span></div>
+    <div class="memcard">
+      <div class="memtop">
+        <div class="memb">
+          <div><b>${mbTxt(mm.total)}</b><span>预计占用</span></div>
+          <div><b>${mbTxt(mm.budget)}</b><span>机器内存</span></div>
+          <div><b class="${mm.ok ? "" : "a"}">${mm.ok ? "装得下" : "超了"}</b><span>${Math.round(mm.pct * 100)}% 可用</span></div>
+        </div>
+        <div class="memctl">
+          <div class="row2"><span>这台机器有多少内存</span>
+            ${[4,8,16,32,64].map(g => `<button class="achip ${memBudget() === g ? "on" : ""}" data-mem="${g}">${g}G</button>`).join("")}</div>
+          <div class="row2"><span>本地模型跑哪个</span>
+            ${LLM_MODELS.filter(m => m.tps > 0).map(m => `<button class="achip ${modelOf().id === m.id ? "on" : ""}" data-mdl="${m.id}"
+              title="${esc(m.use + " · 权重 " + m.gb + "GB · 约 " + m.tps + " 字/秒")}">${esc(m.nm.replace("Qwen2.5", "Q"))}</button>`).join("")}</div>
+        </div>
+      </div>
+      <div class="membar">
+        <div class="seg" style="width:${bar(mm.shellMB / mm.avail)}%;background:#8a8f7a" title="外壳 ${mbTxt(mm.shellMB)}"></div>
+        <div class="seg" style="width:${bar(mm.packMB / mm.avail)}%;background:hsl(220 40% 62%)" title="模块 ${mbTxt(mm.packMB)}"></div>
+        ${mm.modelMB ? `<div class="seg" style="width:${bar(mm.modelMB / mm.avail)}%;background:hsl(320 45% 60%)" title="模型 ${mbTxt(mm.modelMB)}"></div>` : ""}
+        ${mm.pct > 1 ? `<div class="seg over" style="width:${bar(1 - 1 / mm.pct)}%"></div>` : ""}
+      </div>
+      <div class="memlg">
+        <span><i style="background:#8a8f7a"></i>外壳 ${mbTxt(mm.shellMB)}</span>
+        <span><i style="background:hsl(220 40% 62%)"></i>模块包 ${mbTxt(mm.packMB)}（${mm.packs.length} 个包）</span>
+        ${mm.modelMB ? `<span><i style="background:hsl(320 45% 60%)"></i>本地模型 ${mbTxt(mm.modelMB)}（${esc(mm.mdl.nm)} ${esc(mm.mdl.q)}）</span>` : `<span class="faint">没装本地模型包，不占这块</span>`}
+        <span class="faint">系统与后台预留 ${mbTxt(mm.floor)}</span>
+      </div>
+      <div class="memnote">${mm.ok
+        ? (mm.tight ? `还剩 ${mbTxt(mm.avail - mm.total)}，偏紧：开长上下文或同时开别的程序时可能被系统换出去，速度会掉。` : `还剩 ${mbTxt(mm.avail - mm.total)}，稳。`)
+        : `超了 ${mbTxt(mm.total - mm.avail)}。${mm.down ? `把模型降到 <b>${esc(mm.down.nm)}</b>（${esc(mm.down.q)}，约 ${mbTxt(mm.down.ram * 1024)}）就够了。` : "要么换小一档的模型，要么去掉几个可选包。"}`}</div>
     </div>
-    <div class="card box" style="margin-bottom:16px">
+
+    <div class="secttl"><b>② 安装时会被什么拦住</b><span>${esc(formDef().nm)} · ${esc(plats.map(p => (PLATS.find(x => x.id === p) || {}).nm).filter(Boolean).join(" / ") || "—")}</span></div>
+    <div class="inst">
+      ${notes.map(n => `<div class="icard"><div class="ih"><b>${esc(n.pl)}</b>
+        <span class="badge ${n.pl === "安卓" ? "warn" : "mute"}">${form === "web" ? "免安装" : (form === "cli" ? "命令行" : "安装包")}</span></div>
+        ${n.items.map(it => `<div class="irow"><em>${esc(it.ty)}</em><div>${it.body}</div></div>`).join("")}
+      </div>`).join("")}
+    </div>
+    <div class="hintline">一句话：<b>被拦住的从来不是「你的程序不好」，是「系统不认识它」</b>。
+      要么买证书让它认识你，要么发源码让用户自己编——后者零成本，而且用户能看到每一行。</div>
+
+    <div class="secttl"><b>③ 打多大</b><span>最小包只装地基，其余以后按需下载</span></div>
+    <div class="minbox ${data.min ? "on" : ""}">
+      <div class="switch ${data.min ? "on" : ""}" id="bMin"></div>
+      <div>
+        <b>最小打包</b>
+        <div class="faint" style="font-size:12px;line-height:1.7">
+          只带 <b>${minN}</b> 个地基模块（core 里必装的几块 + 扩展系统），其余 <b>${S.hub.mods.length - minN}</b> 个模块在商店里按需下。
+          <b>模块商店入口强制保留</b>——最小包要是连下载入口都没有，以后就再也加不上东西了。
+        </div>
+      </div>
+      <span class="badge ${data.min ? "ok" : "mute"}" style="margin-left:auto">${data.min ? "只发 " + kb + " KB" : "全量"}</span>
+    </div>
+
+    <div class="secttl"><b>④ 包里有什么</b><span>${files.length} 个文件 · ${data.mods.length} 个模块 · ${data.cells.length} 格 · ${data.lines} 条连线</span></div>
+    <div class="packlist">
+      <div class="row"><b>index.html</b><span>${(htmlDoc.length / 1024).toFixed(1)} KB · ${data.form === "cli" ? "双击打开是一个能敲命令的终端" : "刚才试的那个东西，双击即开，不依赖网络"}</span></div>
+      <div class="row"><b>manifest.json</b><span>模块、能力格、胶水、底座、内存估算、施工顺序</span></div>
+      <div class="row"><b>README.md</b><span>怎么用、装了什么、施工顺序、三个提醒</span></div>
+      <div class="row"><b>安装说明.md</b><span>${notes.length} 个平台：会被什么拦住、怎么过、怎么彻底绕开</span></div>
+      <div class="row"><b>模块清单.md</b><span>按能力格展开的施工表，含每格选的方案与类型</span></div>
+      ${(data.shop || []).length ? `<div class="row"><b>modules.json</b><span>还没装的 ${(data.shop || []).reduce((n, p) => n + p.mods.length, 0)} 个模块清单，商店照它去下</span></div>` : ""}
+    </div>
+
+    <div class="secttl"><b>⑤ 装完的模拟结果</b><span>这些数字会一起写进 manifest.json</span></div>
+    <div class="resgrid">
+      <div class="rcell"><span>运行时</span><b>${mbTxt(mm.shellMB)}</b><i>${esc(BASE[0].provs.find(p => p.id === mm.pick) ? BASE[0].provs.find(p => p.id === mm.pick).n : mm.pick)}</i></div>
+      <div class="rcell"><span>模块与数据</span><b>${mbTxt(mm.packMB)}</b><i>${mm.packs.length} 个包</i></div>
+      <div class="rcell"><span>本地模型</span><b>${mm.modelMB ? mbTxt(mm.modelMB) : "—"}</b><i>${mm.mdl ? esc(mm.mdl.nm) + " · 约 " + mm.mdl.tps + " 字/秒" : "未启用"}</i></div>
+      <div class="rcell"><span>合计</span><b class="${mm.ok ? "ok" : "a"}">${mbTxt(mm.total)}</b><i>${mm.ok ? "在 " + mbTxt(mm.avail) + " 可用之内" : "超出 " + mbTxt(mm.total - mm.avail)}</i></div>
+      <div class="rcell"><span>磁盘</span><b>${zipBytes.length >= 1048576 ? (zipBytes.length / 1048576).toFixed(1) + " MB" : kb + " KB"}</b><i>${data.min ? "最小包" : "全量包"}${mm.modelMB ? "（不含权重）" : ""}</i></div>
+      <div class="rcell"><span>冷启动估计</span><b>${mm.modelMB ? (mm.mdl.gb < 2 ? "1 秒内" : "2–5 秒") : "0.5 秒内"}</b><i>${mm.modelMB ? "要先把权重读进内存" : "没有权重加载"}</i></div>
+    </div>
+
+    <div class="card box" style="margin:14px 0">
       <div class="bh">包里怎么来的 <span class="sp">${esc(data.at)}</span></div>
-      <div class="kv"><b>风格</b><span>${esc(data.style)}</span></div>
+      <div class="kv"><b>形态 / 规格</b><span>${esc(formDef().nm)} · ${esc(data.style)}</span></div>
+      <div class="kv"><b>平台</b><span>${esc(data.platNm.join(" / ") || "—")}</span></div>
       <div class="kv"><b>模块</b><span>${data.mods.map(m => esc(m.nm)).join("、")}</span></div>
       <div class="kv"><b>施工首格</b><span>${data.order.length ? esc(data.order[0].nm) + "（" + esc(data.order[0].id) + "）" : "—"}</span></div>
       <div class="kv"><b>施工末格</b><span>${data.order.length ? esc(data.order[data.order.length - 1].nm) + "（" + esc(data.order[data.order.length - 1].id) + "）" : "—"}</span></div>
     </div>
+
     <div style="display:flex;gap:9px;flex-wrap:wrap">
       <button class="btn primary lg" id="bZipDown">下载 .zip（${kb} KB）</button>
       <button class="btn" id="bOnlyHtml">只要 index.html</button>
       <button class="btn" id="bExpP">导出清单 .md</button>
-      <button class="btn ghost" id="bPAgain">再做一个中台</button>
+      <button class="btn ghost" id="bPAgain">再做一个</button>
     </div>
     <p class="faint" style="font-size:11.5px;margin-top:12px">
-      解开就是普通文件夹，没有安装脚本、没有运行时依赖——这一版是原型，装出来的中台还不能真跑，
-      但界面与交互照着它做即可。</p>
+      解开就是普通文件夹，没有安装脚本、没有运行时依赖——这一版是原型，装出来的东西还不能真跑，
+      但界面、交互、安装说明照着它做即可。</p>
   </div>`;
   const dl = (blob, name) => {
     const a = document.createElement("a");
@@ -3601,18 +4649,26 @@ function viewPack(){
     setTimeout(() => URL.revokeObjectURL(a.href), 1500);
     toast("已下载 " + name);
   };
-  $("#bZipDown").onclick = () => dl(new Blob([zipBytes], {type:"application/zip"}), "moshan-hub.zip");
-  $("#bOnlyHtml").onclick = () => dl(new Blob([htmlDoc], {type:"text/html;charset=utf-8"}), "中台试用版.html");
+  $("#bZipDown").onclick = () => dl(new Blob([zipBytes], {type:"application/zip"}),
+    (S.hub.min ? "moshan-min" : "moshan-hub") + ".zip");
+  $("#bOnlyHtml").onclick = () => dl(new Blob([htmlDoc], {type:"text/html;charset=utf-8"}), "试用版.html");
   $("#bExpP").onclick = exportMd;
   $("#bPBack").onclick = () => go("#/trial");
   $("#bPAgain").onclick = () => { S.need = ""; S.hub = null; save(); go("#/hub-style"); };
+  $("#bMin").onclick = () => { S.hub.min = !S.hub.min; save(); route(); };
+  document.querySelectorAll("[data-mem]").forEach(b => b.onclick = () => {
+    S.hub.mem = +b.dataset.mem; save(); route();
+  });
+  document.querySelectorAll("[data-mdl]").forEach(b => b.onclick = () => {
+    S.hub.model = b.dataset.mdl; save(); route();
+  });
 }
 
 function viewDone(){
   const r = check(S.picks), b = S.build;
   const isHub = !!(S.hub && S.hub.mods.length);
   topbar(isHub ? `工作台 <span>/</span> <b>${esc(sceneName())}</b>` : `工作台 <span>/</span> <b>完成</b>`,
-    isHub ? hubSteps(6) : 4, "");
+    isHub ? hubSteps(7) : 4, "");
   const order = r.order.filter(c => S.picks.includes(c));
   const byDom = new Map();
   order.forEach(cid => {

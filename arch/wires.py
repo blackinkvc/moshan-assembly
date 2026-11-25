@@ -51,7 +51,14 @@ WIRE = {
     "ai.agent.research": ([["C"], ["T"]], ["T"]),   # 内部调检索：片段没就绪就只是「凭空写」
     # 模型
     "ai.model.gateway": ([["T"]], ["T"]),
-    "ai.model.local": ([["T"]], ["T"]),
+    # 本地推理：吃文本，也要「权重」。D 在 EXT 里（用户可以自己拷进来），所以这条不会把
+    # 只勾「本地推理」的人卡住；它的作用是把「权重下载 → 本地推理」这条边画进逻辑图。
+    # 真要做到「没权重就断」，得给权重单独一个类型——那属于过度建模，先留着这条软边。
+    "ai.model.local": ([["T"], ["D"]], ["T"]),
+    # 选型的产出是「一张档位表」，同时它本身要给人看，所以也给 X（否则到处判死端）
+    "ai.model.fit": ([], ["R", "X"]),
+    # 拉权重：先有档位表，才去拉；产出就是那个几 GB 的文件
+    "ai.model.pull": ([["R"]], ["D"]),
     "ai.model.route": ([["T"]], ["T"]),
     "ai.model.finetune": ([["R"]], ["Q"]),
     "ai.model.host": ([], ["T"]),
@@ -170,6 +177,9 @@ WIRE = {
 
     # 运维：部署吃产物，监控吃事件，告警吃指标
     "ops.deploy": ([["F", "X"]], ["Q"]),
+    # 安装包：吃「界面/构建动作」，出「安装包文件 + 发布动作」。
+    # 产 Q 是有意的——装完要让人拿到，那一步是对外动作，有了它就不会被判死端。
+    "app.pkg": ([["X", "Q"]], ["F", "Q"]),
     "ops.monitor": ([["E", "Q"]], ["R"]),       # 探针是外部动作，业务事件来自各模块
     "ops.alert": ([["R"]], ["E"]),
 
@@ -226,7 +236,7 @@ PATCH = {
     "E": ["ai.flow.trigger"],
     "X": ["app.ui", "app.window"],
     "S": ["app.auth", "ai.chat.core"],
-    "D": ["app.file", "ai.agent.browser"],
+    "D": ["app.file", "ai.agent.browser", "ai.model.pull"],
     "Q": ["ai.agent.tool"],
     "M": ["hw.sense", "hw.ble"],
     "B": ["hw.pcb"],
