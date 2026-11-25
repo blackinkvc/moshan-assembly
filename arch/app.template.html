@@ -92,7 +92,7 @@
 
   /* ── 工作台 ── */
   .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
-  .proj{padding:16px;display:flex;flex-direction:column;gap:9px;transition:.15s}
+  .proj{padding:16px;display:flex;flex-direction:column;gap:9px;transition:.15s;cursor:pointer}
   .proj:hover{border-color:#d5d1c7;box-shadow:0 6px 18px rgba(0,0,0,.045)}
   .proj h3{margin:0;font-size:14.5px;font-weight:620;display:flex;align-items:center;gap:8px}
   .proj .q{font-size:12px;color:var(--dim);line-height:1.6;display:-webkit-box;-webkit-line-clamp:2;
@@ -462,12 +462,26 @@ const S = {
   ],
   build: null
 };
+/* 存储不可用时（预览面板 iframe 沙箱、隐私模式、file:// 限制）只降级为「不记忆」，
+   绝不能把异常抛到点击回调里——否则点卡片的跳转也会被一起吞掉 */
+let LSOK = true, MEM = null;
 function save(){
-  localStorage.setItem(KEY, JSON.stringify({need:S.need, picks:S.picks, sels:S.sels}));
+  const data = {need:S.need, picks:S.picks, sels:S.sels};
+  MEM = data;
+  if(!LSOK) return;
+  try{
+    localStorage.setItem(KEY, JSON.stringify(data));
+  }catch(e){
+    LSOK = false;
+    console.warn("存储不可用，本次会话内不记忆进度：", e.message);
+  }
 }
 function load(){
+  let raw = null;
+  try{ raw = localStorage.getItem(KEY); }catch(e){ LSOK = false; }
+  if(raw == null && MEM) raw = JSON.stringify(MEM);
   try{
-    const o = JSON.parse(localStorage.getItem(KEY) || "{}");
+    const o = JSON.parse(raw || "{}");
     if(o.need) S.need = o.need;
     if(o.sels) S.sels = o.sels;
     if(o.picks) S.picks = o.picks;
@@ -479,6 +493,9 @@ function toast(msg){
   const t = $("#toast"); t.textContent = msg; t.classList.add("on");
   clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 1900);
 }
+/* 任何没被接住的异常都在界面上说话，别让点击「静默失败」 */
+window.addEventListener("error", e => { try{ toast("出错了：" + (e.message || "未知错误")); }catch(_){} });
+window.addEventListener("unhandledrejection", e => { try{ toast("出错了：" + ((e.reason && e.reason.message) || "未知错误")); }catch(_){} });
 function modal(html, foot){
   $("#modal").innerHTML = `<div class="mask" data-close="1"><div class="modal">
     ${html}
@@ -523,7 +540,7 @@ function viewHome(){
   topbar(`<b>工作台</b>`, null, `<button class="btn sm" id="bNew">＋ 新建装配</button>`);
   const st = {doing:["进行中","warn"], done:["已完成","ok"], draft:["草稿","mute"]};
   const cards = S.projects.map(p => `
-    <div class="card proj" data-pid="${p.id}">
+    <div class="card proj" data-pid="${p.id}" role="button" tabindex="0" title="打开这个项目">
       <h3>${esc(p.name)}<span class="badge ${st[p.state][1]}">${st[p.state][0]}</span></h3>
       <div class="q">${esc(p.need)}</div>
       <div class="bar"><i class="${p.state === "done" ? "g" : ""}" style="width:${p.pct}%"></i></div>
@@ -564,6 +581,7 @@ function viewHome(){
   </div>`;
   const open = id => {
     const p = S.projects.find(x => x.id === id);
+    if(!p) return toast("项目不见了，刷新一下");
     S.need = p.need;
     S.cov = matchNeed(p.need);
     S.picks = [...S.cov.core, ...S.cov.rec];
@@ -585,7 +603,10 @@ function viewHome(){
     };
   });
   document.querySelectorAll("[data-open]").forEach(b => b.onclick = e => { e.stopPropagation(); open(b.dataset.open); });
-  document.querySelectorAll(".proj").forEach(c => c.onclick = () => open(c.dataset.pid));
+  document.querySelectorAll(".proj").forEach(c => {
+    c.onclick = () => open(c.dataset.pid);
+    c.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); open(c.dataset.pid); } };
+  });
 }
 
 /* ────────── 视图：需求 ────────── */
@@ -1058,7 +1079,7 @@ $("#btnSetting").onclick = e => {
       <p style="margin-top:0">这一版没有可调项，先占位。</p>
       <div class="kv"><b>当前需求</b><span>${esc(S.need || "（空）")}</span></div>
       <div class="kv"><b>已勾格数</b><span>${S.picks.length}</span></div>
-      <div class="kv"><b>存储</b><span>浏览器 localStorage（键 ${KEY}）</span></div>
+      <div class="kv"><b>存储</b><span>${LSOK ? "浏览器 localStorage（键 " + KEY + "）" : "当前环境不可用，只记在内存里"}</span></div>
       <p class="faint" style="font-size:12px">接到真后端后，这里会有账号、项目仓库地址、默认模型供应商。</p>
     </div>`, `<button class="btn" data-x="1">关闭</button>`);
   $("#modal").querySelectorAll("[data-x]").forEach(x => x.onclick = closeModal);
