@@ -327,6 +327,8 @@
   .hm:not(.off) .tick{background:var(--green);border-color:var(--green)}
   .hm .x{border:0;background:transparent;color:var(--faint);font-size:15px;line-height:1;padding:2px 4px;border-radius:5px}
   .hm .x:hover{background:var(--soft);color:var(--ink)}
+  .hm.just .tick{animation:tickPop .3s cubic-bezier(.34,1.45,.5,1)}
+  @keyframes tickPop{0%{transform:scale(.5)}65%{transform:scale(1.16)}100%{transform:scale(1)}}
 
   .plans{display:flex;flex-direction:column;gap:12px}
   .pm{background:var(--panel);border:1px solid var(--line);border-radius:11px;overflow:hidden}
@@ -376,7 +378,7 @@
     65%{transform:translateY(3px) scale(1.03);opacity:1}
     100%{transform:none;opacity:1}
   }
-  @media(prefers-reduced-motion:reduce){.mchip.just{animation:none}}
+  @media(prefers-reduced-motion:reduce){.mchip.just,.hm.just .tick{animation:none}}
   @media(max-width:1080px){.pcb .grid{grid-template-columns:repeat(2,minmax(0,1fr))}.styles{grid-template-columns:1fr}}
 
   .starts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:16px}
@@ -743,6 +745,17 @@ function save(){
     console.warn("存储不可用，本次会话内不记忆进度：", e.message);
   }
 }
+/* 连续勾选时别每点一下都同步序列化落盘：合并成一次，页面隐藏/关闭时补写 */
+let _saveT = 0;
+function saveLater(){
+  MEM = {need:S.need, picks:S.picks, sels:S.sels, hub:S.hub};
+  clearTimeout(_saveT);
+  _saveT = setTimeout(() => { _saveT = 0; save(); }, 260);
+}
+function flushSave(){ if(_saveT){ clearTimeout(_saveT); _saveT = 0; } save(); }
+addEventListener("pagehide", flushSave);
+document.addEventListener("visibilitychange", () => { if(document.hidden) flushSave(); });
+
 function load(){
   let raw = null;
   try{ raw = localStorage.getItem(KEY); }catch(e){ LSOK = false; }
@@ -795,7 +808,7 @@ function route(){
     "hub-style":viewHubStyle, "hub-mods":viewHubMods, "hub-plans":viewHubPlans})[name]();
   $("main").scrollTop = 0;
 }
-function go(h){ if(location.hash === h) route(); else location.hash = h; }
+function go(h){ flushSave(); if(location.hash === h) route(); else location.hash = h; }
 
 /* 顶栏 */
 /* 顶栏。steps 传数字走默认四步，传字符串则原样用（个人中台那条路是 风格/模块/方案/组装） */
@@ -1003,7 +1016,11 @@ function viewHubMods(){
     `<button class="btn sm ghost" id="bSty">换风格</button>
      <button class="btn sm ghost" id="bHome2">返回工作台</button>`);
   const cells = hubCells(mods);
-  const lostMust = HUB.filter(m => m.tier === "must" && !mods.includes(m.id));
+  const warn = () => {
+    const lost = HUB.filter(m => m.tier === "must" && !S.hub.mods.includes(m.id));
+    return lost.length ? `<div class="warnbox">⚠ 你叉掉了必装：<b>${lost.map(m => esc(m.nm)).join("、")}</b>。
+      界面或数据会缺一块——不会报错，但装出来是半成品。</div>` : "";
+  };
   const body = ["must", "rec", "opt"].map(t => {
     const [tn, thint, color] = TIER[t];
     const list = HUB.filter(m => m.tier === t);
@@ -1030,12 +1047,11 @@ function viewHubMods(){
     <div class="pagehd"><div><h1>要哪几块？</h1>
       <p>当前风格：<b>${esc(hubStyleName())}</b>。必装是地基，推荐是日常用得上的，可选看你要不要。
       勾错的随时叉掉，下面会实时算出要装多少格。</p></div>
-      <div class="right"><span class="badge mute">已选 ${mods.length} 个模块</span></div></div>
-    ${lostMust.length ? `<div class="warnbox">⚠ 你叉掉了必装：<b>${lostMust.map(m => esc(m.nm)).join("、")}</b>。
-      界面或数据会缺一块——不会报错，但装出来是半成品。</div>` : ""}
+      <div class="right"><span class="badge mute" id="modCnt">已选 ${mods.length} 个模块</span></div></div>
+    <div id="warnHost">${warn()}</div>
     <div class="hubmods">${body}</div>
     <div class="mobar">
-      <span class="badge ${cells.length ? "ok" : "bad"}">${mods.length} 个模块 · ${cells.length} 格</span>
+      <span class="badge ${cells.length ? "ok" : "bad"}" id="mobCnt">${mods.length} 个模块 · ${cells.length} 格</span>
       <span class="faint" style="font-size:11.5px">下一步给每块挑实现方案</span>
       <button class="btn primary" id="bNextM" ${mods.length ? "" : "disabled"} style="margin-left:auto">下一步：选方案</button>
     </div>
@@ -1045,6 +1061,39 @@ function viewHubMods(){
     </div>
   </div>`;
 
+  // 勾选只改这一张卡 + 几个计数，不整页重绘。重绘会把 #main 的滚动位置弹回顶部，看着就像刷新了一次
+  const mkX = id => {
+    const b = document.createElement("button");
+    b.className = "x"; b.dataset.x = id; b.title = "不要这个"; b.textContent = "✕";
+    b.onclick = e => { e.stopPropagation(); toggle(id); };
+    return b;
+  };
+  const repaint = id => {
+    const ms = S.hub.mods, cs = hubCells(ms);
+    const card = document.querySelector(`#view [data-mid="${id}"]`);
+    if(card){
+      const on = ms.includes(id);
+      card.classList.toggle("off", !on);
+      const act = card.querySelector(".act");
+      if(act){
+        const x = act.querySelector(".x");
+        if(on && !x) act.insertBefore(mkX(id), act.firstChild);
+        if(!on && x) x.remove();
+      }
+      card.classList.remove("just"); void card.offsetWidth; card.classList.add("just");
+      setTimeout(() => card.classList.remove("just"), 320);
+    }
+    const c1 = $("#modCnt"), c2 = $("#mobCnt"), wh = $("#warnHost");
+    if(c1) c1.textContent = "已选 " + ms.length + " 个模块";
+    if(c2){
+      c2.className = "badge " + (cs.length ? "ok" : "bad");
+      c2.textContent = ms.length + " 个模块 · " + cs.length + " 格";
+    }
+    if(wh) wh.innerHTML = warn();
+    const n1 = $("#bNextM"), n2 = $("#bNext2");
+    if(n1) n1.disabled = !ms.length;
+    if(n2) n2.disabled = !ms.length;
+  };
   const toggle = id => {
     const has = S.hub.mods.includes(id);
     S.hub.mods = has ? S.hub.mods.filter(x => x !== id) : [...S.hub.mods, id];
@@ -1053,32 +1102,35 @@ function viewHubMods(){
     // 模块变了就整体重算格，别留着上一次取消勾选的残留
     S.picks = hubCells(S.hub.mods);
     S.cov = null;
-    save(); route();
+    saveLater(); repaint(id);
   };
-  document.querySelectorAll("[data-mid]").forEach(c => c.onclick = e => {
+  document.querySelectorAll("#view [data-mid]").forEach(c => c.onclick = e => {
     if(e.target.closest("[data-x]")) return;
     toggle(c.dataset.mid);
   });
-  document.querySelectorAll("[data-x]").forEach(b => b.onclick = e => { e.stopPropagation(); toggle(b.dataset.x); });
+  document.querySelectorAll("#view [data-x]").forEach(b => b.onclick = e => { e.stopPropagation(); toggle(b.dataset.x); });
   $("#bSty").onclick = $("#bBack").onclick = () => go("#/hub-style");
   $("#bHome2").onclick = () => go("#/home");
   $("#bNextM").onclick = $("#bNext2").onclick = () => go("#/hub-plans");
 }
 
 /* 方案：每个模块 2–4 个实现，带推荐等级，默认选推荐 */
+const LVTXT = {rec:"推荐", ok:"能用", warn:"慎选", build:"自研"};
+const lvCls = lv => (lv === "rec" ? "ok" : (lv === "warn" ? "warn" : "mute"));
+
 function viewHubPlans(){
   const mods = S.hub.mods.map(hubMod).filter(Boolean);
   const cells = hubCells(S.hub.mods);
   topbar(`工作台 <span>/</span> <b>个人中台</b>`, hubSteps(2),
     `<button class="btn sm ghost" id="bMods">改模块</button>
      <button class="btn sm" id="bRec">全用推荐</button>`);
-  const LV = {rec:"推荐", ok:"能用", warn:"慎选", build:"自研"};
+  const LV = LVTXT;
   const rows = mods.map(m => {
     const sel = hubPlan(m.id);
     return `<div class="pm">
       <div class="h">${art(m.art, 20)}<b>${esc(m.nm)}</b>
         <span class="cells">${m.cells.map(c => `<span>${c}</span>`).join(" ")}</span>
-        <span class="badge ${sel.lv === "rec" ? "ok" : (sel.lv === "warn" ? "warn" : "mute")}" style="margin-left:auto">${LV[sel.lv] || ""}</span>
+        <span class="badge ${sel.lv === "rec" ? "ok" : (sel.lv === "warn" ? "warn" : "mute")}" data-lv="${m.id}" style="margin-left:auto">${LV[sel.lv] || ""}</span>
       </div>
       <div class="body">${m.provs.map(p => `
         <div class="pv ${sel.id === p.id ? "on" : ""}" data-mid="${m.id}" data-pid="${p.id}">
@@ -1109,8 +1161,19 @@ function viewHubPlans(){
     </div>
   </div>`;
 
-  document.querySelectorAll("[data-pid]").forEach(n => n.onclick = () => {
-    S.hub.plans[n.dataset.mid] = n.dataset.pid; save(); route();
+  // 选方案同样只动这一组：切换 .on 与右上角等级，不重绘（否则滚动位置也没了）
+  const repaintPlan = mid => {
+    const m = hubMod(mid); if(!m) return;
+    const sel = hubPlan(mid);
+    document.querySelectorAll(`#view .pv[data-mid="${mid}"]`).forEach(n =>
+      n.classList.toggle("on", n.dataset.pid === sel.id));
+    const b = document.querySelector(`#view [data-lv="${mid}"]`);
+    if(b){ b.textContent = LVTXT[sel.lv] || ""; b.className = "badge " + lvCls(sel.lv); }
+  };
+  document.querySelectorAll("#view [data-pid]").forEach(n => n.onclick = () => {
+    if(S.hub.plans[n.dataset.mid] === n.dataset.pid) return;
+    S.hub.plans[n.dataset.mid] = n.dataset.pid;
+    saveLater(); repaintPlan(n.dataset.mid);
   });
   const next = () => {
     // 进原有的连通检查：把模块摊成格，让基板去判能不能接上
@@ -1123,7 +1186,8 @@ function viewHubPlans(){
   $("#bRec").onclick = () => {
     S.hub.plans = {};
     mods.forEach(m => { S.hub.plans[m.id] = (m.provs.find(p => p.lv === "rec") || m.provs[0]).id; });
-    save(); route(); toast("已全部用推荐方案");
+    mods.forEach(m => repaintPlan(m.id));
+    saveLater(); toast("已全部用推荐方案");
   };
   $("#bMods").onclick = $("#bBack2").onclick = () => go("#/hub-mods");
 }
@@ -1162,7 +1226,6 @@ function viewPlan(){
       : `<button class="btn sm ghost" id="bEdit">改需求</button>
          <button class="btn sm" id="bRe">重新解析</button>`);
   const r = check(S.picks);
-  const offMust = cov.core.filter(c => !S.picks.includes(c));
   const groups = isHub ? [
     ["必装模块的格", "来自必装模块，勾掉等于关掉那块功能", cov.core, "var(--green)"],
     ["推荐模块的格", "来自推荐模块，日常用得上的那几块", cov.rec, "var(--amber)"],
@@ -1180,10 +1243,48 @@ function viewPlan(){
   }).join("");
 
   const empty = !cov.core.length && !cov.rec.length && !cov.scene.length;
-  const breaksHTML = r.breaks.length
-    ? r.breaks.map(b => `<div class="brk"><b>${esc(b.who)}</b> 需要「${esc(b.need)}」，没人产出
-        ${b.fix.length ? `<div class="fix">补：<em>${b.fix.map(esc).join(" / ")}</em></div>` : ""}</div>`).join("")
-    : `<div class="empty" style="color:var(--green)">✓ ${S.picks.length} 格、${r.lines} 条线都能接上</div>`;
+
+  const kHTML = () => `<span><b>${cov.core.length}</b> 必选</span><span><b>${cov.rec.length}</b> 建议</span>
+            <span><b>${cov.scene.length}</b> 看情况</span><span>已勾 <b>${S.picks.length}</b> 格</span>`;
+
+  const asideHTML = r => {
+    const offMust = cov.core.filter(c => !S.picks.includes(c));
+    const breaksHTML = r.breaks.length
+      ? r.breaks.map(b => `<div class="brk"><b>${esc(b.who)}</b> 需要「${esc(b.need)}」，没人产出
+          ${b.fix.length ? `<div class="fix">补：<em>${b.fix.map(esc).join(" / ")}</em></div>` : ""}</div>`).join("")
+      : `<div class="empty" style="color:var(--green)">✓ ${S.picks.length} 格、${r.lines} 条线都能接上</div>`;
+    return `<div class="card box">
+        <div class="bh">连通检查 <span class="badge ${r.breaks.length ? "bad" : "ok"}">${r.breaks.length ? r.breaks.length + " 处断点" : "全通"}</span></div>
+        ${offMust.length ? `<div class="warnbox">⚠ 你取消了必选格：<b>${offMust.map(c => esc(byId[c].name)).join("、")}</b>，功能会缺一块，但不一定报错。</div>` : ""}
+        ${breaksHTML}
+        ${r.dead.length ? `<div class="warnbox">⚠ 有 ${[...new Set(r.dead.map(d => d.who))].length} 格做出来没去处（${esc(r.dead[0].who)} → ${esc(r.dead[0].type)}…），加一格界面或发布。</div>` : ""}
+        <div class="cta" style="margin-top:12px">
+          <button class="btn primary" id="bNext" ${(!S.picks.length || r.breaks.length) ? "disabled" : ""}>
+            ${r.breaks.length ? "先修 " + r.breaks.length + " 处断点" : "下一步：确认清单"}</button>
+          <div class="hint">${S.picks.length ? S.picks.length + " 格 · " + r.lines + " 条连线" : "还没有勾任何格"}</div>
+        </div>
+      </div>
+
+      <div class="card box">
+        <div class="bh">施工顺序 <span class="sp">按数据流</span></div>
+        ${r.order.length ? `<ol class="seq">${r.order.map(c => `<li>${esc(byId[c].name)}<small>${c}</small></li>`).join("")}</ol>` : `<div class="empty">—</div>`}
+      </div>
+
+      ${cov.gaps.length ? `<div class="card box">
+        <div class="bh">库外 <span class="sp">要自己找方案</span></div>
+        ${cov.gaps.map(g => `<div class="gapbox"><b>${esc(g.name)}</b><br>${esc(g.how)}</div>`).join("")}
+      </div>` : ""}`;
+  };
+
+  const mobHTML = r => `<span class="badge ${r.breaks.length ? "bad" : "ok"}">${r.breaks.length ? r.breaks.length + " 处断点" : "全通"}</span>
+      <span class="faint" style="font-size:11.5px">${S.picks.length} 格 · ${r.lines} 条线</span>
+      <button class="btn primary" id="bNext2" ${(!S.picks.length || r.breaks.length) ? "disabled" : ""}
+        style="margin-left:auto">${r.breaks.length ? "先修断点" : "下一步"}</button>`;
+
+  const bindNext = () => {
+    const nx = $("#bNext"); if(nx) nx.onclick = () => go("#/confirm");
+    const nx2 = $("#bNext2"); if(nx2) nx2.onclick = () => go("#/confirm");
+  };
 
   $("#view").innerHTML = `<div class="page">
     <div class="needbar card">
@@ -1196,8 +1297,7 @@ function viewPlan(){
     <div class="planwrap">
       <div>
         <div class="toolbar">
-          <div class="k"><span><b>${cov.core.length}</b> 必选</span><span><b>${cov.rec.length}</b> 建议</span>
-            <span><b>${cov.scene.length}</b> 看情况</span><span>已勾 <b>${S.picks.length}</b> 格</span></div>
+          <div class="k" id="planK">${kHTML()}</div>
           <button class="btn sm" id="bMin">只留必选</button>
           <button class="btn sm" id="bAll">全开</button>
         </div>
@@ -1206,39 +1306,32 @@ function viewPlan(){
           也可能是说法没被认出来，换个说法重试。</div></div>` : body}
       </div>
 
-      <aside class="right">
-        <div class="card box">
-          <div class="bh">连通检查 <span class="badge ${r.breaks.length ? "bad" : "ok"}">${r.breaks.length ? r.breaks.length + " 处断点" : "全通"}</span></div>
-          ${offMust.length ? `<div class="warnbox">⚠ 你取消了必选格：<b>${offMust.map(c => esc(byId[c].name)).join("、")}</b>，功能会缺一块，但不一定报错。</div>` : ""}
-          ${breaksHTML}
-          ${r.dead.length ? `<div class="warnbox">⚠ 有 ${[...new Set(r.dead.map(d => d.who))].length} 格做出来没去处（${esc(r.dead[0].who)} → ${esc(r.dead[0].type)}…），加一格界面或发布。</div>` : ""}
-          <div class="cta" style="margin-top:12px">
-            <button class="btn primary" id="bNext" ${(!S.picks.length || r.breaks.length) ? "disabled" : ""}>
-              ${r.breaks.length ? "先修 " + r.breaks.length + " 处断点" : "下一步：确认清单"}</button>
-            <div class="hint">${S.picks.length ? S.picks.length + " 格 · " + r.lines + " 条连线" : "还没有勾任何格"}</div>
-          </div>
-        </div>
-
-        <div class="card box">
-          <div class="bh">施工顺序 <span class="sp">按数据流</span></div>
-          ${r.order.length ? `<ol class="seq">${r.order.map(c => `<li>${esc(byId[c].name)}<small>${c}</small></li>`).join("")}</ol>` : `<div class="empty">—</div>`}
-        </div>
-
-        ${cov.gaps.length ? `<div class="card box">
-          <div class="bh">库外 <span class="sp">要自己找方案</span></div>
-          ${cov.gaps.map(g => `<div class="gapbox"><b>${esc(g.name)}</b><br>${esc(g.how)}</div>`).join("")}
-        </div>` : ""}
-      </aside>
+      <aside class="right" id="planAside">${asideHTML(r)}</aside>
     </div>
-    <div class="mobar">
-      <span class="badge ${r.breaks.length ? "bad" : "ok"}">${r.breaks.length ? r.breaks.length + " 处断点" : "全通"}</span>
-      <span class="faint" style="font-size:11.5px">${S.picks.length} 格 · ${r.lines} 条线</span>
-      <button class="btn primary" id="bNext2" ${(!S.picks.length || r.breaks.length) ? "disabled" : ""}
-        style="margin-left:auto">${r.breaks.length ? "先修断点" : "下一步"}</button>
-    </div>
+    <div class="mobar" id="planMob">${mobHTML(r)}</div>
   </div>`;
 
-  const redraw = () => { save(); route(); };
+  // 勾一格只重画受影响的部分：左边卡片的勾选态、计数、右栏（断点/施工程序）、底栏。
+  // 整页重绘会把 #main 的滚动位置弹回顶部，看着就像刷新了一次
+  const redraw = () => {
+    const r2 = check(S.picks);
+    document.querySelectorAll("#view [data-cid]").forEach(n => {
+      const on = S.picks.includes(n.dataset.cid);
+      n.classList.toggle("off", !on);
+      const cb = n.querySelector("[data-chk]");
+      if(cb && cb.checked !== on) cb.checked = on;
+    });
+    document.querySelectorAll("#view [data-pv]").forEach(p => {
+      const [cid, pid] = p.dataset.pv.split("|");
+      const cur = prov(cid);
+      p.classList.toggle("on", !!(cur && cur.id === pid));
+    });
+    const k = $("#planK"); if(k) k.innerHTML = kHTML();
+    const as = $("#planAside"); if(as) as.innerHTML = asideHTML(r2);
+    const mb = $("#planMob"); if(mb) mb.innerHTML = mobHTML(r2);
+    bindNext();
+    saveLater();
+  };
   document.querySelectorAll("[data-chk]").forEach(cb => cb.onchange = () => {
     const cid = cb.dataset.chk;
     if(cb.checked){ if(!S.picks.includes(cid)) S.picks.push(cid); }
@@ -1257,8 +1350,7 @@ function viewPlan(){
     if(isHub){ go("#/hub-plans"); return; }
     S.cov = matchNeed(S.need); S.picks = [...S.cov.core, ...S.cov.rec]; redraw(); toast("已重新解析");
   };
-  const nx = $("#bNext"); if(nx) nx.onclick = () => go("#/confirm");
-  const nx2 = $("#bNext2"); if(nx2) nx2.onclick = () => go("#/confirm");
+  bindNext();
 }
 
 /* 方案 / 模块详情 */
