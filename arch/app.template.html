@@ -28,6 +28,7 @@
   .logo b{font-size:14px;font-weight:640;letter-spacing:.3px}
   .logo span{font-size:11px;color:var(--faint);margin-left:2px}
   .nav{display:flex;flex-direction:column;gap:2px}
+  .nav #navFlow{display:flex;flex-direction:column;gap:2px;min-width:0}
   .nav a{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:7px;font-size:13px;color:#4a4944}
   .nav a:hover{background:#eeece6}
   .nav a.on{background:#e9e6de;color:var(--ink);font-weight:600}
@@ -210,7 +211,7 @@
     margin:22px 0;font:12px/1.95 ui-monospace,Menlo,monospace;color:#4a4944;white-space:pre;overflow:auto}
   .tree .d{color:var(--brand);font-weight:600}
   .tree .m{color:var(--faint)}
-  .donebtns{display:flex;gap:9px;justify-content:center}
+  .donebtns{display:flex;gap:9px;justify-content:center;flex-wrap:wrap}
 
   /* ── 试用 / 打包 ── */
   .trialbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
@@ -288,6 +289,7 @@
     .logo span{display:none}
     /* 横排时 nav 不能被压缩：flex-shrink 会把每个入口挤到一个字宽，中文就竖排了 */
     .nav{flex-direction:row;gap:2px;flex:0 0 auto}
+    .nav #navFlow{flex-direction:row;gap:2px;flex:0 0 auto}
     .nav a{white-space:nowrap;flex:0 0 auto}
     .nav .lbl{display:none}
     .sidefoot{display:none}
@@ -407,6 +409,21 @@
   .start .ic.b{background:#f6f3eb}
   .start b{font-size:14px;font-weight:640;display:block}
   .start p{margin:2px 0 0;font-size:12px;color:var(--dim);line-height:1.6}
+  .dftbox{margin-top:14px}
+  .dft{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--line2);cursor:pointer;border-radius:6px}
+  .dft:last-child{border-bottom:0}
+  .dft:hover{background:#fcfbf8}
+  .dft:focus-visible{outline:2px solid #d8d3c4;outline-offset:1px}
+  .dft .dm{flex:1;min-width:0}
+  .dft .dm b{display:block;font-size:13px;font-weight:620;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dft .dm span{font-size:11.5px;color:var(--dim)}
+  .dft .dftat{font-size:11.5px;color:var(--faint);flex:0 0 auto;min-width:56px;text-align:right}
+  .dft .badge{flex:0 0 auto}
+  @media(max-width:620px){
+    .dft{flex-wrap:wrap;row-gap:6px}
+    .dft .dm{flex:1 1 100%}
+    .dft .dftat{margin-left:auto}
+  }
   @media(max-width:820px){.starts{grid-template-columns:1fr}}
 </style>
 </head>
@@ -416,13 +433,10 @@
     <div class="logo"><i>墨</i><b>装配台</b><span>v0.3</span></div>
     <nav class="nav">
       <a href="#/home" data-nav="home"><i>▤</i>工作台</a>
-      <a href="#/hub-style" data-nav="hub-style"><i>▩</i>个人中台</a>
       <a href="#/new" data-nav="new"><i>＋</i>新建装配</a>
       <a href="#/lib" data-nav="lib"><i>▦</i>模块库</a>
-      <div class="lbl">当前装配</div>
-      <a href="#/plan" data-nav="plan"><i>◈</i>选型</a>
-      <a href="#/confirm" data-nav="confirm"><i>✓</i>确认</a>
-      <a href="#/build" data-nav="build"><i>⚙</i>组装</a>
+      <div class="lbl" id="flowLbl">当前装配</div>
+      <div id="navFlow"></div>
     </nav>
     <div class="sidefoot">
       <a href="#/home" id="btnHelp" style="display:block;margin-bottom:4px">说明与帮助</a>
@@ -746,26 +760,31 @@ const S = {
     {id:"p3", name:"个人生活助手", need:"我想做个个人生活助手，记录每天的饮食、睡眠和心情，到点提醒我喝水睡觉，每周给我一份总结", state:"draft", pct:0, at:"3 天前"}
   ],
   build: null,
-  hub: null        // {sty, mods:[], plans:{}} —— 个人中台那条路走完就一直留着
+  hub: null,       // {sty, mods:[], plans:{}} —— 个人中台那条路走完就一直留着
+  drafts: []       // 手动存的草稿：{id,nm,kind,at,route,need,picks,sels,hub}
 };
 /* 存储不可用时（预览面板 iframe 沙箱、隐私模式、file:// 限制）只降级为「不记忆」，
    绝不能把异常抛到点击回调里——否则点卡片的跳转也会被一起吞掉 */
 let LSOK = true, MEM = null;
 function save(){
-  const data = {need:S.need, picks:S.picks, sels:S.sels, hub:S.hub};
+  const data = {need:S.need, picks:S.picks, sels:S.sels, hub:S.hub, drafts:S.drafts};
   MEM = data;
-  if(!LSOK) return;
+  const raw = JSON.stringify(data);
   try{
-    localStorage.setItem(KEY, JSON.stringify(data));
+    localStorage.setItem(KEY, raw);
+    LSOK = true;
   }catch(e){
+    if(LSOK) console.warn("存储不可用，改用会话内存储：", e.message);
     LSOK = false;
-    console.warn("存储不可用，本次会话内不记忆进度：", e.message);
+    /* 预览面板的沙箱 iframe 会禁 localStorage，但 window.name 在同一标签页刷新后还在，
+       草稿至少不会当场丢；要长期留着就点「导出草稿」存成文件 */
+    try{ window.name = "MOSHAN:" + raw; }catch(_){}
   }
 }
 /* 连续勾选时别每点一下都同步序列化落盘：合并成一次，页面隐藏/关闭时补写 */
 let _saveT = 0;
 function saveLater(){
-  MEM = {need:S.need, picks:S.picks, sels:S.sels, hub:S.hub};
+  MEM = {need:S.need, picks:S.picks, sels:S.sels, hub:S.hub, drafts:S.drafts};
   clearTimeout(_saveT);
   _saveT = setTimeout(() => { _saveT = 0; save(); }, 260);
 }
@@ -776,12 +795,16 @@ document.addEventListener("visibilitychange", () => { if(document.hidden) flushS
 function load(){
   let raw = null;
   try{ raw = localStorage.getItem(KEY); }catch(e){ LSOK = false; }
+  if(raw == null){
+    try{ if(window.name && window.name.indexOf("MOSHAN:") === 0) raw = window.name.slice(7); }catch(e){}
+  }
   if(raw == null && MEM) raw = JSON.stringify(MEM);
   try{
     const o = JSON.parse(raw || "{}");
     if(o.need) S.need = o.need;
     if(o.sels) S.sels = o.sels;
     if(o.picks) S.picks = o.picks;
+    if(Array.isArray(o.drafts)) S.drafts = o.drafts;
     if(o.hub && o.hub.mods && o.hub.mods.length) S.hub = o.hub;
   }catch(e){}
 }
@@ -814,16 +837,48 @@ function providerOf(cid, pid){ return (byId[cid].pv || []).find(p => p.id === pi
 /* ────────── 路由 ────────── */
 const ROUTES = ["home", "new", "plan", "confirm", "build", "done", "lib",
                 "hub-style", "hub-mods", "hub-plans", "trial", "pack"];
+
+/* 侧栏「当前装配」随流程变形：中台走六步，一句话需求走五步。两条线共用同一个壳 */
+let CUR = "home";
+const FLOW = {
+  hub:  [["hub-style","◩","风格"],["hub-mods","▤","模块"],["hub-plans","◈","方案"],
+         ["confirm","✓","确认"],["build","⚙","组装"],["pack","⇩","交付"]],
+  need: [["new","＋","写需求"],["plan","◈","选型"],["confirm","✓","确认"],
+         ["build","⚙","组装"],["done","✓","完成"]]
+};
+const FLOWIDX = {
+  hub:  {"hub-style":0, "hub-mods":1, "hub-plans":2, confirm:3, build:4, done:5, trial:5, pack:5},
+  need: {new:0, plan:1, confirm:2, build:3, done:4}
+};
+function renderNav(name){
+  const isHub = !!(S.hub && S.hub.mods.length);
+  const list = isHub ? FLOW.hub : FLOW.need;
+  const cur = isHub ? FLOWIDX.hub[name] : FLOWIDX.need[name];
+  const at = cur == null ? -1 : cur;
+  const lbl = $("#flowLbl");
+  if(lbl) lbl.textContent = isHub
+    ? `当前中台 · ${S.hub.mods.length} 个模块`
+    : (S.need ? "当前装配" : "还没有在做的");
+  const box = $("#navFlow");
+  if(!box) return;
+  /* 还没进中台时，留一个「开个中台」入口——不能因为流程合进侧栏就把入口弄丢 */
+  const gate = isHub ? "" : `<a href="#/hub-style" data-nav="hub-style"><i>▩</i>开个中台</a>`;
+  box.innerHTML = gate + list.map(([r, ic, nm], i) => {
+    const on = i === at ? " on" : (at > i ? " done" : "");
+    return `<a href="#/${r}" data-nav="${r}" class="${on.trim()}"><i>${at > i ? "✓" : ic}</i>${nm}</a>`;
+  }).join("");
+}
+
 function route(){
   const h = (location.hash || "#/home").replace(/^#\//, "").split("?")[0];
   const name = ROUTES.includes(h) ? h : "home";
-  if((name === "plan" || name === "confirm") && !S.need){ location.hash = "#/new"; return; }
-  if(name === "hub-mods" && !S.hub){ location.hash = "#/hub-style"; return; }
-  if(name === "hub-plans" && !(S.hub && S.hub.mods.length)){ location.hash = "#/hub-mods"; return; }
-  if((name === "trial" || name === "pack") && !(S.hub && S.hub.mods.length)){ location.hash = "#/hub-style"; return; }
-  const NAVALIAS = {trial:"hub-style", pack:"hub-style", "hub-mods":"hub-style", "hub-plans":"hub-style"};
-  document.querySelectorAll(".nav a").forEach(a =>
-    a.classList.toggle("on", a.dataset.nav === (NAVALIAS[name] || name)));
+  CUR = name;
+  const hasHub = !!(S.hub && S.hub.mods.length);
+  if(name === "plan" && !S.need && !hasHub){ location.hash = "#/new"; return; }
+  if(name === "confirm" && !S.need && !hasHub){ location.hash = "#/new"; return; }
+  if((name === "hub-mods" || name === "hub-plans") && !hasHub){ location.hash = "#/hub-style"; return; }
+  if((name === "trial" || name === "pack") && !hasHub){ location.hash = "#/hub-style"; return; }
+  renderNav(name);
   ({home:viewHome, new:viewNew, plan:viewPlan, confirm:viewConfirm, build:viewBuild, done:viewDone, lib:viewLib,
     "hub-style":viewHubStyle, "hub-mods":viewHubMods, "hub-plans":viewHubPlans,
     trial:viewTrial, pack:viewPack})[name]();
@@ -839,8 +894,152 @@ function topbar(crumb, steps, right){
     const cls = i < steps ? "done" : (i === steps ? "on" : "");
     return `<div class="s ${cls}"><em>${i < steps ? "✓" : i + 1}</em>${n}</div>` + (i < 3 ? `<div class="bar"></div>` : "");
   }).join("") + `</div>`);
-  $("#top").innerHTML = `<div class="crumb">${crumb}</div>${st}<div class="right">${right || ""}</div>`;
+  /* 只要有活儿在手，每页顶栏都带一个「存草稿」——草稿不是某个页面专属功能 */
+  const canDraft = CUR !== "home" && CUR !== "lib" && !!(S.need || (S.hub && S.hub.mods.length));
+  const dft = canDraft ? `<button class="btn sm ghost" id="bDraft" title="把当前进度存成草稿，回头接着做">存草稿</button>` : "";
+  $("#top").innerHTML = `<div class="crumb">${crumb}</div>${st}<div class="right">${dft}${right || ""}</div>`;
+  const bd = $("#bDraft");
+  if(bd) bd.onclick = () => draftBox(bd);
 }
+
+/* ────────── 草稿：把当前进度存下来，回头接着做 ────────── */
+const ROUTE_NM = {"hub-style":"风格","hub-mods":"模块","hub-plans":"方案", confirm:"确认",
+                  build:"组装", done:"交付", trial:"交付", pack:"交付", new:"需求", plan:"选型", home:"工作台"};
+function ago(ts){
+  const d = Date.now() - ts;
+  if(d < 0 || d < 60000) return "刚刚";
+  if(d < 3600000) return Math.floor(d / 60000) + " 分钟前";
+  if(d < 86400000) return Math.floor(d / 3600000) + " 小时前";
+  if(d < 86400000 * 30) return Math.floor(d / 86400000) + " 天前";
+  return new Date(ts).toLocaleDateString("zh-CN", {month:"2-digit", day:"2-digit"});
+}
+function draftLabel(d){
+  const n = (d.hub && d.hub.mods && d.hub.mods.length) || 0;
+  return n ? `中台 · ${n} 模块 · ${d.picks ? d.picks.length : 0} 格` : `一句话需求 · ${(d.picks || []).length} 格`;
+}
+function draftDefName(){
+  if(S.hub && S.hub.mods.length) return `个人中台 · ${hubStyleName()} · ${S.hub.mods.length} 模块`;
+  return (S.need || "未命名装配").slice(0, 22);
+}
+function draftBox(btn){
+  const isHub = !!(S.hub && S.hub.mods.length);
+  const step = ROUTE_NM[CUR] || "—";
+  const def = draftDefName();
+  modal(`<div class="mh"><b>存草稿</b><button class="x" data-x="1">✕</button></div>
+    <div class="mb">
+      <div class="kv"><b>内容</b><span>${isHub
+        ? `个人中台 · ${esc(hubStyleName())} · ${S.hub.mods.length} 个模块 · ${S.picks.length} 格`
+        : esc((S.need || "").slice(0, 40) || "空")}</span></div>
+      <div class="kv"><b>进度</b><span>停在「${step}」，恢复后从这里接着做</span></div>
+      <div style="margin-top:14px">
+        <div style="font-size:12px;color:var(--dim);margin-bottom:6px">给这份草稿起个名字</div>
+        <input class="inp" id="dName" value="${esc(def)}" maxlength="40" placeholder="例如：我的工作台中台">
+      </div>
+      <p style="color:var(--faint);font-size:11.5px;line-height:1.7;margin-top:10px">
+        草稿存在这台电脑的浏览器里，换设备、清缓存会丢。同名再存会覆盖旧的。</p>
+    </div>`,
+    `<button class="btn" data-x="1">取消</button><button class="btn primary" id="dSave">保存草稿</button>`);
+  $("#modal").querySelectorAll("[data-x]").forEach(x => x.onclick = closeModal);
+  const inp = $("#dName");
+  inp.focus(); inp.select();
+  inp.addEventListener("keydown", e => { if(e.key === "Enter") $("#dSave").click(); });
+  $("#dSave").onclick = () => {
+    const nm = (inp.value || "").trim() || def;
+    const hit = draftSave(nm);
+    closeModal();
+    toast(hit ? "已更新草稿「" + nm + "」" : "已存草稿「" + nm + "」");
+    if(btn){ btn.textContent = "已存 ✓"; setTimeout(() => { btn.textContent = "存草稿"; }, 1600); }
+  };
+}
+function draftSave(nm){
+  const snap = {
+    id: "d" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+    nm,
+    kind: (S.hub && S.hub.mods.length) ? "hub" : "need",
+    at: Date.now(),
+    route: "#/" + CUR,
+    need: S.need,
+    picks: [...S.picks],
+    sels: JSON.parse(JSON.stringify(S.sels || {})),
+    hub: S.hub ? JSON.parse(JSON.stringify(S.hub)) : null
+  };
+  const i = S.drafts.findIndex(d => d.nm === nm);
+  if(i >= 0){ snap.id = S.drafts[i].id; S.drafts[i] = snap; }
+  else S.drafts.unshift(snap);
+  S.drafts.sort((a, b) => b.at - a.at);
+  save();
+  return i >= 0;
+}
+function draftOpen(id){
+  const d = S.drafts.find(x => x.id === id);
+  if(!d) return toast("草稿不见了，刷新看看");
+  S.build = null;
+  S.need = d.need || "";
+  S.sels = JSON.parse(JSON.stringify(d.sels || {}));
+  S.hub = d.hub ? JSON.parse(JSON.stringify(d.hub)) : null;
+  S.picks = [...(d.picks || [])];
+  const isHub = !!(S.hub && S.hub.mods.length);
+  if(isHub){ S.cov = hubCov(); if(!S.picks.length) S.picks = hubCells(S.hub.mods); }
+  else if(S.need){ S.cov = matchNeed(S.need); }
+  save();
+  /* 组装/交付那两步的状态留在内存里、存不进草稿，所以退回到「确认」重开一次 */
+  let to = d.route || (isHub ? "#/hub-mods" : "#/plan");
+  if(to === "#/build" || to === "#/done") to = "#/confirm";
+  if(to === "#/trial" || to === "#/pack"){ if(!isHub) to = "#/confirm"; }
+  toast(`已恢复「${d.nm}」`);
+  go(to);
+}
+function draftDel(id){
+  const d = S.drafts.find(x => x.id === id);
+  if(!d) return;
+  S.drafts = S.drafts.filter(x => x.id !== id);
+  save(); route(); toast("已删除草稿");
+}
+/* 导出一份文件带走：换电脑、清缓存、或者从预览面板里搬出来时用 */
+function draftExport(){
+  if(!S.drafts.length) return toast("还没有草稿可导出");
+  const blob = new Blob([JSON.stringify({v:1, at:Date.now(), drafts:S.drafts}, null, 2)],
+                        {type:"application/json;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "墨山草稿.json"; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1200);
+  toast("已导出 " + S.drafts.length + " 份草稿");
+}
+function draftImport(){
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = ".json,application/json";
+  inp.onchange = () => {
+    const f = inp.files && inp.files[0];
+    if(!f) return;
+    const fr = new FileReader();
+    fr.onload = () => {
+      let o;
+      try{ o = JSON.parse(String(fr.result)); }catch(e){ return toast("这个文件读不出 JSON"); }
+      const arr = Array.isArray(o) ? o : (o && o.drafts);
+      if(!Array.isArray(arr) || !arr.length) return toast("文件里没有草稿");
+      let add = 0, upd = 0;
+      arr.forEach(d => {
+        if(!d || !d.nm) return;
+        const rec = {
+          id: d.id || ("d" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5)),
+          nm: d.nm, kind: d.kind || ((d.hub && d.hub.mods) ? "hub" : "need"),
+          at: d.at || Date.now(), route: d.route || "#/plan",
+          need: d.need || "", picks: d.picks || [], sels: d.sels || {}, hub: d.hub || null
+        };
+        const i = S.drafts.findIndex(x => x.nm === rec.nm);
+        if(i >= 0){ rec.id = S.drafts[i].id; S.drafts[i] = rec; upd++; }
+        else { S.drafts.unshift(rec); add++; }
+      });
+      S.drafts.sort((a, b) => b.at - a.at);
+      save(); route();
+      toast("导入 " + add + " 份" + (upd ? "，覆盖 " + upd + " 份同名" : ""));
+    };
+    fr.readAsText(f);
+  };
+  inp.click();
+}
+
 
 /* ────────── 视图：工作台 ────────── */
 function viewHome(){
@@ -856,16 +1055,29 @@ function viewHome(){
         <button class="btn sm" data-open="${p.id}">打开</button>
       </div>
     </div>`).join("");
+  const drafts = S.drafts || [];
+  const dftHTML = drafts.length ? drafts.map(d => {
+    const step = ROUTE_NM[(d.route || "").replace(/^#\//, "")] || "—";
+    return `<div class="dft" data-dft="${d.id}" role="button" tabindex="0" title="继续这份草稿">
+      <div class="dm"><b>${esc(d.nm)}</b><span>${esc(draftLabel(d))}</span></div>
+      <span class="badge mute">停在 ${step}</span>
+      <span class="dftat">${ago(d.at)}</span>
+      <button class="btn sm" data-dopen="${d.id}">继续</button>
+      <button class="btn sm ghost" data-ddel="${d.id}" title="删除这份草稿">✕</button>
+    </div>`;
+  }).join("") : `<div class="empty" style="padding:6px 0 2px">还没有草稿。在任意一步右上角点「存草稿」，
+    下次打开工作台在这里接着做——中台的风格、模块、方案都会原样带回来。</div>`;
   $("#view").innerHTML = `<div class="page">
     <div class="pagehd">
-      <div><h1>工作台</h1><p>${S.projects.length} 个装配项目 · 选型完成后点「确认开工」才会真正组装</p></div>
+      <div><h1>工作台</h1><p>${S.projects.length} 个装配项目 · ${drafts.length
+        ? drafts.length + " 份草稿没做完" : "做不完可以随时存草稿"}</p></div>
       <div class="right"><button class="btn" id="bLib">浏览模块库</button><button class="btn primary" id="bNew2">＋ 新建装配</button></div>
     </div>
     <div class="starts">
       <div class="start" id="bHub" role="button" tabindex="0">
         <div class="ic a">${art("shell", 26)}</div>
         <div><b>做一个个人中台</b>
-          <p>极简 / 中等 / 功能齐全，选模块、选方案，像往主板上插模块一样装起来</p></div>
+          <p>极简 / 中等 / 功能齐全，选模块、选方案，像往主板上插模块一样装起来，装完能试用、能打包</p></div>
       </div>
       <div class="start" id="bAsk" role="button" tabindex="0">
         <div class="ic b">${art("ai", 26)}</div>
@@ -874,18 +1086,19 @@ function viewHome(){
       </div>
     </div>
     <div class="grid3">${cards}</div>
-    <div style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;margin-top:16px">
+    <div class="card box dftbox">
+      <div class="bh">草稿箱 <span class="sp">${drafts.length} 份 · 存在这台电脑的浏览器里</span>
+        <button class="btn sm ghost" id="bDftExp">导出</button>
+        <button class="btn sm ghost" id="bDftImp">导入</button></div>
+      <div class="dftlist">${dftHTML}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px;margin-top:14px">
       <div class="card box">
-        <div class="bh">最近组装</div>
-        <div class="feed">
-          <div><span class="t">今天 14:20</span>Dify 流程引擎 · 装到第 4/12 格，暂停</div>
-          <div><span class="t">昨天 22:05</span>行业研究中台 · 12 格全部就绪</div>
-          <div><span class="t">11-23 09:40</span>客服工单分类 · 7 格全部就绪</div>
-        </div>
-        <div class="bh" style="margin:16px 0 8px">它怎么工作</div>
-        <div class="muted" style="font-size:12.5px;line-height:1.9">
-          写一句需求 → 摊开这几格 → 打钩挑方案 → 检查能不能接上 → <b>确认开工</b>，按施工顺序逐格组装。
-          每格 2–4 个候选方案，选完可以换；不勾的格子不装。
+        <div class="bh">两条路，走到同一个地方</div>
+        <div class="muted" style="font-size:12.5px;line-height:1.95">
+          <b>① 从需求开始</b>　写一句大白话 → 摊开能力格 → 打钩挑方案 → 检查能不能接上 → 按施工顺序组装。<br>
+          <b>② 从个人中台开始</b>　定风格 → 勾模块 → 给每块选实现 → 确认清单 → 像插主板一样装 → 试用 → 打包带走。<br>
+          两条路共用同一套能力格与连通检查，所以做出来的东西是同一个口径。中途都能<b>存草稿</b>。
         </div>
       </div>
       <div class="card box">
@@ -913,6 +1126,28 @@ function viewHome(){
   $("#bHub").onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); S.hub = null; go("#/hub-style"); } };
   $("#bAsk").onclick = () => { S.need = ""; go("#/new"); };
   $("#bLib").onclick = $("#bLib2").onclick = () => go("#/lib");
+  /* 草稿箱：整行可点，按钮独立，删除要确认 */
+  const delDraft = id => {
+    const d = S.drafts.find(x => x.id === id);
+    if(!d) return;
+    modal(`<div class="mh"><b>删掉这份草稿？</b><button class="x" data-x="1">✕</button></div>
+      <div class="mb"><p style="margin:0">「${esc(d.nm)}」和它记住的进度都会消失，删了找不回来。</p></div>`,
+      `<button class="btn" data-x="1">先留着</button><button class="btn danger" id="dDel2">删除</button>`);
+    $("#modal").querySelectorAll("[data-x]").forEach(x => x.onclick = closeModal);
+    $("#dDel2").onclick = () => { closeModal(); draftDel(id); };
+  };
+  document.querySelectorAll("[data-dopen]").forEach(b => b.onclick = e => {
+    e.stopPropagation(); draftOpen(b.dataset.dopen);
+  });
+  $("#bDftExp").onclick = draftExport;
+  $("#bDftImp").onclick = draftImport;
+  document.querySelectorAll("[data-ddel]").forEach(b => b.onclick = e => {
+    e.stopPropagation(); delDraft(b.dataset.ddel);
+  });
+  document.querySelectorAll("[data-dft]").forEach(n => {
+    n.onclick = e => { if(!e.target.closest("button")) draftOpen(n.dataset.dft); };
+    n.onkeydown = e => { if(e.key === "Enter" || e.key === " "){ e.preventDefault(); draftOpen(n.dataset.dft); } };
+  });
   document.querySelectorAll("[data-del]").forEach(b => b.onclick = e => {
     e.stopPropagation();
     const p = S.projects.find(x => x.id === b.dataset.del);
@@ -987,11 +1222,11 @@ function viewNew(){
 
 /* ────────── 视图：个人中台 ────────── */
 function hubSteps(n){
-  const names = ["风格", "模块", "方案", "组装"];
+  const names = ["风格", "模块", "方案", "确认", "组装", "交付"];
   return `<div class="hubstep" style="margin-left:14px">` + names.map((x, i) => {
     const cls = i < n ? "done" : (i === n ? "on" : "");
     return `<div class="s ${cls}"><em>${i < n ? "✓" : i + 1}</em>${x}</div>` +
-           (i < 3 ? `<div class="b"></div>` : "");
+           (i < names.length - 1 ? `<div class="b"></div>` : "");
   }).join("") + `</div>`;
 }
 function hubCov(){
@@ -1032,6 +1267,14 @@ function viewHubStyle(){
 
 /* 模块：必装 / 推荐 / 可选，前两类默认勾上，都能叉掉 */
 function viewHubMods(){
+  /* 中台的能力格永远由模块摊开决定：进这一页就重算，免得把上一次「一句话需求」的格串进来 */
+  S.picks = hubCells(S.hub.mods); S.cov = null;
+  /* 新勾上的模块先把推荐方案填回去，方案页/草稿/打包读到的都是同一份确定值 */
+  S.hub.plans = S.hub.plans || {};
+  S.hub.mods.forEach(id => {
+    const m = hubMod(id);
+    if(m && !S.hub.plans[id]) S.hub.plans[id] = (m.provs.find(p => p.lv === "rec") || m.provs[0]).id;
+  });
   const mods = S.hub.mods;
   topbar(`工作台 <span>/</span> <b>个人中台</b>`, hubSteps(1),
     `<button class="btn sm ghost" id="bSty">换风格</button>
@@ -1140,6 +1383,7 @@ const LVTXT = {rec:"推荐", ok:"能用", warn:"慎选", build:"自研"};
 const lvCls = lv => (lv === "rec" ? "ok" : (lv === "warn" ? "warn" : "mute"));
 
 function viewHubPlans(){
+  S.picks = hubCells(S.hub.mods); S.cov = null;
   const mods = S.hub.mods.map(hubMod).filter(Boolean);
   const cells = hubCells(S.hub.mods);
   topbar(`工作台 <span>/</span> <b>个人中台</b>`, hubSteps(2),
@@ -1241,7 +1485,7 @@ function viewPlan(){
   }else if(!S.cov){ S.cov = matchNeed(S.need); S.picks = [...S.cov.core, ...S.cov.rec]; }
   const cov = S.cov;
   const head = isHub ? `个人中台 · ${esc(hubStyleName())}` : esc(S.need.slice(0, 18)) + (S.need.length > 18 ? "…" : "");
-  topbar(`工作台 <span>/</span> <b>${isHub ? "个人中台　" + hubSteps(3) : head}</b>`, isHub ? null : 1,
+  topbar(`工作台 <span>/</span> <b>${isHub ? "个人中台 · " + esc(hubStyleName()) : head}</b>`, isHub ? hubSteps(3) : 1,
     isHub
       ? `<button class="btn sm ghost" id="bEdit">改模块</button><button class="btn sm" id="bRe">换方案</button>`
       : `<button class="btn sm ghost" id="bEdit">改需求</button>
@@ -1406,8 +1650,18 @@ function detail(cid){
 
 /* ────────── 视图：确认 ────────── */
 function viewConfirm(){
-  const r = check(S.picks);
   const isHub = !!(S.hub && S.hub.mods.length);
+  /* 草稿恢复、地址栏直达都会跳过「选型」那一步，cov 可能还没算——这里补齐，
+     否则下面读 S.cov.gaps 会直接抛错，整页白掉 */
+  if(isHub){
+    if(!S.cov) S.cov = hubCov();
+    if(!S.picks.length) S.picks = hubCells(S.hub.mods);
+  }else if(!S.cov && S.need){
+    S.cov = matchNeed(S.need);
+    if(!S.picks.length) S.picks = [...S.cov.core, ...S.cov.rec];
+  }
+  if(!S.cov) S.cov = {core: [], rec: [], scene: [], gaps: [], hits: {}};
+  const r = check(S.picks);
   topbar(isHub ? `工作台 <span>/</span> <b>个人中台</b>` : `工作台 <span>/</span> <b>确认清单</b>`, isHub ? hubSteps(3) : 2,
     `<button class="btn sm ghost" id="bBack">返回选型</button>`);
   // 中台模式下这张表不列方案（方案在上面的模块表里已经选过了），改成「这一格是谁带来的、排第几步」
@@ -1515,7 +1769,7 @@ function mdText(){
     const c = byId[cid], p = prov(cid);
     L.push(`| ${i + 1} | ${c.name} | ${p ? p.n : "—"} | ${p ? (KIND[p.k] || p.k) : "—"} |`);
   });
-  if(S.cov.gaps.length){ L.push("", "## 库外", ""); S.cov.gaps.forEach(g => L.push(`- **${g.name}**：${g.how}`)); }
+  if(S.cov && S.cov.gaps && S.cov.gaps.length){ L.push("", "## 库外", ""); S.cov.gaps.forEach(g => L.push(`- **${g.name}**：${g.how}`)); }
   return L.join("\n");
 }
 
@@ -1619,7 +1873,7 @@ function viewBuild(){
   const b = S.build;
   if(!b){ location.hash = "#/plan"; return; }
   topbar(b.hub ? `工作台 <span>/</span> <b>个人中台</b>` : `工作台 <span>/</span> <b>组装中</b>`,
-    b.hub ? hubSteps(3) : 3, `<span class="badge warn">模拟</span>`);
+    b.hub ? hubSteps(4) : 3, `<span class="badge warn">模拟</span>`);
   $("#view").innerHTML = `<div class="buildwrap" id="bw"></div>`;
   renderBuild();
   if(S.build && !S.build.done && !S.build.paused) setTimeout(tick, 300);
@@ -2135,7 +2389,7 @@ function trialDoc(){
 function viewTrial(){
   const isHub = !!(S.hub && S.hub.mods.length);
   if(!isHub){ toast("试用只做给个人中台"); go("#/done"); return; }
-  topbar(`工作台 <span>/</span> <b>个人中台</b>`, hubSteps(4),
+  topbar(`工作台 <span>/</span> <b>个人中台</b>`, hubSteps(5),
     `<button class="btn sm ghost" id="bTMods">改模块</button>
      <button class="btn sm ghost" id="bTPlans">换方案</button>`);
   $("#view").innerHTML = `<div class="page">
@@ -2274,7 +2528,7 @@ function viewPack(){
     {name:"模块清单.md", data: mdText()}
   ]);
   const kb = (zipBytes.length / 1024).toFixed(1);
-  topbar(`工作台 <span>/</span> <b>个人中台</b>`, isHub ? hubSteps(4) : 4,
+  topbar(`工作台 <span>/</span> <b>个人中台</b>`, isHub ? hubSteps(5) : 4,
     `<button class="btn sm ghost" id="bPBack">回试用</button>`);
   $("#view").innerHTML = `<div class="page">
     <div class="pagehd"><div><h1>打包带走</h1>
@@ -2321,7 +2575,7 @@ function viewDone(){
   const r = check(S.picks), b = S.build;
   const isHub = !!(S.hub && S.hub.mods.length);
   topbar(isHub ? `工作台 <span>/</span> <b>个人中台</b>` : `工作台 <span>/</span> <b>完成</b>`,
-    isHub ? hubSteps(4) : 4, "");
+    isHub ? hubSteps(5) : 4, "");
   const order = r.order.filter(c => S.picks.includes(c));
   const byDom = new Map();
   order.forEach(cid => {
@@ -2348,6 +2602,7 @@ ${files}
       ${isHub
         ? `<button class="btn primary" id="bTrial">先试用一下</button>
            <button class="btn" id="bPack">打包带走</button>
+           <button class="btn ghost" id="bDraft2">存草稿</button>
            <button class="btn ghost" id="bExp2">导出清单</button>
            <button class="btn ghost" id="bAgain">再做一个中台</button>`
         : `<button class="btn primary" id="bOpen">打开项目目录</button>
@@ -2357,6 +2612,7 @@ ${files}
   </div>`;
   if($("#bTrial")) $("#bTrial").onclick = () => go("#/trial");
   if($("#bPack")) $("#bPack").onclick = () => go("#/pack");
+  if($("#bDraft2")) $("#bDraft2").onclick = () => draftBox($("#bDraft2"));
   if($("#bOpen")) $("#bOpen").onclick = () => toast("原型：这里会打开本地项目目录");
   $("#bExp2").onclick = exportMd;
   $("#bAgain").onclick = () => { S.need = ""; S.hub = null; save(); go(isHub ? "#/hub-style" : "#/new"); };
@@ -2393,13 +2649,15 @@ $("#btnHelp").onclick = e => {
   e.preventDefault();
   modal(`<div class="mh"><b>怎么用</b><button class="x" data-x="1">✕</button></div>
     <div class="mb">
-      <p style="margin-top:0"><b>0 做个个人中台</b>　工作台上的第一张卡：先选风格（极简 / 中等 / 齐全），
-        再勾模块、给每块挑实现方案，最后像往主板上插模块一样装起来。</p>
-      <p><b>1 写需求</b>　一句大白话，说清「拿什么进来、变成什么出去」。</p>
-      <p><b>2 摊开格子</b>　必选去掉就做不成；建议是为了通线自动带的；看情况你自己定。</p>
-      <p><b>3 挑方案</b>　每格 2–4 个候选，点一下换。点「详情」看许可、仓库、自研代价。</p>
-      <p><b>4 看连通</b>　红色断点必须先修，否则装了也接不上。</p>
-      <p><b>5 确认开工</b>　核对清单后开始逐格组装。原型里组装是模拟的。</p>
+      <p style="margin-top:0">两条路，走到同一个地方——都落在同一套能力格上，都会检查能不能接上。</p>
+      <p><b>① 个人中台</b>　工作台第一张卡：定风格（极简 / 中等 / 齐全）→ 勾模块 → 给每块挑实现方案
+        → 确认清单 → 像往主板上插模块一样装起来 → 试用 → 打包带走。</p>
+      <p><b>② 一句话需求</b>　写一句大白话，说清「拿什么进来、变成什么出去」，系统反推要哪些能力格，
+        再挑方案、看连通、开工。</p>
+      <p><b>连通检查</b>　红色断点必须先修（要的类型没人产出），黄色死端是做出来没去处。</p>
+      <p><b>草稿</b>　任意一步右上角点「存草稿」，起个名字；之后在工作台「草稿箱」里点「继续」，
+        风格、模块、方案、勾选原样带回来。草稿箱还能导出成 JSON 文件带走、再导入回来。
+        组装过程本身不存（它是过程不是结果），恢复后从「确认」重开一次。</p>
       <p class="faint" style="font-size:12px">快捷键：⌘/Ctrl + Enter 解析需求；Esc 关闭弹窗。</p>
     </div>`, `<button class="btn" data-x="1">知道了</button>`);
   $("#modal").querySelectorAll("[data-x]").forEach(x => x.onclick = closeModal);
@@ -2408,13 +2666,23 @@ $("#btnSetting").onclick = e => {
   e.preventDefault();
   modal(`<div class="mh"><b>设置</b><button class="x" data-x="1">✕</button></div>
     <div class="mb">
-      <p style="margin-top:0">这一版没有可调项，先占位。</p>
       <div class="kv"><b>当前需求</b><span>${esc(S.need || "（空）")}</span></div>
+      <div class="kv"><b>当前模式</b><span>${S.hub && S.hub.mods.length
+        ? "个人中台 · " + esc(hubStyleName()) + " · " + S.hub.mods.length + " 模块" : "一句话需求"}</span></div>
       <div class="kv"><b>已勾格数</b><span>${S.picks.length}</span></div>
-      <div class="kv"><b>存储</b><span>${LSOK ? "浏览器 localStorage（键 " + KEY + "）" : "当前环境不可用，只记在内存里"}</span></div>
+      <div class="kv"><b>草稿</b><span>${S.drafts.length} 份</span></div>
+      <div class="kv"><b>存储</b><span>${LSOK
+        ? "浏览器 localStorage（键 " + KEY + "）"
+        : "当前环境禁用了 localStorage，只记在内存里——要留着请导出草稿"}</span></div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button class="btn sm" id="sExp">导出全部草稿</button>
+        <button class="btn sm" id="sImp">导入草稿</button>
+      </div>
       <p class="faint" style="font-size:12px">接到真后端后，这里会有账号、项目仓库地址、默认模型供应商。</p>
     </div>`, `<button class="btn" data-x="1">关闭</button>`);
   $("#modal").querySelectorAll("[data-x]").forEach(x => x.onclick = closeModal);
+  $("#sExp").onclick = () => { closeModal(); draftExport(); };
+  $("#sImp").onclick = () => { closeModal(); draftImport(); };
 };
 
 load();
