@@ -61,7 +61,8 @@
   .pagehd{display:flex;align-items:flex-start;gap:16px;margin-bottom:20px}
   .pagehd h1{margin:0;font-size:20px;font-weight:650;letter-spacing:.2px}
   .pagehd p{margin:4px 0 0;font-size:12.5px;color:var(--dim)}
-  .pagehd .right{margin-left:auto;display:flex;gap:8px}
+  .pagehd .right{margin-left:auto;display:flex;gap:8px;flex:0 0 auto;
+    flex-wrap:wrap;justify-content:flex-end}
 
   .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 13px;font-size:13px;
     display:inline-flex;align-items:center;gap:6px;transition:.12s}
@@ -91,7 +92,8 @@
   .box{padding:14px 16px}
   .bh{font-size:12.5px;font-weight:640;margin:0 0 10px;display:flex;align-items:center;gap:8px}
   .bh .sp{margin-left:auto;font-weight:400;font-size:11.5px;color:var(--faint)}
-  .badge{font-size:11.5px;border-radius:20px;padding:1px 9px;border:1px solid;font-weight:400}
+  .badge{font-size:11.5px;border-radius:20px;padding:1px 9px;border:1px solid;font-weight:400;
+    white-space:nowrap}
   .badge.ok{color:var(--green);border-color:#bcd8c8;background:#eef6f1}
   .badge.bad{color:var(--red);border-color:#e8c3bf;background:#fcf0ef}
   .badge.warn{color:#8a4a12;border-color:#f0e0c6;background:#fdf6ec}
@@ -962,6 +964,16 @@ const PACKS = [
    sub:"主循环、存档与离线结算、数值、商店。时间连续的那类软件的地基。"},
   {id:"ops", nm:"运维包", tier:"opt", hue:232, art:"monitor", mb:30,
    sub:"部署、监控、告警、日志、安装包与签名。东西做出来以后的事。"},
+  {id:"stock", nm:"仓储作业包", tier:"opt", hue:34, art:"box", mb:45,
+   sub:"库位、收货、批次、拣货、盘点。账上的数和货架上的货，得是同一件事。"},
+  {id:"store", nm:"门店现场包", tier:"opt", hue:358, art:"wallet", mb:38,
+   sub:"点单出杯、配方扣料、外卖接单、班结对账。高峰期不卡、断网照收钱。"},
+  {id:"venue", nm:"场地运营包", tier:"opt", hue:168, art:"star", mb:30,
+   sub:"票务手环、闸机验票、设备点检。人一多就得限流，设备一出事就得有人知道。"},
+  {id:"stay", nm:"旅宿接待包", tier:"opt", hue:118, art:"key", mb:35,
+   sub:"房态日历、渠道订单、门锁密码、自助入住、夜里值守。客人十点到也得进得去。"},
+  {id:"offline", nm:"离线包", tier:"opt", hue:186, art:"sync", mb:18,
+   sub:"本地先记账、回网再同步。地下室、山里、摩天轮下面，断网是日常不是异常。"},
 ];
 const packOf = id => PACKS.find(p => p.id === id) || PACKS[0];
 /* 一个模块可以同时属于几个包——「日历」既在日程包里，也在笔记跟踪包里，
@@ -995,6 +1007,9 @@ const EXTRA_PK = {
   "eng-fab":["chip"],
   "eng-sim":["eng"],    // 板级也要跑信号/电源完整性仿真
   "train-ckpt":["llm"],  // 权重台账对本地推理同样有用：要知道这版 gguf 是哪次训出来的
+  /* 第十一批没在这里挂任何一条。原本想让「离线」同时属于仓/店/场/宿四个包，
+     结果是每个现场场景的包图上都多出一行「门店现场包 1」——因为离线的主包是门店。
+     跨包归属只适合「本来就该在那个包里」的模块；离线四类都用，就该自己成一个包。 */
 };
 
 /* ────────── 场景：从「我要做什么」开始，而不是从「要哪个模块」开始 ──────────
@@ -1004,10 +1019,10 @@ const SCENES = [
    sub:"装在自己电脑上、天天开的那一个窗口",
    out:"一个常驻桌面的工作台：今天做什么、随手记、Ctrl+K 搜、AI 帮你看",
    why:"它要的是「常驻 + 本地数据 + 天天用」，所以地基、笔记、日程、AI、美化、数据六件都成立。本地模型包可选：不想把日程与笔记发给云端的人，会把它勾上。"},
-  {id:"wms", nm:"仓库管理系统", art:"box", must:["core","biz"], packs:["core","biz","data","hw","ops"],
-   sub:"收货、上架、拣货、盘点、发货",
-   out:"一台能扫码入库、按库位找货、扣减不出错的库存系统",
-   why:"核心是「数字和现实对得上」：交易包管账，硬件包管扫码，运维包保证它在仓库那台旧电脑上不挂。"},
+  {id:"wms", nm:"仓库现场作业台", art:"box", must:["core","stock"], packs:["core","stock","offline","hw","data","ops"],
+   sub:"收货、上架、拣货、盘点——人推着车在货架之间走",
+   out:"一台手持机加一个后台：扫一下知道货在哪、拣完复核不错件、盘完账实对得上",
+   why:"仓库的难点不在记账，在「人和货架」：库位决定找不找得到，手持机决定录不录得进去，离线决定地下室有没有信号。所以仓储包 + 硬件包是必装，运维包保证那台旧电脑不挂。"},
   {id:"shop", nm:"跨境电商", art:"globe", must:["core","biz"], packs:["core","biz","beauty","data","geo","ops","ai"],
    sub:"多币种、多语言、多承运商，从下单到清关",
    out:"一个能上架、能收款、能打面单、能查轨迹的独立站",
@@ -1036,10 +1051,10 @@ const SCENES = [
    sub:"片库、相册、下载、远程访问",
    out:"一个家里所有人都能用、在外面也能连回来看片的东西",
    why:"它的核心是「存储 + 索引 + 转码」，所以数据包与图像流水线包是主力，运维包保证它 7×24 活着。"},
-  {id:"cafe", nm:"咖啡店点单与会员", art:"wallet", must:["core","biz"], packs:["core","biz","beauty","sched","data"],
-   sub:"扫码点单、排队取餐、储值会员、每日对账",
-   out:"一台吧台平板 + 一个小程序：点单不出错、会员能储值、每天能对上账",
-   why:"小店的关键不是功能多，是「高峰期不卡、钱对得上」：交易包 + 日程包足够。"},
+  {id:"cafe", nm:"咖啡厅门店台", art:"wallet", must:["core","store","biz"], packs:["core","store","biz","offline","hw","data","sched"],
+   sub:"点单、出杯、外卖接单、配方扣料、班结对账",
+   out:"一台吧台平板加一个小程序：高峰期不卡、断网能开单、每天对得上账",
+   why:"门店的关键不是功能多，是「八分钟四十杯」：点单台决定快不快，配方扣料决定毛利真不真，班结决定钱对不对。交易包管收钱，硬件包管小票机与钱箱。"},
   {id:"saas", nm:"独立开发者 SaaS", art:"cloud", must:["core","collab"], packs:["core","collab","ops","data","ai","beauty"],
    sub:"注册登录、订阅计费、租户隔离、后台看板",
    out:"一个能收订阅费、能看留存、出事能回滚的多租户后台",
@@ -1072,13 +1087,27 @@ const SCENES = [
    sub:"数据集版本、训练任务、指标曲线、检查点、评测回归",
    out:"一个能重复跑的实验台：同一份数据 + 同一份配置跑出同一条曲线，权重有版本可回退",
    why:"调参的敌人是「忘了上次改了啥」。没有数据版本、实验台账与检查点，跑十次也学不到东西；有了这三件，每次失败都是在缩小范围。"},
+
+/* ── 线下现场：有门、有货架、有闸机，断网也得营业 ──
+   这四个和前四组不同：它们的约束不在屏幕里，在「柜台前站着人」这件事上。 */
+  {id:"park", nm:"游乐场运营台", art:"star", must:["core","venue","hw"],
+   packs:["core","venue","offline","hw","geo","data","ops"],
+   sub:"售票、手环、验票开闸、设备点检、客流统计",
+   out:"一个入口闸机加一个后台：票能卖能退、手环能刷、该检的设备一台不落",
+   why:"游乐场的钱分两层：门票与场内二次消费，手环把两层连起来。它的命门是「网络一抖就堵门」，所以闸机要能离线验票；设备点检不是合规摆设，是敢不敢开门的问题。"},
+  {id:"lodge", nm:"山野旅社", art:"map", must:["core","stay","hw"],
+   packs:["core","stay","offline","hw","geo","data","ops","sched"],
+   sub:"房态日历、渠道订单、门锁密码、自助入住、夜里值守",
+   out:"一个手机能改房态的后台加一把能发离线密码的锁：客人十点到也能自己进门",
+   why:"山里的三件事决定一切：信号差（离线优先）、没人值守（自助入住 + 求助升级）、渠道多（携程/美团/Airbnb 一起占房，晚一步就超售）。位置包给周边与交通，日程包给保洁与交接。"},
 ];
 
-/* 16 个场景分四组，按「装给谁用」分——不按行业分。
+/* 20 个场景分六组，按「装给谁用」分——不按行业分。
    场景页顶上是这条索引，点一下只看一组；分组只是导航，不影响算法。 */
 const SCAT = [
   {id:"self", nm:"自己天天用", hint:"装在自己电脑上，一个人用、天天开", ids:["hub","nas","imagegen"]},
-  {id:"biz",  nm:"开门做生意", hint:"有客人、有订单、要对得上账", ids:["shop","cafe","wms","sling"]},
+  {id:"biz",  nm:"开门做生意", hint:"有客人、有订单、要对得上账", ids:["shop","sling"]},
+  {id:"floor", nm:"线下现场", hint:"有门、有货架、有闸机，断网也得营业", ids:["wms","cafe","park","lodge"]},
   {id:"prod", nm:"做产品上线", hint:"做出来给别人用，出事要能救", ids:["idle","saas","live"]},
   {id:"rd",   nm:"做工程研发", hint:"改一版要等两周，或者烧掉几十万", ids:["eda","pcb","soc","train"]},
   {id:"hw",   nm:"要接硬件", hint:"连设备、读传感器、往下发指令", ids:["drone","hotspot"]},
@@ -1796,6 +1825,122 @@ const HUB = [
    {id:"rclone", n:"rclone + S3/MinIO", lv:"ok", k:"开源", note:"便宜、能断点、能按前缀批量清理；目录规范定成 {实验}/{步数}/"},
    {id:"manifest", n:"meta.json 三元组绑定", lv:"ok", k:"做法", note:"git commit + 数据 manifest hash + 超参 + 评测分；几 KB，价值高于权重本身"},
    {id:"b-ckpt", n:"AI 帮你做权重台账", lv:"build", k:"自研", note:"1 天 · 约 18 万 token：目录规范、meta 校验、按实验保留与冷备策略"}]},
+
+/* ── 仓储作业包（账上的数要和货架上的货是同一件事）── */
+{id:"site-space", nm:"库位与动线", pk:"stock", tier:"rec", art:"route", cells:["site.space"],
+ sub:"给每个货架、每层、每格编号；按出货频率分区，别让卖得最快的货躺在最里面",
+ provs:[
+   {id:"self-code", n:"自建编码规则 + 标签打印", lv:"rec", k:"做法", note:"区-排-层-位四级，全大写、不用 0/O 与 1/I；标签贴齐眼高度，人站着就能看见"},
+   {id:"odoo-loc", n:"Odoo 库位（父子层级）", lv:"ok", k:"开源", note:"库位是一棵树，移动即调拨、历史全留；小仓库社区版就够，别一上来买企业版"},
+   {id:"openboxes", n:"OpenBoxes", lv:"ok", k:"开源", note:"专做仓储的开源系统，库位/批次/效期/调拨齐全；界面旧、要 Java，适合有人维护的仓"},
+   {id:"b-space", n:"AI 帮你排库位与动线", lv:"build", k:"自研", note:"1.5 天 · 约 22 万 token：按出货频率做 ABC 分区、生成编码表与标签、算拣货动线长度"}]},
+{id:"site-in", nm:"收货与上架", pk:"stock", tier:"rec", art:"truck", cells:["site.in"],
+ sub:"对单、点验、贴内部码、扫库位——实物和单据第一次见面的地方，差错都从这进",
+ provs:[
+   {id:"zebra-tc", n:"Zebra TC21 / 霍尼韦尔 EDA52", lv:"rec", k:"闭源", note:"工业手持机有实体扳机键，戴手套也能按；比手机扫码快三倍，二手一千多一台"},
+   {id:"bt-scanner", n:"蓝牙扫码枪 + 平板", lv:"ok", k:"闭源", note:"几百块起步，扫出来就是键盘输入，任何网页都能接；适合日均几百单的小仓"},
+   {id:"odoo-receipt", n:"Odoo 入库单（收货→质检→上架）", lv:"ok", k:"开源", note:"一张单走三步、状态看得见，支持部分收货与超收容差；供应商少送时不用整单退回"},
+   {id:"b-in", n:"AI 帮你做收货台", lv:"build", k:"自研", note:"1 天 · 约 18 万 token：扫码页三个大按钮、少送/多送/破损三种分支、按 ABC 推荐库位"}]},
+{id:"site-stock", nm:"批次与效期", pk:"stock", tier:"rec", art:"box", cells:["site.stock"],
+ sub:"哪一批、什么时候进的、什么时候过期；出库先到期先出，召回能追到具体几箱",
+ provs:[
+   {id:"odoo-lot", n:"Odoo 批次/序列号 + 到期日", lv:"rec", k:"开源", note:"批次与序列号都支持、FEFO 拣货能配；到期提醒要自己加自动化规则"},
+   {id:"self-batch", n:"自建批次表（SQLite）", lv:"ok", k:"做法", note:"一张表就够：sku/batch/qty/prod/exp/loc；按 exp 升序查就是 FEFO 顺序"},
+   {id:"b-stock", n:"AI 帮你做效期台账", lv:"build", k:"自研", note:"1 天 · 约 15 万 token：自动生成批次号、两档临期预警、按批次查流向与剩余"}]},
+{id:"site-pick", nm:"拣货与复核", pk:"stock", tier:"rec", art:"scan", cells:["site.pick"],
+ sub:"按库位排序走一趟拿完，打包前逐件扫一遍——错发一件，来回运费比毛利还高",
+ provs:[
+   {id:"odoo-pick", n:"Odoo 波次拣货 + 条码复核", lv:"rec", k:"开源", note:"支持波次、集群拣货、按库位排序；条码应用逐件扫，扫错即时报错"},
+   {id:"self-pick", n:"自建拣货单（按库位排序）", lv:"ok", k:"做法", note:"订单行 join 库位表、按 loc_code 排序，输出天然就是一条动线；小仓纸质单更快"},
+   {id:"carrier-api", n:"快递面单 API（顺丰/中通/菜鸟）", lv:"ok", k:"闭源", note:"要签约与月结账号；菜鸟能一次接多家，但每个网点要单独开通，别大促前才办"},
+   {id:"b-pick", n:"AI 帮你做拣货复核", lv:"build", k:"自研", note:"1.5 天 · 约 24 万 token：波次合并、S 形排序、复核页扫错红屏、一单多箱面单"}]},
+{id:"site-count", nm:"盘点与差异", pk:"stock", tier:"rec", art:"chart", cells:["site.count"],
+ sub:"循环盘不停业、盲盘不给账面数、差异必须查原因——盘点的目的是找漏，不是让数字好看",
+ provs:[
+   {id:"odoo-count", n:"Odoo 循环盘点（Cycle Count）", lv:"rec", k:"开源", note:"按库位/品类分批盘，盘完自动出调整单；记得开「盘点时冻结」，别边盘边发货"},
+   {id:"self-count", n:"自建盲盘表 + 扫码录入", lv:"ok", k:"做法", note:"导出不含数量的库位清单 → 现场填实际数 → 回传比对；差异超 2% 强制复盘"},
+   {id:"b-count", n:"AI 帮你做盘点", lv:"build", k:"自研", note:"1 天 · 约 16 万 token：按 ABC 定频次、盲盘录入与差异单、按库位/按人聚合找系统性漏洞"}]},
+
+/* ── 门店现场包（高峰期不卡、断网照收钱）── */
+{id:"site-order", nm:"点单与出杯", pk:"store", tier:"rec", art:"wallet", cells:["site.order"],
+ sub:"从客人的一句话到小票出来，熟练店员三下点完；按钮按「戴手套、手上有水」来设计",
+ provs:[
+   {id:"loyverse", n:"Loyverse POS（免费）", lv:"rec", k:"闭源", note:"免费、离线可用、加料与改价都有；小票机与钱箱兼容性好，会员与多店要付费版"},
+   {id:"odoo-pos", n:"Odoo POS（离线模式）", lv:"ok", k:"开源", note:"断网也能开单、回网自动同步；改菜单要重启 POS 会话，上线前先在备用平板演练"},
+   {id:"square-rest", n:"Square for Restaurants", lv:"ok", k:"闭源", note:"桌台与出杯流程最顺、能接厨房屏；国内用不了它的支付，只能当参考"},
+   {id:"b-order", n:"AI 帮你做点单台", lv:"build", k:"自研", note:"2 天 · 约 32 万 token：常点置顶、单手三步下单、支付回调出单、叫号屏与语音"}]},
+{id:"site-recipe", nm:"配方与损耗", pk:"store", tier:"rec", art:"book", cells:["site.recipe"],
+ sub:"一杯用多少克豆、多少毫升奶；打翻的、过期的、员工餐，都要有地方记",
+ provs:[
+   {id:"self-recipe", n:"自建配方卡（BOM 式）", lv:"rec", k:"做法", note:"商品×原料×用量，出单按数量展开扣减；改配方要留版本与生效时间，否则历史订单算不回去"},
+   {id:"odoo-bom", n:"Odoo 物料清单（BoM）", lv:"ok", k:"开源", note:"BoM 挂到 POS 商品上，卖出自动扣组件；饮品用「套件」那种，不用「按单生产」"},
+   {id:"scale", n:"电子秤 + 定量出粉器", lv:"ok", k:"闭源", note:"配方落地得靠器具；靠人「估」的配方一周就漂了，器具是毛利的第一道守门人"},
+   {id:"b-recipe", n:"AI 帮你算配方与损耗", lv:"build", k:"自研", note:"1 天 · 约 18 万 token：配方卡与单位换算、自动扣料、销售账 vs 原料账、损耗原因分类"}]},
+{id:"site-channel", nm:"线上渠道与外卖", pk:"store", tier:"rec", art:"cart", cells:["site.channel"],
+ sub:"美团、饿了么、团购的单汇进同一个出杯队列；平台只提供「单从哪来」这个标签",
+ provs:[
+   {id:"meituan-open", n:"美团开放平台（外卖/团购）", lv:"rec", k:"闭源", note:"接单/拒单/菜品映射/账单都有接口；要企业资质与门店绑定，审核一周起"},
+   {id:"eleme-open", n:"饿了么开放平台", lv:"ok", k:"闭源", note:"接口结构跟美团不同，字段要各写一套映射；先手动接一周再开自动接单"},
+   {id:"aggregator", n:"第三方聚合（收银系统自带）", lv:"ok", k:"闭源", note:"一次接多家省开发；数据在别人手里，必须确认能导出原始订单，否则换供应商搬不走"},
+   {id:"b-channel", n:"AI 帮你做渠道中台", lv:"build", k:"自研", note:"2 天 · 约 34 万 token：统一订单模型、接拒改单与超时提醒、每日账单与差异表"}]},
+{id:"site-shift", nm:"班次与交接", pk:"store", tier:"rec", art:"clock", cells:["site.shift"],
+ sub:"开班点备用金、交班点现金、日结三方对账；差额必须写原因，不能只填数",
+ provs:[
+   {id:"self-shift", n:"自建交接班表（三方对账）", lv:"rec", k:"做法", note:"现金/微信/支付宝/银行卡四列，各列「系统额 vs 实收额」，差额必填原因、双人签"},
+   {id:"wechat-bill", n:"微信支付/支付宝账单下载", lv:"ok", k:"闭源", note:"对账靠下载 CSV 逐笔核，不靠人看流水；两家退款字段命名不同，映射表单独维护"},
+   {id:"b-shift", n:"AI 帮你做日结", lv:"build", k:"自研", note:"1 天 · 约 16 万 token：三张单 + 差异原因字典、按笔匹配标出单边账、日报四项指标"}]},
+{id:"site-offgrid", nm:"离线与弱网", pk:"offline", tier:"rec", art:"sync", cells:["site.offgrid"],
+ sub:"先写本地、立刻出结果、后台慢慢同步；断网不是异常，是仓库地下室和山里的日常",
+ provs:[
+   {id:"sqlite-local", n:"SQLite + 操作队列", lv:"rec", k:"做法", note:"一张 ops 表带 device_id 与 synced 位，补传按 id 去重，天然幂等；别用「先查再写」"},
+   {id:"pouchdb", n:"PouchDB / CouchDB 同步", lv:"ok", k:"开源", note:"自带双向同步与冲突版本，省掉手写队列；冲突策略要自己定，它只告诉你冲突了"},
+   {id:"watermelon", n:"WatermelonDB / RxDB", lv:"ok", k:"开源", note:"平板当收银机时好用，查询快、能观察变更；Web 与 RN 同一套代码"},
+   {id:"b-offgrid", n:"AI 帮你做离线层", lv:"build", k:"自研", note:"2 天 · 约 32 万 token：本地库与队列、重试退避批量补传、冲突处理与「待同步 N 条」提示"}]},
+
+/* ── 场地运营包（人一多就得限流，设备出事得有人知道）── */
+{id:"site-ticket", nm:"门票与手环", pk:"venue", tier:"rec", art:"coin", cells:["site.ticket"],
+ sub:"票种场次、一票一人、手环充值押金；下雨天退票能到三成，退改流程得先想好",
+ provs:[
+   {id:"self-ticket", n:"自建票务（二维码 + 手环绑定）", lv:"rec", k:"做法", note:"一票一码、核销即置已用并记闸机号；手环与票号绑定，丢了能按票号冻结余额"},
+   {id:"rfid-wrist", n:"Mifare/NFC 手环 + 读卡器", lv:"ok", k:"闭源", note:"手环 1–3 元、读卡器几百；充值写卡要防复制，用扇区密钥，别只认明文 UID"},
+   {id:"ota", n:"OTA 渠道（美团/携程/抖音）", lv:"ok", k:"闭源", note:"渠道票走券码核销，退款必须回原渠道；不同渠道规则不同，别现场退现金"},
+   {id:"b-ticket", n:"AI 帮你做票务台", lv:"build", k:"自研", note:"2 天 · 约 30 万 token：票种/场次/免票规则引擎、售票与核销、退改签与押金全程留痕"}]},
+{id:"site-gate", nm:"闸机与场内设备", pk:"venue", tier:"rec", art:"scan", cells:["site.gate"],
+ sub:"扫码开闸、一人一闸、离线白名单——节假日网络一抖，几百人堵在门口",
+ provs:[
+   {id:"zebra-gate", n:"Zebra/中控 闸机 + 二维码读头", lv:"rec", k:"闭源", note:"工业闸机自带继电器与离线白名单；买之前确认通信协议（韦根/RS485/TCP），别接不上"},
+   {id:"mqtt-gate", n:"MQTT 下发开闸（Mosquitto）", lv:"ok", k:"开源", note:"闸机挂 MQTT，发一条消息就开；断网时本地缓存白名单，回网补传开闸记录"},
+   {id:"manual", n:"人工通道 + 计数器", lv:"ok", k:"做法", note:"所有电子系统都要留人工通道：手持计数器 + 纸质票根，大客流时它比系统可靠"},
+   {id:"b-gate", n:"AI 帮你接闸机", lv:"build", k:"自研", note:"1.5 天 · 约 22 万 token：继电器/MQTT/串口适配、离线核销补传、在线率与客流看板"}]},
+{id:"site-safety", nm:"安全与点检", pk:"venue", tier:"rec", art:"pulse", cells:["site.safety"],
+ sub:"设备日检、隐患上报、限流与应急；这一格不赚钱，但它决定你敢不敢开门",
+ provs:[
+   {id:"self-check", n:"自建点检表（拍照 + 定位）", lv:"rec", k:"做法", note:"项要具体（「安全带卡扣回弹正常」而不是「设备正常」）；没照片不能提交，否则就是抄表"},
+   {id:"odoo-maint", n:"Odoo 维护管理（预防性维护）", lv:"ok", k:"开源", note:"按周期自动生成工单、逾期提醒；设备多的场地合适，小店用不上"},
+   {id:"b-safety", n:"AI 帮你做点检闭环", lv:"build", k:"自研", note:"1.5 天 · 约 20 万 token：按设备类型的点检模板、隐患派单到复核、合规台账导出"}]},
+
+/* ── 旅宿接待包（客人十点到，也得自己进得去）── */
+{id:"site-room", nm:"房态与订单", pk:"stay", tier:"rec", art:"cal", cells:["site.room"],
+ sub:"横轴日期、纵轴房间；下单即占房，晚十分钟同步就可能把同一间卖两次",
+ provs:[
+   {id:"hoteldruid", n:"HotelDruid（开源 PMS）", lv:"rec", k:"开源", note:"房态日历、价格、渠道都齐；PHP + MySQL，界面旧但逻辑完整、能自己改"},
+   {id:"self-cal", n:"自建房态日历（按间夜）", lv:"ok", k:"做法", note:"「房间×日期」存一行、唯一索引防超售；写入用事务加行锁，别「先查再写」"},
+   {id:"channel-mgr", n:"渠道管理器（携程/美团/Airbnb）", lv:"ok", k:"闭源", note:"一次改价多平台同步，省掉手工改五个后台；按月收费，但超售赔一次就够一年"},
+   {id:"b-room", n:"AI 帮你做房态台", lv:"build", k:"自研", note:"2 天 · 约 30 万 token：房态与价格日历、防超售事务、保洁流转（退房→脏房→可售）"}]},
+{id:"site-lock", nm:"门锁与自助入住", pk:"stay", tier:"rec", art:"key", cells:["site.lock"],
+ sub:"离线密码、身份证登记、押金退还；山里 Wi-Fi 不稳，锁不能靠联网才开",
+ provs:[
+   {id:"ttlock", n:"TTLock（通通锁）蓝牙/网关锁", lv:"rec", k:"闭源", note:"离线密码 + 蓝牙开锁，API 开放按设备收费；断网用离线密码兜底，最适合山里"},
+   {id:"tuya-lock", n:"涂鸦智能门锁", lv:"ok", k:"闭源", note:"生态大、便宜、接入快；云端依赖强，务必实测「断网后已下发的密码还能不能用」"},
+   {id:"self-ota", n:"自建密码算法 + 离线锁", lv:"ok", k:"做法", note:"锁端按「房号+日期+密钥」算密码，服务端同样算、不发请求；换密钥即全部失效"},
+   {id:"b-lock", n:"AI 帮你接门锁与自助入住", lv:"build", k:"自研", note:"2 天 · 约 28 万 token：多品牌适配、密码有效期、身份登记与押金、开门日志与异常提醒"}]},
+{id:"site-duty", nm:"值守与求助", pk:"stay", tier:"rec", art:"bell", cells:["site.duty"],
+ sub:"夜班巡更、一键呼叫、SOS；推送叫不醒人，三分钟没人接就得打电话",
+ provs:[
+   {id:"self-sos", n:"自建 SOS（二维码 + 电话兜底）", lv:"rec", k:"做法", note:"每间房贴二维码，扫码即拨老板电话并报房号，同时给备用联系人发短信；最不容易坏"},
+   {id:"bark-push", n:"Bark / 企业微信机器人", lv:"ok", k:"开源", note:"推送到锁屏、声音可设 critical；配「未读 3 分钟重发」，别只发一次"},
+   {id:"twilio-call", n:"阿里云语音通知（真电话）", lv:"ok", k:"闭源", note:"推送叫不醒时打真电话，几分钱一次；夜班场景值得配，别为省钱只发微信"},
+   {id:"b-duty", n:"AI 帮你做值守", lv:"build", k:"自研", note:"1.5 天 · 约 20 万 token：巡更点位打卡、按类型路由告警、三分钟未接升级、事件时间线"}]},
 ];
 
 /* 一个模块可以属于多包：pk 是主包，pks 是全部。挂完才能被 packMods 查。 */
@@ -2443,7 +2588,7 @@ function viewHome(){
       <div class="right"><button class="btn" id="bLib">浏览模块库</button><button class="btn primary" id="bNew2">＋ 新建装配</button></div>
     </div>
     <div class="starts">
-      <div class="start hero" id="bHub" role="button" tabindex="0" aria-label="开始装配：从 16 个场景里挑一个">
+      <div class="start hero" id="bHub" role="button" tabindex="0" aria-label="开始装配：从 20 个场景里挑一个">
         <div class="ic a">${art("shell", 30)}</div>
         <div class="hx">
           <span class="kick">从这里开始</span>
@@ -3176,7 +3321,10 @@ function wireLevels(picks){
 }
 function packMapHTML(){
   const mods = S.hub.mods.map(hubMod).filter(Boolean);
-  const used = PACKS.filter(p => mods.some(m => m.pks.includes(p.id)));
+  /* 只列「这个包自己的模块被装了」的行。
+     否则旅宿场景里会冒出「仓储作业包」，里头只有跨包的离线与点检两格，
+     看着像装了个空包——其实那两个模块的主包在别处。 */
+  const used = PACKS.filter(p => mods.some(m => m.pk === p.id));
   /* 按包分行：一行一个包，右边是它装的模块。
      同一个模块出现在两行不是重复——它确实同时属于两个包，两行都亮着就说明这一点。 */
   return `<div class="pmap">
@@ -3357,7 +3505,7 @@ function viewHubWire(){
     ${logicMapHTML()}
     <div class="animnote" id="animNote">${esc((ANIMS.find(a => a.id === anim) || ANIMS[0]).d)}</div>
 
-    <div class="secttl"><b>② 包图</b><span>用户视角 · ${PACKS.filter(p => S.hub.mods.map(hubMod).some(m => m && m.pks.includes(p.id))).length} 个包 · 同一个模块出现在两行，说明它同时属于两个包</span></div>
+    <div class="secttl"><b>② 包图</b><span>用户视角 · ${PACKS.filter(p => S.hub.mods.map(hubMod).some(m => m && m.pks.includes(p.id))).length} 个包 · 模块出现在两行说明它同时属于两个包；某行只有 1 格，说明这个包你只用了那一格</span></div>
     ${packMapHTML()}
 
     ${bad || dead ? `<div class="card box" style="margin-top:14px">
