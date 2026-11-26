@@ -982,6 +982,313 @@ html[data-theme="dark"] .mod .mico { color: hsl(var(--h) 44% 64%); }
 .opt .k { font-size: 10.5px; font-weight: var(--fw-regular); color: var(--ink-4); }
 .opt .nt { font-size: var(--fs-11); line-height: var(--lh-normal); color: var(--ink-3); }
 
+/* ══ 它们接得上吗 ══════════════════════════════════════════
+   图上的颜色全部走 CSS 变量（只有域色相 --h 是算出来的），
+   否则深色模式下会出现一片发光的浅色方块。 */
+
+.testbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  margin-bottom: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-size: var(--fs-12);
+}
+.testbar .tst { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); white-space: nowrap; }
+.testbar .tdot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-4);
+  flex: 0 0 auto;
+}
+.testbar.run .tdot { background: var(--brass); animation: tpulse 900ms ease-in-out infinite; }
+.testbar.ok .tdot { background: var(--moss); }
+.testbar.bad .tdot { background: var(--clay); }
+@keyframes tpulse { 50% { opacity: .25; transform: scale(.8); } }
+
+.testbar .tnum {
+  font-family: var(--font-mono);
+  font-size: var(--fs-11);
+  color: var(--ink-3);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.testbar .tline {
+  flex: 1 1 auto;
+  height: 3px;
+  min-width: 40px;
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.testbar .tline i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: var(--ink-block);
+  transition: width 90ms linear;
+}
+.testbar.ok .tline i { background: var(--moss); }
+.testbar.bad .tline i { background: var(--clay); }
+.testbar .tres { font-size: var(--fs-11); color: var(--ink-3); white-space: nowrap; }
+.testbar .tres b { color: var(--ink); font-weight: var(--fw-medium); }
+
+/* 动效选择：一排小胶囊，只有当前这个实心 */
+.wbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-3);
+}
+.achips { display: flex; flex-wrap: wrap; gap: 5px; }
+.achip {
+  height: 24px;
+  padding: 0 var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-11);
+  color: var(--ink-3);
+  background: var(--surface);
+  transition: color var(--t-fast) var(--ease-out),
+              border-color var(--t-fast) var(--ease-out),
+              background var(--t-fast) var(--ease-out);
+}
+.achip:hover { color: var(--ink); border-color: var(--line-strong); }
+.achip[aria-pressed="true"] {
+  background: var(--ink-block);
+  border-color: var(--ink-block);
+  color: var(--ink-inv);
+}
+
+.lgwrap {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  /* 横向网格底纹用重复渐变叠出来，比铺一张图轻 */
+  background-image: repeating-linear-gradient(
+    0deg, transparent 0 21px, color-mix(in srgb, var(--ink) 4%, transparent) 21px 22px
+  );
+  padding: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.lg { display: block; max-width: none; }
+
+/* 节点：底色 / 描边 / 文字 / 端点全走变量，深浅色都成立 */
+.lg .node { transform-box: fill-box; transform-origin: 50% 50%; }
+.lg .node .box {
+  fill: hsl(var(--h) 62% 96%);
+  stroke: hsl(var(--h) 45% 70%);
+  transition: opacity var(--t-fast) var(--ease-out);
+}
+.lg .node .spine { fill: hsl(var(--h) 55% 58%); }
+.lg .node .lbl { font-size: 10.5px; fill: var(--ink); }
+.lg .node .dot-ok { fill: var(--moss); }
+.lg .node .dot-bad { fill: var(--clay); }
+.lg .node .dot-warn { fill: var(--brass); }
+.lg .node.bad .box { stroke: var(--clay); stroke-width: 1.4; }
+.lg .node.warn .box { stroke: var(--brass); stroke-width: 1.4; }
+
+/* 深色：把纸片翻成深底浅字。两条通道都要写（跟随系统时没有 data-theme） */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) .lg .node .box { fill: hsl(var(--h) 28% 17%); stroke: hsl(var(--h) 32% 44%); }
+  html:not([data-theme="light"]) .lg .node .spine { fill: hsl(var(--h) 45% 62%); }
+}
+html[data-theme="dark"] .lg .node .box { fill: hsl(var(--h) 28% 17%); stroke: hsl(var(--h) 32% 44%); }
+html[data-theme="dark"] .lg .node .spine { fill: hsl(var(--h) 45% 62%); }
+
+/* 连线：先按 --len 藏起来，play 时按 --ed 依次描出来 */
+.lg .edge {
+  fill: none;
+  stroke: hsl(var(--h) 45% 62%);
+  stroke-width: 1.2;
+  opacity: .55;
+  stroke-dasharray: var(--len);
+  stroke-dashoffset: var(--len);
+}
+.lg.play .edge { animation: edgeDraw .5s linear forwards; animation-delay: var(--ed); }
+@keyframes edgeDraw { to { stroke-dashoffset: 0; } }
+
+/* 缺输入的那条：红色虚线 + 一行小字，不参与连线动画 */
+.lg .mline { stroke: var(--clay); stroke-width: 1.6; stroke-dasharray: 3 3; }
+.lg .mlbl { font-size: 8.5px; fill: var(--clay); }
+
+/* ── 五种装配动效 ──
+   静止时也要分得出来：乐高有厚度、平涂是直角、焊接留金边、点亮常态微光。 */
+.lg[data-anim="lego"] .node .box { filter: drop-shadow(0 3px 0 color-mix(in srgb, var(--ink) 24%, transparent)); }
+.lg[data-anim="solder"] .node .spine { fill: #c9a227; }
+.lg[data-anim="glow"] .edge { stroke-width: 1.7; opacity: .82; }
+.lg[data-anim="glow"] .node .box { stroke-width: 1.7; }
+.lg[data-anim="stack"] .node .box { filter: drop-shadow(0 2px 3px color-mix(in srgb, var(--ink) 20%, transparent)); }
+
+.lg.play .node { animation: ndLego .46s cubic-bezier(.2, 1.5, .4, 1) both; animation-delay: var(--d); }
+
+/* ① 平涂：不位移、不缩放，只是「啪」地刷上去（4 段跳变 + 直角块） */
+.lg[data-anim="flat"].play .node {
+  animation: ndFlat .22s steps(4, end) both;
+  animation-delay: calc(var(--d) * .3);
+}
+@keyframes ndFlat { 0% { opacity: 0; } 100% { opacity: 1; } }
+
+/* ② 立体乐高：掉下来、压一下、回弹 */
+@keyframes ndLego {
+  0% { opacity: 0; transform: translateY(-40px) scale(1.1); }
+  56% { opacity: 1; transform: translateY(4px) scale(.975); }
+  78% { transform: translateY(-2px) scale(1.008); }
+  100% { transform: none; }
+}
+
+/* ③ 焊接：从左边滑进槽位，接触瞬间迸一点黄火 */
+.lg[data-anim="solder"].play .node {
+  animation: ndSolder .5s cubic-bezier(.35, .05, .35, 1) both;
+  animation-delay: var(--d);
+}
+@keyframes ndSolder {
+  0% { opacity: 0; transform: translateX(-52px); }
+  56% { opacity: 1; transform: translateX(4px); filter: drop-shadow(0 0 9px rgba(214, 164, 40, .95)); }
+  76% { transform: translateX(-2px); filter: drop-shadow(0 0 3px rgba(214, 164, 40, .6)); }
+  100% { transform: none; filter: none; }
+}
+
+/* ④ 点亮：位置完全不动，只有光——先亮线，再一格一格爆亮 */
+.lg[data-anim="glow"].play .node {
+  animation: ndGlow .62s ease-out both;
+  animation-delay: calc(var(--d) + 110ms);
+}
+@keyframes ndGlow {
+  0% { opacity: .06; filter: brightness(3.4) saturate(.2); }
+  50% { opacity: 1; filter: brightness(1.32); }
+  100% { opacity: 1; filter: none; }
+}
+
+/* ⑤ 卡片堆叠：像发牌，左右交替歪着落（--r 由序号给定，奇偶相反） */
+.lg[data-anim="stack"].play .node {
+  animation: ndStack .54s cubic-bezier(.25, .9, .3, 1) both;
+  animation-delay: var(--d);
+}
+@keyframes ndStack {
+  0% { opacity: 0; transform: translateY(-16px) rotate(var(--r)); }
+  100% { opacity: 1; transform: none; }
+}
+
+.animnote {
+  margin-top: var(--sp-2);
+  font-size: var(--fs-11);
+  color: var(--ink-4);
+}
+
+/* ── 包图：一行一个包，右边是它装的模块 ── */
+.pmap {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  padding: var(--sp-1) var(--sp-3);
+}
+.prow {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  gap: var(--sp-3);
+  align-items: start;
+  padding: 7px 0;
+  border-top: 1px dashed var(--line);
+}
+.prow:first-child { border-top: 0; }
+@media (max-width: 820px) { .prow { grid-template-columns: 1fr; gap: 5px; } }
+
+.pnode {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid hsl(var(--h) 42% 86%);
+  border-radius: var(--r-sm);
+  background: hsl(var(--h) 60% 97%);
+  font-size: var(--fs-12);
+  min-width: 0;
+}
+.pnode .pd { display: inline-flex; color: hsl(var(--h) 50% 40%); flex: 0 0 auto; }
+.pnode b {
+  font-weight: var(--fw-medium);
+  color: hsl(var(--h) 34% 24%);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pnode i { margin-left: auto; font-style: normal; font-size: 10.5px; color: hsl(var(--h) 30% 44%); }
+
+.pchips { display: flex; flex-wrap: wrap; gap: 5px; padding-top: 1px; }
+.mnode {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border: 1px solid hsl(var(--h) 40% 86%);
+  border-radius: var(--r-xs);
+  background: hsl(var(--h) 55% 97%);
+  font-size: 11.5px;
+  color: hsl(var(--h) 32% 26%);
+  white-space: nowrap;
+}
+.mnode em {
+  font-style: normal;
+  font-size: 9.5px;
+  color: #fff;
+  background: hsl(var(--h) 45% 58%);
+  border-radius: var(--r-pill);
+  padding: 0 4px;
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) .pnode,
+  html:not([data-theme="light"]) .mnode {
+    background: hsl(var(--h) 30% 18%);
+    border-color: hsl(var(--h) 30% 34%);
+    color: hsl(var(--h) 40% 84%);
+  }
+  html:not([data-theme="light"]) .pnode b { color: hsl(var(--h) 40% 88%); }
+  html:not([data-theme="light"]) .pnode i { color: hsl(var(--h) 35% 70%); }
+}
+html[data-theme="dark"] .pnode,
+html[data-theme="dark"] .mnode {
+  background: hsl(var(--h) 30% 18%);
+  border-color: hsl(var(--h) 30% 34%);
+  color: hsl(var(--h) 40% 84%);
+}
+html[data-theme="dark"] .pnode b { color: hsl(var(--h) 40% 88%); }
+html[data-theme="dark"] .pnode i { color: hsl(var(--h) 35% 70%); }
+
+/* ── 检查结果 ── */
+.issues {
+  margin-top: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.issues .ih {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--sp-2);
+  font-size: var(--fs-12);
+}
+.issues .ih .ico { color: var(--ink-3); }
+.issues .ih b { font-weight: var(--fw-semi); }
+.gapbox {
+  padding: var(--sp-2) 0;
+  border-top: 1px dashed var(--line);
+  font-size: var(--fs-12);
+  line-height: var(--lh-normal);
+  color: var(--ink-3);
+}
+.gapbox b { color: var(--clay-ink); font-weight: var(--fw-medium); }
+.gapbox.warn b { color: var(--brass-ink); }
+
 /* ══ 页脚导航（每一步的「上一步」） ════════════════════════ */
 .stepnav {
   display: flex;
