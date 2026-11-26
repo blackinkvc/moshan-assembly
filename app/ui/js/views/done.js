@@ -13,6 +13,7 @@ import { STEP_NAMES, sceneById, packOf, hubCells, hubMod, formDef, hubLabel } fr
 import { check, cellName, CELL_BY_ID } from "../lib/wire.js";
 import { openExportMd } from "../lib/exportMd.js";
 import { saveDraft } from "../lib/draft.js";
+import { hubEst, hrsTxt, tkTxt, costTxt, costOf, handCost, rateOf, HAND, DAY_RATE } from "../lib/estimate.js";
 import { S } from "../store.js";
 import { go } from "../router.js";
 
@@ -125,6 +126,8 @@ export function viewDone() {
   const firstThree = pool.slice(0, 3);
 
   const stat = (n, label) => h("div.fact", null, h("b", null, String(n)), h("span", null, label));
+
+  const est = hubEst(hub);
 
   return h(
     "div.wrap",
@@ -240,6 +243,28 @@ export function viewDone() {
               "每一格都有现成实现，按上述顺序接入即可。")
       )
     ),
+
+    /* ④ 工作量小结：交付时给出量级，不必回确认页查看 */
+    est
+      ? h(
+          "div.estsum",
+          null,
+          secttl("④ 工作量与费用", `按当前选型估算 · ${rateOf(S.rate).nm}价`),
+          h(
+            "div.esg",
+            null,
+            h("div", null, h("span", null, "手写"), h("b", null, hrsTxt(est.total.hours)), h("i", null, "高级程序员从零实现")),
+            h("div", null, h("span", null, "AI 辅助"), h("b", null, hrsTxt(est.total.hours / HAND)), h("i", null, "同等工作量，含调试")),
+            h("div", null, h("span", null, "生成 token"), h("b", null, tkTxt(est.total.tk)), h("i", null, `折 ${costTxt(costOf(est.total.tk, S.rate))}`)),
+            h("div.hot", null, h("span", null, "净省"), h("b", null, costTxt(handCost(est.total.hours) - handCost(est.total.hours / HAND) - costOf(est.total.tk, S.rate))), h("i", null, "人工费差额"))
+          ),
+          h(
+            "p.t-12.faint",
+            { style: { marginTop: "8px" } },
+            `手写人工按 ¥${DAY_RATE.toLocaleString("zh-CN")}/人天折算约 ${costTxt(handCost(est.total.hours))}；估算不含需求沟通与验收，偏差通常在正负三成内。`
+          )
+        )
+      : null,
 
     /* ④ 交付出口：先试用（可交互原型），再打包（zip） */
     h(

@@ -24,6 +24,18 @@ import {
 } from "../lib/hub.js";
 import { check, cellName, cellOuts } from "../lib/wire.js";
 import { openExportMd } from "../lib/exportMd.js";
+import {
+  hubEst,
+  hrsTxt,
+  tkTxt,
+  costTxt,
+  costOf,
+  handCost,
+  RATES,
+  HAND,
+  DAY_RATE,
+  HOURS_DAY,
+} from "../lib/estimate.js";
 import { S, set } from "../store.js";
 import { go } from "../router.js";
 
@@ -186,6 +198,94 @@ export function viewConfirm() {
 
   const memWarn = memo.pct > 0.92;
 
+  /* ── ④ 工作量与费用 ──
+     两件事分开算：手写要多少工、生成要多少 token。费用只由 token 产生，
+     所以把方案全换成现成库时，token 会降但不会归零——接线代码仍要生成。 */
+  const est = hubEst(hub);
+  const estBody = h("tbody");
+  const cmpEl = h("div.estcmp");
+  const segEl = h("div.estseg", { role: "tablist", "aria-label": "token 单价档" });
+
+  function paintEst() {
+    const rate = S.rate;
+    const rows = [
+      ["功能模块", est.mods.n, est.mods],
+      ["胶水", est.glue.n, est.glue],
+      ["底座", est.base.n, est.base],
+      ["集成联调", null, est.integ],
+    ];
+    const trs = rows.map(([nm, n, g]) =>
+      h(
+        "tr",
+        null,
+        h("td.nm", null, nm),
+        h("td", null, n == null ? "—" : String(n)),
+        h("td", null, hrsTxt(g.hours)),
+        h("td", null, tkTxt(g.tk)),
+        h("td", null, costTxt(costOf(g.tk, rate)))
+      )
+    );
+    trs.push(
+      h(
+        "tr.sum",
+        null,
+        h("td.nm", null, "合计"),
+        h("td", null, String(est.mods.n + est.glue.n + est.base.n)),
+        h("td", null, hrsTxt(est.total.hours)),
+        h("td", null, tkTxt(est.total.tk)),
+        h("td", null, costTxt(costOf(est.total.tk, rate)))
+      )
+    );
+    estBody.replaceChildren(...trs);
+
+    const hand = handCost(est.total.hours);
+    const aidedHours = est.total.hours / HAND;
+    const aided = handCost(aidedHours);
+    const tkCost = costOf(est.total.tk, rate);
+    cmpEl.replaceChildren(
+      h(
+        "div",
+        null,
+        h("span", null, "全手写"),
+        h("b", null, hrsTxt(est.total.hours)),
+        h("i", null, `${costTxt(hand)} · 按 ¥${DAY_RATE.toLocaleString("zh-CN")}/人天`)
+      ),
+      h(
+        "div",
+        null,
+        h("span", null, "AI 辅助"),
+        h("b", null, hrsTxt(aidedHours)),
+        h("i", null, `${costTxt(aided)} 人工 + ${costTxt(tkCost)} token`)
+      ),
+      h(
+        "div.hot",
+        null,
+        h("span", null, "净省"),
+        h("b", null, hrsTxt(est.total.hours - aidedHours)),
+        h("i", null, `${costTxt(Math.max(0, hand - aided - tkCost))} 人工费`)
+      )
+    );
+    for (const b of segEl.children) b.setAttribute("aria-selected", String(b.dataset.rate === rate));
+  }
+
+  for (const r of RATES) {
+    segEl.appendChild(
+      h(
+        "button.estseg-b",
+        {
+          "data-rate": r.id,
+          title: r.d,
+          onclick: () => {
+            set({ rate: r.id });
+            paintEst();
+          },
+        },
+        r.nm
+      )
+    );
+  }
+  paintEst();
+
   return h(
     "div.wrap",
     null,
@@ -252,6 +352,67 @@ export function viewConfirm() {
           h("b", null, "开工前确认"),
           "商业服务的 key 需自行申请；标「自研」的格按清单思路实现，通常耗时最长；" +
             "断点不是错误，表示该格需自行补齐。"
+        )
+      )
+    ),
+
+    h(
+      "div.estblk",
+      null,
+      h(
+        "div.esthd",
+        null,
+        h(
+          "div",
+          null,
+          h("b", null, "工作量与费用"),
+          h("span", null, "按当前选型估算，含集成联调；不含需求沟通与验收。")
+        ),
+        segEl
+      ),
+      h(
+        "div.tbl.est",
+        null,
+        h(
+          "table",
+          null,
+          h(
+            "thead",
+            null,
+            h("tr", null, th("分组", "30%"), th("项数", "64px"), th("手写工时"), th("生成 token"), th("费用"))
+          ),
+          estBody
+        )
+      ),
+      cmpEl,
+      h(
+        "details.esthow",
+        null,
+        h("summary", null, "这些数怎么来的"),
+        h(
+          "p",
+          null,
+          h("b", null, "手写工时"),
+          "＝库内记录的「让模型从零写这一格要几天」× 8 小时 × 2.4（手写相对辅助的倍数）× 方案系数（现成库 0.45、自行实现 1.0）。没有记录的格，按接口路数与所属域估。"
+        ),
+        h(
+          "p",
+          null,
+          h("b", null, "生成 token"),
+          "＝工时 × 该方式的产出速率（现成库 2 万/小时、自行实现 7 万/小时）；自行实现且库内有实测值的，直接用实测值。集成联调按开发工时的 18% 计，费率取 4 万/小时。"
+        ),
+        h(
+          "p",
+          null,
+          h("b", null, "费用"),
+          `＝token ÷ 100 万 × 单价。人工按 ¥${DAY_RATE.toLocaleString("zh-CN")}/人天折算。三档单价：` +
+            RATES.map((r) => `${r.nm} ¥${r.price}/百万`).join("、") +
+            "。"
+        ),
+        h(
+          "p",
+          null,
+          "数字用于判断量级与取舍，不是报价。真实项目受需求变更、第三方服务稳定性、验收标准影响，偏差通常在正负三成以内。"
         )
       )
     ),

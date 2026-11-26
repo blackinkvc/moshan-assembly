@@ -9,6 +9,7 @@ import { badge, pagehd, secttl, steps, toast } from "../components.js";
 import { STEP_NAMES, sceneById, hubCells, formDef, platOf, mbTxt, hubLabel, PLATS } from "../lib/hub.js";
 import { check, cellName } from "../lib/wire.js";
 import { packFiles, installNotes, minMods } from "../lib/pack.js";
+import { hubEst, hrsTxt, tkTxt, costTxt, costOf, rateOf, HAND } from "../lib/estimate.js";
 import { sizeTxt } from "../lib/zip.js";
 import { saveFile } from "../lib/bridge.js";
 import { openExportMd } from "../lib/exportMd.js";
@@ -33,10 +34,13 @@ export function viewPack() {
   const r = check(picks, hub.form);
   const plats = platOf(hub);
   const notes = installNotes(hub.form, plats);
-  const pack = packFiles(hub);
+  const pack = packFiles(hub, S.rate);
+  /* 估算跟着「有效那份」走：开了最小包就按地基模块算，
+     否则页面上模块数是 4、工时却按 21 个算，两套账 */
+  const est = hubEst(hub.min ? { ...hub, mods: minMods(hub) } : hub);
   /* 另一档同时计算：本页需要给出最小包的实际节省量，
      缺少对照只能写「更小」，而磁盘占用实际差异很小。 */
-  const alt = packFiles({ ...hub, min: !hub.min });
+  const alt = packFiles({ ...hub, min: !hub.min }, S.rate);
   const cur = pack; // 当前档位的别名，下文与 alt 对照时使用
   /* 页面数字一律取 pack 中的有效数据：启用最小包时按地基计算 */
   const memo = pack.memo;
@@ -164,16 +168,32 @@ export function viewPack() {
       stat(
         "本地模型",
         memo.modelMB ? mbTxt(memo.modelMB) : "—",
-        memo.mdl ? `${memo.mdl.nm} · 约 ${memo.mdl.tps} 字/秒` : "未启用"
+        memo.model ? `${memo.model.nm} · 约 ${memo.model.tps} 字/秒` : "未启用"
       ),
       stat("合计", mbTxt(memo.total), memo.ok ? `可用 ${mbTxt(memo.avail)} 之内` : `超出 ${mbTxt(memo.total - memo.avail)}`),
       stat("磁盘", pack.sizeTxt, hub.min ? "最小包（不含模型权重）" : "全量包（不含模型权重）"),
       stat(
         "冷启动",
-        memo.modelMB ? (memo.mdl.gb < 2 ? "1 秒内" : "2–5 秒") : "0.5 秒内",
+        memo.modelMB ? (memo.model.gb < 2 ? "1 秒内" : "2–5 秒") : "0.5 秒内",
         memo.modelMB ? "要先把权重读进内存" : "没有权重加载"
       )
     ),
+
+    /* ⑤ 工作量：与确认页同一份算法，这里只给结论，细节回确认页看 */
+    est
+      ? h(
+          "div",
+          null,
+          secttl("⑤ 工作量与费用", `已写入 manifest.json · ${rateOf(S.rate).nm}价`),
+          h(
+            "div.resgrid.est3",
+            null,
+            stat("手写", hrsTxt(est.total.hours), "高级程序员从零实现"),
+            stat("AI 辅助", hrsTxt(est.total.hours / HAND), "同等工作量，含调试"),
+            stat("生成 token", tkTxt(est.total.tk), `折 ${costTxt(costOf(est.total.tk, S.rate))}`)
+          )
+        )
+      : null,
 
     /* ⑤ 数据来源 */
     h(

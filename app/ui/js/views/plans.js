@@ -9,6 +9,7 @@ import { icon } from "../icons.js";
 import { badge, modal, pagehd, secttl, steps } from "../components.js";
 import { HUB, GLUE, BASE, PACKS } from "../../data/catalog.js";
 import { STEP_NAMES, sceneById, packOf, hubCells, formDef } from "../lib/hub.js";
+import { estGroup, hubEst, hrsTxt, tkTxt, costTxt, costOf, rateOf } from "../lib/estimate.js";
 import { S, set } from "../store.js";
 import { go } from "../router.js";
 
@@ -84,6 +85,7 @@ export function viewPlans() {
     const provs = it.provs;
     const badgeEl = h("span.lvb");
     const curEl = h("span.cur");
+    const estEl = h("span.est");
     const opts = h("div.opts");
     const toggle = h("button.more", { onclick: () => toggleOpen() });
 
@@ -100,7 +102,7 @@ export function viewPlans() {
       toggle
     );
 
-    const el = h("div.pl", { "data-key": key }, head, why ? h("p.why", null, why) : null, curEl, opts);
+    const el = h("div.pl", { "data-key": key }, head, why ? h("p.why", null, why) : null, curEl, estEl, opts);
     el.style.setProperty("--h", hue);
 
     function paintOptions() {
@@ -122,6 +124,15 @@ export function viewPlans() {
       curEl.replaceChildren(
         h("span.nm", null, sel.n),
         h("span.nt", null, sel.note)
+      );
+      const e = estGroup(it, sel.id);
+      estEl.replaceChildren(
+        h("span.k", null, "估算"),
+        h("span", null, hrsTxt(e.hours)),
+        h("i", null, "·"),
+        h("span", null, `${tkTxt(e.tk)} token`),
+        h("i", null, "·"),
+        h("span", null, costTxt(costOf(e.tk, S.rate)))
       );
       const isOpen = open.has(key);
       el.setAttribute("data-open", String(isOpen));
@@ -156,7 +167,10 @@ export function viewPlans() {
       tag: (PACKS.find((p) => p.id === m.pk) || {}).nm,
       cells: m.cells,
       get: () => S.hub.plans[m.id],
-      put: (pid) => set({ hub: { ...S.hub, plans: { ...S.hub.plans, [m.id]: pid } } }),
+      put: (pid) => {
+        set({ hub: { ...S.hub, plans: { ...S.hub.plans, [m.id]: pid } } });
+        paintSum();
+      },
     })
   );
 
@@ -168,7 +182,10 @@ export function viewPlans() {
       cells: g.cells,
       why: g.why || g.sub,
       get: () => S.hub.glue[g.id],
-      put: (pid) => set({ hub: { ...S.hub, glue: { ...S.hub.glue, [g.id]: pid } } }),
+      put: (pid) => {
+        set({ hub: { ...S.hub, glue: { ...S.hub.glue, [g.id]: pid } } });
+        paintSum();
+      },
     })
   );
 
@@ -180,7 +197,10 @@ export function viewPlans() {
       cells: g.cells,
       why: g.why || g.sub,
       get: () => S.hub.base[g.id],
-      put: (pid) => set({ hub: { ...S.hub, base: { ...S.hub.base, [g.id]: pid } } }),
+      put: (pid) => {
+        set({ hub: { ...S.hub, base: { ...S.hub.base, [g.id]: pid } } });
+        paintSum();
+      },
     })
   );
 
@@ -197,6 +217,7 @@ export function viewPlans() {
     }
     set({ hub: { ...S.hub, plans, glue, base } });
     for (const b of blocks.values()) b.sync();
+    paintSum();
     return { glue: GLUE.length, base: BASE.length };
   }
 
@@ -243,6 +264,21 @@ export function viewPlans() {
     );
   }
 
+  /* 合计随选型变化：改一条方案，这块要跟着动 */
+  const sumEl = h("span.sum");
+  function paintSum() {
+    const e = hubEst(S.hub);
+    if (!e) return;
+    sumEl.replaceChildren(
+      h("span", null, "当前选型合计：手写"),
+      h("b", null, hrsTxt(e.total.hours)),
+      h("span", null, "· 生成"),
+      h("b", null, `${tkTxt(e.total.tk)} token`),
+      h("span", null, `· ${costTxt(costOf(e.total.tk, S.rate))}（${rateOf(S.rate).nm}价）`)
+    );
+  }
+  paintSum();
+
   const recBtn = h(
     "button.btn.btn--primary.btn--lg",
     { onclick: askRec },
@@ -282,7 +318,8 @@ export function viewPlans() {
           "span",
           null,
           `${mods.length} 个模块、${GLUE.length} 项胶水、${BASE.length} 项底座一次性取推荐方案，确认后进入下一步。`
-        )
+        ),
+        sumEl
       ),
       recBtn
     ),

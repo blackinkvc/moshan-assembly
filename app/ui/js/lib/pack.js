@@ -7,6 +7,7 @@ import { hubMod, platOf, memSim, mbTxt, PLATS } from "./hub.js";
 import { protoDoc, protoData } from "./proto.js";
 import { mdFor } from "./exportMd.js";
 import { zipStore, sizeTxt } from "./zip.js";
+import { hubEst, hrsTxt, tkTxt, costOf, rateOf, HAND, HOURS_DAY } from "./estimate.js";
 
 const TIER = {
   must: ["必装", "缺失则无法成立"],
@@ -71,7 +72,7 @@ export function installNotes(form, plats) {
 /* ────────── 打包：三个文本 + 一坨字节 ────────── */
 
 /** manifest / README / 安装说明 */
-export function packTexts(hub) {
+export function packTexts(hub, rate = "std") {
   const data = protoData(hub);
   const memo = memSim(hub);
   const mods = hub.mods.map((id) => hubMod(id)).filter(Boolean);
@@ -80,6 +81,7 @@ export function packTexts(hub) {
     return m ? m.provs.find((p) => p.id === (hub.plans || {})[mid]) || recOf(m.provs) : null;
   };
 
+  const est = hubEst(hub);
   const manifest = {
     生成时间: data.at,
     场景: data.scene || "—",
@@ -111,6 +113,22 @@ export function packTexts(hub) {
       };
     }),
     施工顺序: data.order.map((o, i) => `${i + 1}. ${o.nm}（${o.id}）`),
+    工作量估算: est
+      ? {
+          手写人天: +(est.total.hours / HOURS_DAY).toFixed(1),
+          辅助人天: +(est.total.hours / HAND / HOURS_DAY).toFixed(1),
+          生成token: Math.round(est.total.tk),
+          费用: costOf(est.total.tk, rate),
+          单价档: rateOf(rate).nm,
+          分项: {
+            模块: +est.mods.hours.toFixed(1),
+            胶水: +est.glue.hours.toFixed(1),
+            底座: +est.base.hours.toFixed(1),
+            集成联调: +est.integ.hours.toFixed(1),
+          },
+          说明: "按当前选型估算，单位为小时；含集成联调，不含需求沟通与验收。费用只由生成 token 产生。",
+        }
+      : null,
   };
 
   const readme = `# ${data.name}
@@ -177,6 +195,20 @@ ${
 
 ${data.order.map((o, i) => `${i + 1}. ${o.nm}　\`${o.id}\``).join("\n")}
 
+## 工作量与费用
+
+按当前选型估算：手写约 ${est ? hrsTxt(est.total.hours) : "—"}，AI 辅助约 ${
+    est ? hrsTxt(est.total.hours / HAND) : "—"
+  }；生成 ${est ? tkTxt(est.total.tk) : "—"} token，按${rateOf(rate).nm}价折 ${est ? "¥" + costOf(est.total.tk, rate).toFixed(2) : "—"}。
+
+分项（小时）：模块 ${est ? est.mods.hours.toFixed(1) : "—"} · 胶水 ${est ? est.glue.hours.toFixed(1) : "—"} · 底座 ${
+    est ? est.base.hours.toFixed(1) : "—"
+  } · 集成联调 ${est ? est.integ.hours.toFixed(1) : "—"}。
+
+算法：每个能力格记录了「让模型从零写它要几天」，乘以 8 小时与 2.4（手写相对辅助的倍数），
+再乘方案系数（现成库 0.45、自行实现 1.0）。token 按工时乘该方式的产出速率。
+这是量级估算，不是报价；不含需求沟通与验收，偏差通常在三成以内。
+
 ## 三项提醒
 
 1. **先打通一条链路**：数据仓 → 待办 → 界面。这三格连通后，其余为增量。
@@ -215,13 +247,13 @@ ${n.items.map((it) => `**${it.ty}**　${it.body.replace(/<[^>]+>/g, "")}`).join(
 }
 
 /** zip 里的那份文件表（顺序就是解压后看到的顺序） */
-export function packFiles(hub) {
+export function packFiles(hub, rate = "std") {
   const data = protoData(hub);
   /* 「有效的那份」：开了最小包之后，模块数、包数、内存都要按地基算，
      否则页面上一半数字是全量、一半是最小包，等于两套账。 */
   const effHub = { ...hub, mods: data.mods.map((m) => m.id) };
   const memo = memSim(effHub);
-  const { manifest, readme, install } = packTexts(hub);
+  const { manifest, readme, install } = packTexts(hub.min ? { ...hub, mods: minMods(hub) } : hub, rate);
   const html = protoDoc(hub);
 
   const files = [

@@ -14,10 +14,17 @@ import { icon } from "../icons.js";
 import { badge, pagehd, secttl, steps, toast } from "../components.js";
 import { HUB, PACKS, STYLES } from "../../data/catalog.js";
 import { STEP_NAMES, sceneById, packOf, hubCells, modTierEff, formDef } from "../lib/hub.js";
+import { packEst, estGroup, hrsTxt, tkTxt, costTxt, costOf, rateOf } from "../lib/estimate.js";
 import { S, set } from "../store.js";
 import { go } from "../router.js";
 
 const packMods = (pid) => HUB.filter((m) => (m.pks || []).includes(pid));
+
+/** 展开区里每个模块的估算：按默认实现算，与实际选型相同口径 */
+function estLine(m) {
+  const e = estGroup(m, defaultProv(m));
+  return `${hrsTxt(e.hours)} · ${tkTxt(e.tk)} token`;
+}
 const styName = (id) => (STYLES.find((s) => s.id === id) || STYLES[1]).nm;
 const TIER_TXT = { must: "必装", rec: "推荐", opt: "可选" };
 
@@ -158,7 +165,8 @@ export function viewPacks() {
           "span.cells",
           null,
           (m.cells || []).map((c) => h("code", null, c))
-        )
+        ),
+        h("span.me", null, `≈ ${estLine(m)}`)
       )
     );
     row.style.setProperty("--h", p.hue);
@@ -171,14 +179,24 @@ export function viewPacks() {
 
     const tri = h("span.tri");
     const count = h("span.pn");
+    const pe = packEst(p.id);
     const selBtn = h(
       "button.pk-sel",
       { "aria-pressed": "false", onclick: () => togglePack(p.id) },
       tri,
       h("span.pico", null, icon(p.art, { size: 18 })),
-      h("b", null, p.nm),
-      h("span.ptk", null, TIER_TXT[p.tier] + "包"),
-      inScene(p.id) ? null : h("span.pout", null, "场景外"),
+      h(
+        "span.pktx",
+        null,
+        h("b", null, p.nm),
+        h(
+          "span.meta",
+          null,
+          h("span.ptk", null, TIER_TXT[p.tier] + "包"),
+          inScene(p.id) ? null : h("span.pout", null, "场景外"),
+          h("span.pe", null, `≈ ${hrsTxt(pe.hours)} · ${tkTxt(pe.tk)} token`)
+        )
+      ),
       count
     );
 
@@ -194,7 +212,17 @@ export function viewPacks() {
     );
 
     const list = h("div.plist");
-    const body = h("div.pk-bd", null, h("p.ps", null, p.sub), list);
+    const body = h(
+      "div.pk-bd",
+      null,
+      h(
+        "p.ps",
+        null,
+        p.sub,
+        h("span.ps-est", null, `整包费用 ${costTxt(costOf(pe.tk, S.rate))}（${rateOf(S.rate).nm}价）`)
+      ),
+      list
+    );
     const box = h("div.pkg", { "data-pk": p.id }, h("div.pk-hd", null, selBtn, chev), body);
     box.style.setProperty("--h", p.hue);
 

@@ -9,6 +9,7 @@
 import { h } from "../lib/dom.js";
 import { icon } from "../icons.js";
 import { badge, secttl, toast } from "../components.js";
+import { hubEst, hrsTxt, tkTxt, costTxt, costOf, rateOf } from "../lib/estimate.js";
 import { matchNeed, needHub, modulesFor } from "../lib/need.js";
 import { hubMod, hubCells, packOf } from "../lib/hub.js";
 import { CELL_BY_ID } from "../lib/wire.js";
@@ -52,11 +53,26 @@ export function viewNeed() {
     paint();
   };
 
+  /** 按当前命中估算总量级：模块走默认实现，胶水与底座按全量计 */
+  const askEst = (ms) => {
+    const e = hubEst({ mods: ms.map((m) => m.id), plans: {}, glue: {}, base: {} });
+    if (!e) return null;
+    return h(
+      "div.askest",
+      null,
+      h("span", null, "按此装配：手写约"),
+      h("b", null, hrsTxt(e.total.hours)),
+      h("span", null, "· 生成"),
+      h("b", null, `${tkTxt(e.total.tk)} token`),
+      h("span", null, ` · ${costTxt(costOf(e.total.tk, S.rate))}（${rateOf(S.rate).nm}价）`)
+    );
+  };
+
   const chip = (txt, tone) => h("span.badge" + (tone ? "." + tone : ""), null, txt);
 
   function paint() {
     if (!result) {
-      out.replaceChildren(
+    out.replaceChildren(
         h(
           "div.askhint",
           null,
@@ -135,6 +151,9 @@ export function viewNeed() {
           h("div.sm", { "data-tone": gaps.length ? "warn" : null }, h("b", null, String(gaps.length)), h("span", null, "项在库外")),
           h("div.sm", null, h("b", null, String(modNames.length)), h("span", null, "个模块要装"))
         ),
+
+        /* 命中结果的总量级：决定「这个方向值不值得继续」 */
+        askEst(modNames),
 
         /* 有模块的格按施工顺序展开，逐行给出依据 */
         h("div.asksec", null, secttl("① 可直接装配的格", `${covered.length} 格 · 每格附命中依据`)),
