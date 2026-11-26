@@ -64,6 +64,9 @@ GitHub Pages 与 WorkBuddy 那条线上托管都读这一份文件（Pages 源�
 git worktree add publish pub
 ```
 
+`publish/` 里只有一个 `.git` 文件指向主仓库的 `worktrees/publish`，所以在主仓库跑
+`git clean -xdf` 会把它的工作文件一起清掉 —— 要清临时文件时请加 `-e publish`。
+
 ## 已知的不足
 
 - 130 格里只有一部分挂到了真实模块，其余是能力描述，不能直接当依赖用。
