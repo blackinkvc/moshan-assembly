@@ -3,7 +3,7 @@
 
 import { h, MOD } from "./lib/dom.js";
 import { icon } from "./icons.js";
-import { btn, toast, modal, kv, pagehd, emptyState } from "./components.js";
+import { btn, toast, modal, kv, pagehd, emptyState, clearToast } from "./components.js";
 import { S, hydrate, set, subscribe, toggleTheme, applyTheme } from "./store.js";
 import { register, start, go, parse } from "./router.js";
 import { isTauri, onMenu, appInfo, revealDataDir } from "./lib/bridge.js";
@@ -17,6 +17,7 @@ import { viewPlans } from "./views/plans.js";
 import { viewWire } from "./views/wire.js";
 import { viewConfirm } from "./views/confirm.js";
 import { viewBuild } from "./views/build.js";
+import { viewDone } from "./views/done.js";
 import { viewWip } from "./views/wip.js";
 
 const NAV = [
@@ -420,6 +421,7 @@ async function boot() {
   register("wire", viewWire);
   register("confirm", viewConfirm);
   register("build", viewBuild);
+  register("done", viewDone);
   register("drafts", () => viewDrafts());
   start(viewEl, viewWip);
 
@@ -430,6 +432,8 @@ async function boot() {
   });
 
   document.addEventListener("route:change", () => {
+    // 上一页的提示不该跟着走到下一页
+    clearToast();
     renderNav();
     renderCrumb();
   });

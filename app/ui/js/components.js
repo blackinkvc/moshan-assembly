@@ -150,6 +150,13 @@ export function toast(msg, ms = 2000) {
   }, ms);
 }
 
+/** 切页时把残留的提示清掉：上一页的「已快进到完成」不该跟到下一页 */
+export function clearToast() {
+  clearTimeout(toastTimer);
+  const wrap = document.querySelector(".toast-wrap");
+  if (wrap) wrap.replaceChildren();
+}
+
 export function kv(label, value) {
   return h("div.row.gap-3", null, h("span.t-12.faint", { style: { minWidth: "72px" } }, label), h("span.t-13", null, value));
 }

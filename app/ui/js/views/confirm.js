@@ -8,7 +8,7 @@
 
 import { h } from "../lib/dom.js";
 import { icon } from "../icons.js";
-import { badge, modal, pagehd, secttl, steps, toast } from "../components.js";
+import { badge, pagehd, secttl, steps } from "../components.js";
 import { GLUE, BASE, HUB, PACKS, STYLES } from "../../data/catalog.js";
 import {
   STEP_NAMES,
@@ -23,6 +23,7 @@ import {
   mbTxt,
 } from "../lib/hub.js";
 import { check, cellName, cellOuts } from "../lib/wire.js";
+import { openExportMd } from "../lib/exportMd.js";
 import { S, set } from "../store.js";
 import { go } from "../router.js";
 
@@ -175,66 +176,6 @@ export function viewConfirm() {
       h("span", null, label)
     );
 
-  /* ── Markdown 导出 ── */
-  function mdText() {
-    const L = [];
-    L.push(`# ${sc.nm} · ${formDef(hub.form).nm} · ${styName(hub.sty)}`, "");
-    L.push(`共 ${mods.length} 个模块 · ${picks.length} 格 · ${r.lines} 条连线`, "");
-    L.push(`平台：${plats.join(" / ") || "—"}`, "");
-    L.push("## 模块与实现", "", "| 模块 | 实现 | 等级 | 说明 |", "|---|---|---|---|");
-    for (const m of mods) {
-      const p = planOf(m.id);
-      L.push(`| ${m.nm} | ${p ? p.n : "—"} | ${p ? LV_TXT[p.lv] : "—"} | ${p ? p.note.replace(/\|/g, "/") : ""} |`);
-    }
-    L.push("", "## 胶水与底座", "", "| 类别 | 这一项 | 选了什么 | 为什么 |", "|---|---|---|---|");
-    for (const [kind, g, pv] of [
-      ...GLUE.map((g) => ["胶水", g, glueOf(g)]),
-      ...BASE.map((g) => ["底座", g, baseOf(g)]),
-    ]) {
-      L.push(`| ${kind} | ${g.nm} | ${pv.n} | ${(pv.note || "").replace(/\|/g, "/")} |`);
-    }
-    L.push("", "## 施工顺序", "", "| 序 | 能力格 | 来自模块 |", "|---|---|---|");
-    r.order
-      .filter((c) => picks.includes(c))
-      .forEach((cid, i) => L.push(`| ${i + 1} | ${cellName(cid)}（${cid}） | ${ownerOf(cid)} |`));
-    return L.join("\n");
-  }
-
-  function openExport() {
-    const text = mdText();
-    const ta = h("textarea.mdout", { readonly: true, rows: "16", "aria-label": "清单内容" });
-    ta.value = text;
-    const m = modal({
-      title: "清单（Markdown）",
-      wide: true,
-      body: h(
-        "div.col.gap-3",
-        null,
-        h("p.t-12.faint", null, "复制走，贴进笔记、Issue 或 README 都行。"),
-        ta
-      ),
-      footer: [
-        h("button.btn.btn--ghost", { onclick: () => m.close() }, h("span", null, "关闭")),
-        h(
-          "button.btn.btn--primary",
-          {
-            onclick: async () => {
-              try {
-                await navigator.clipboard.writeText(text);
-                toast("已复制清单", 1500);
-                m.close();
-              } catch {
-                ta.select();
-                toast("已全选，按 ⌘C 复制", 2200);
-              }
-            },
-          },
-          h("span", null, "复制")
-        ),
-      ],
-    });
-  }
-
   /* ── 开工：把结果固化成一次组装快照 ── */
   function startBuild() {
     set({
@@ -325,7 +266,7 @@ export function viewConfirm() {
         null,
         h(
           "button.btn.btn--ghost",
-          { onclick: () => openExport() },
+          { onclick: () => openExportMd(hub) },
           icon("export", { size: 14 }),
           h("span", null, "导出清单")
         ),
