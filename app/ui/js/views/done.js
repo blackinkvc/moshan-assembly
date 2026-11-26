@@ -9,7 +9,7 @@ import { h } from "../lib/dom.js";
 import { icon } from "../icons.js";
 import { secttl, steps, toast } from "../components.js";
 import { STYLES } from "../../data/catalog.js";
-import { STEP_NAMES, sceneById, packOf, hubCells, hubMod, formDef } from "../lib/hub.js";
+import { STEP_NAMES, sceneById, packOf, hubCells, hubMod, formDef, hubLabel } from "../lib/hub.js";
 import { check, cellName, CELL_BY_ID } from "../lib/wire.js";
 import { openExportMd } from "../lib/exportMd.js";
 import { S, set } from "../store.js";
@@ -77,6 +77,12 @@ export function viewDone() {
       d: (planOf(m.id) || {}).note || "这个做法能跑，但有明显代价",
       tone: "brass",
     })),
+    ...(hub.needMiss || []).slice(0, 3).map((cid) => ({
+      k: "要自己写",
+      t: `「${cellName(cid)}」库里没有模块`,
+      d: "这一格在图上有输入输出约定，但还没有哪个模块认领它",
+      tone: "brass",
+    })),
   ].slice(0, 5);
 
   /* ── 先做哪三件事 ──
@@ -98,6 +104,10 @@ export function viewDone() {
     ...r.breaks.map((b) => ({
       t: `补上「${b.who}」缺的 ${b.need}`,
       d: b.fix.length ? "可以用：" + b.fix.join("、") : "这一格要自己写，或换方案",
+    })),
+    ...(hub.needMiss || []).map((cid) => ({
+      t: `自己写「${cellName(cid)}」`,
+      d: "库里没有模块覆盖这一格：按接口约定自己写，或者换一种做法绕开",
     })),
     {
       t: "把 src/wire.ts 的信箱定下来",
@@ -142,7 +152,7 @@ export function viewDone() {
       h("div.dhx", null,
         h("h1", null, "装配完成"),
         h("p", null,
-          `${sc.nm} · ${formDef(hub.form).nm} · ${styName(hub.sty)}：`,
+          `${hubLabel(hub)} · ${formDef(hub.form).nm} · ${styName(hub.sty)}：`,
           h("b", null, `${mods.length} 个模块插在 ${picks.length} 格上`),
           `，${r.lines} 条连线已接通。`
         )
@@ -164,7 +174,7 @@ export function viewDone() {
       null,
       h("div.pcb-hd", null,
         icon("chip", { size: 15 }),
-        h("b", null, `${sc.nm} · 主板`),
+        h("b", null, `${hubLabel(hub, 12)} · 主板`),
         h("i", null, `${mods.length}/${mods.length} 已插上`)
       ),
       h(

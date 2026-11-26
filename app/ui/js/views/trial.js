@@ -7,7 +7,7 @@
 import { h } from "../lib/dom.js";
 import { icon } from "../icons.js";
 import { badge, pagehd, steps, toast } from "../components.js";
-import { STEP_NAMES, sceneById, hubCells, hubMod, formDef } from "../lib/hub.js";
+import { STEP_NAMES, sceneById, hubCells, hubMod, formDef, isCustomScene } from "../lib/hub.js";
 import { check } from "../lib/wire.js";
 import { protoDoc } from "../lib/proto.js";
 import { S } from "../store.js";
@@ -115,7 +115,7 @@ export function viewTrial() {
       null,
       isCli
         ? "终端里的命令是真的会改数据的：todo add 之后 exit 再进，那条还在。"
-        : `左侧只列你装了、而且原型做了面板的模块（${sc.nm} 场景）。没装的在「模块商店」里——那是扩展系统的入口。`
+        : `左侧只列你装了、而且原型做了面板的模块${isCustomScene(hub.scene) ? "" : `（${sc.nm} 场景）`}。没装的在「模块商店」里——那是扩展系统的入口。`
     ),
 
     h(

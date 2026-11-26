@@ -66,6 +66,7 @@ export function mdFor(hub) {
     L.push(`- 断点：「${b.who}」缺 ${b.need}${b.fix.length ? "，可补 " + b.fix.join("、") : ""}`);
   }
   for (const d of r.dead) L.push(`- 死端：「${d.who}」产出的${d.type}没人接`);
+  for (const cid of hub.needMiss || []) L.push(`- 没有模块：「${cellName(cid)}」库里还没有模块认领，要自己写`);
 
   return L.join("\n");
 }

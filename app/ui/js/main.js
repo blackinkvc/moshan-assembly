@@ -18,6 +18,7 @@ import { viewWire } from "./views/wire.js";
 import { viewConfirm } from "./views/confirm.js";
 import { viewBuild } from "./views/build.js";
 import { viewDone } from "./views/done.js";
+import { viewNeed } from "./views/need.js";
 import { viewTrial } from "./views/trial.js";
 import { viewPack } from "./views/pack.js";
 import { viewWip } from "./views/wip.js";
@@ -419,6 +420,7 @@ async function boot() {
 
   register("home", viewHome);
   register("scenes", viewScenes);
+  register("need", viewNeed);
   register("style", viewStyle);
   register("packs", viewPacks);
   register("plans", viewPlans);

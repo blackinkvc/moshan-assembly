@@ -46,7 +46,10 @@ export function viewPacks() {
   }
 
   const sc = sceneById(hub.scene);
-  const inScene = (pid) => (sc.packs || []).includes(pid);
+  /* 合成场景（一句话需求）没有固定包，用它解析出来的 packsHint 当「场景内」，
+     否则解析完进来一看，命中的包全被折到「场景外」去了。 */
+  const hint = hub.packsHint || [];
+  const inScene = (pid) => (sc.packs || []).includes(pid) || hint.includes(pid);
 
   // 场景顺序优先：先按场景列的包排，其余按目录顺序
   const ordered = [

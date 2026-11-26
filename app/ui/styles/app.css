@@ -1844,6 +1844,245 @@ html[data-theme="dark"] .mchip {
   line-height: var(--lh-normal);
 }
 
+/* ══ 一句话需求 ════════════════════════════════════════════
+   左边写、右边提醒、下面出结果——结果不跳页，就地展开：
+   这一步的判断依据是「凭什么给我加这一格」，跳到另一页就没法对照着改。 */
+
+.askgrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 288px;
+  gap: var(--sp-6);
+  align-items: start;
+  margin-top: var(--sp-6);
+}
+@media (max-width: 980px) { .askgrid { grid-template-columns: 1fr; } }
+
+.askwrap h1 {
+  font-size: var(--fs-26);
+  font-weight: var(--fw-semi);
+  letter-spacing: var(--ls-tight);
+  line-height: var(--lh-tight);
+}
+.askwrap p { margin-top: 6px; }
+
+.askta {
+  width: 100%;
+  margin-top: var(--sp-4);
+  padding: var(--sp-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--fs-14);
+  line-height: var(--lh-loose);
+  resize: vertical;
+  outline: none;
+}
+.askta:focus { border-color: var(--brass); box-shadow: var(--ring); }
+.askta::placeholder { color: var(--ink-4); }
+
+/* 例子做成 chip：点一下填进去，比「参考示例」下面堆六行字省一半高度 */
+.askwrap .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--sp-3);
+}
+.chip {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: var(--fs-12);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out);
+}
+.chip:hover { background: var(--surface-2); border-color: var(--line-strong); }
+.chip:focus-visible { outline: none; box-shadow: var(--ring); }
+
+.askbtns {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+}
+
+.asktips {
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+.asktips > b { font-size: var(--fs-13); font-weight: var(--fw-semi); }
+.asktips .tp {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+  font-size: var(--fs-12);
+  line-height: var(--lh-normal);
+  color: var(--ink-3);
+}
+.asktips .tp em {
+  flex: 0 0 auto;
+  font-style: normal;
+  color: var(--clay-ink);
+}
+.asktips .tpnote {
+  margin-top: var(--sp-3);
+  padding-top: var(--sp-2);
+  border-top: 1px dashed var(--line-strong);
+  font-size: var(--fs-11);
+  line-height: var(--lh-normal);
+  color: var(--ink-4);
+}
+
+/* ── 解析结果 ── */
+.askout { margin-top: var(--sp-6); }
+
+.askhint {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-md);
+  font-size: var(--fs-12);
+  line-height: var(--lh-normal);
+  color: var(--ink-3);
+}
+.askhint .ico { color: var(--ink-4); flex: 0 0 auto; margin-top: 1px; }
+
+.askhead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+.askhead b { font-size: var(--fs-16); font-weight: var(--fw-semi); }
+.askhead > span { font-size: var(--fs-12); color: var(--ink-3); }
+.askhead .scen {
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  background: var(--brass-soft);
+  color: var(--brass-ink);
+  font-size: var(--fs-11);
+}
+
+.asksum {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin-top: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--line);
+  overflow: hidden;
+}
+@media (max-width: 700px) { .asksum { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.asksum .sm {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--surface);
+}
+.asksum .sm b {
+  font-size: var(--fs-20);
+  font-weight: var(--fw-semi);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.asksum .sm span { font-size: var(--fs-11); color: var(--ink-3); }
+.asksum .sm[data-tone="warn"] b { color: var(--brass-ink); }
+
+.asksec { margin-top: var(--sp-5); }
+
+/* 格清单：一行一格，右边标「有模块 / 要自己写」 */
+.celllist {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+.cellrow {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding: 7px var(--sp-4);
+  border-bottom: 1px dashed var(--line);
+  font-size: var(--fs-12);
+}
+.cellrow:last-child { border-bottom: 0; }
+.cellrow b { font-weight: var(--fw-medium); color: var(--ink); }
+.cellrow i {
+  font-style: normal;
+  color: var(--ink-3);
+  line-height: var(--lh-normal);
+}
+.cellrow .tag {
+  font-size: var(--fs-11);
+  color: var(--moss-ink);
+  white-space: nowrap;
+}
+.cellrow[data-tone="miss"] { background: color-mix(in srgb, var(--brass-soft) 40%, var(--surface)); }
+.cellrow[data-tone="miss"] b { color: var(--ink-2); }
+.cellrow[data-tone="miss"] i { color: var(--ink-4); }
+.cellrow[data-tone="miss"] .tag { color: var(--brass-ink); }
+
+.gaplist { display: flex; flex-direction: column; }
+.gaplist .gapbox span { display: block; color: var(--ink-3); }
+
+.modlist {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+@media (max-width: 860px) { .modlist { grid-template-columns: 1fr; } }
+.mrow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 7px var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-size: var(--fs-12);
+  min-width: 0;
+}
+.mrow .dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: hsl(var(--h) 55% 55%);
+}
+.mrow b { font-weight: var(--fw-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mrow span:not(.dot) { margin-left: auto; color: var(--ink-4); font-variant-numeric: tabular-nums; }
+.mrow i {
+  font-style: normal;
+  color: var(--ink-4);
+  font-size: var(--fs-11);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 45%;
+}
+
+.askfoot {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+}
+.askfoot .btn--primary { margin-left: auto; }
+
 /* ══ 试用 ══════════════════════════════════════════════════
    这一页的主角是 iframe，所以除了顶栏和底栏什么都不加。
    原型自己有完整样式（独立文档），主站的变量与主题进不去——这是刻意的：

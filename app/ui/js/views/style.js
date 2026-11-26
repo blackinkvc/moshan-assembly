@@ -163,7 +163,7 @@ export function viewStyle({ param }) {
 
     for (const c of styCards) {
       c.el.setAttribute("aria-checked", String(c.id === hub.sty));
-      const k = styCount(c.id, hub.scene, form);
+      const k = styCount(c.id, hub.scene, form, hub.mods);
       c.count.textContent = `${k.n} 个模块 · ${k.cells} 格`;
     }
 

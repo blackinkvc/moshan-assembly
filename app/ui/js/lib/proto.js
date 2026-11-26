@@ -11,7 +11,7 @@
 // 一处生成、两处消费——这样「试用看到的」和「带走的那份」永远是同一个东西。
 
 import { HUB, PACKS, GLUE, BASE, STYLES } from "../../data/catalog.js";
-import { hubCells, hubMod, formDef, platOf, memSim, sceneById, PLATS } from "./hub.js";
+import { hubCells, hubMod, formDef, platOf, memSim, sceneById, hubLabel, PLATS } from "./hub.js";
 import { check, CELL_BY_ID } from "./wire.js";
 
 const sigOf = (s) => {
@@ -90,7 +90,7 @@ export function protoData(hub) {
           })),
       })).filter((p) => p.mods.length);
     })(),
-    name: isHub ? sceneById(hub.scene).nm + " · " + styName(hub.sty) : "装配结果",
+    name: isHub ? hubLabel(hub, 22) + " · " + styName(hub.sty) : "装配结果",
     style: isHub ? styName(hub.sty) : "自定义需求",
     need: "",
     at,

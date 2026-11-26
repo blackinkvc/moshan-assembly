@@ -6,7 +6,7 @@
 import { h } from "../lib/dom.js";
 import { icon } from "../icons.js";
 import { badge, pagehd, secttl, steps, toast } from "../components.js";
-import { STEP_NAMES, sceneById, hubCells, formDef, platOf, mbTxt, PLATS } from "../lib/hub.js";
+import { STEP_NAMES, sceneById, hubCells, formDef, platOf, mbTxt, hubLabel, PLATS } from "../lib/hub.js";
 import { check, cellName } from "../lib/wire.js";
 import { packFiles, installNotes, minMods } from "../lib/pack.js";
 import { sizeTxt } from "../lib/zip.js";
@@ -179,7 +179,7 @@ export function viewPack() {
     h(
       "div.facts2",
       null,
-      h("div.kv", null, h("b", null, "形态 / 规格"), h("span", null, `${formDef(hub.form).nm} · ${sc.nm}`)),
+      h("div.kv", null, h("b", null, "形态 / 规格"), h("span", null, `${formDef(hub.form).nm} · ${hubLabel(hub)}`)),
       h("div.kv", null, h("b", null, "平台"), h("span", null, plats.map((p) => (PLATS.find((x) => x.id === p) || {}).nm).filter(Boolean).join(" / ") || "—")),
       h("div.kv", null, h("b", null, "施工首格"), h("span", null, r.order.length ? `${cellName(r.order[0])} · 共 ${effCells} 格` : "—")),
       h("div.kv", null, h("b", null, "连线"), h("span", null, `${effLines} 条 · ${r.breaks.length ? r.breaks.length + " 处断点" : "无断点"}`))

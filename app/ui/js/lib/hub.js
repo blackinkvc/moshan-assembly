@@ -35,7 +35,26 @@ const FORM_NO = {
 
 /* ────────── 查表 ────────── */
 
-export const sceneById = (id) => SCENES.find((s) => s.id === id) || SCENES[0];
+/* 合成场景：一句话需求解析出来的组合没有固定场景，但下游每一步都要读 hub.scene，
+   与其让每页都写一遍「hub.scene 可能为空」，不如给一个真场景对象。 */
+const CUSTOM_SCENE = {
+  id: "custom",
+  nm: "按需求配的",
+  cat: "custom",
+  sub: "从一句话需求解析出来的组合，没有固定场景",
+  packs: [],
+};
+export const sceneById = (id) =>
+  id === "custom" ? CUSTOM_SCENE : SCENES.find((s) => s.id === id) || SCENES[0];
+export const isCustomScene = (id) => id === "custom";
+
+/** 这套装配叫什么：一句话需求来的就用需求（截断），其余用场景名。
+    页面标题、原型标题、zip 里的 README 都读这个，否则「按需求配的」会到处出现。 */
+export function hubLabel(hub, max = 18) {
+  const q = (hub && hub.need ? String(hub.need).trim() : "").replace(/\s+/g, " ");
+  if (q) return q.length > max ? q.slice(0, max) + "…" : q;
+  return sceneById(hub && hub.scene).nm;
+}
 export const scenePacks = (id) => sceneById(id).packs || [];
 export const packOf = (id) => PACKS.find((p) => p.id === id) || PACKS[0];
 export const hubMod = (id) => HUB.find((m) => m.id === id);
@@ -97,7 +116,15 @@ export function hubCells(modIds) {
 }
 
 /** 某个规格下会勾多少模块、落多少格——首页与形态页都靠这个显示「装多满」 */
-export function styCount(styId, sceneId, form = "app") {
+export function styCount(styId, sceneId, form = "app", picked = null) {
+  // 合成场景没有「默认勾选」这回事：格子是需求解析出来的，规格只影响能不能装
+  if (isCustomScene(sceneId)) {
+    const mods = (picked || []).filter((id) => {
+      const m = hubMod(id);
+      return m && formOk(m, form);
+    });
+    return { n: mods.length, cells: hubCells(mods).length };
+  }
   const mods = defaultMods(sceneId, styId, form);
   return { n: mods.length, cells: hubCells(mods).length };
 }
@@ -135,7 +162,14 @@ export function newHub(sceneId, extra = {}) {
     手改过的勾选会重置——这是刻意的，页面上有一句话说清。 */
 export function withChoice(hub, patch) {
   const n = { ...hub, ...patch };
-  n.mods = defaultMods(n.scene, n.sty, n.form);
+  /* 合成场景（一句话需求）不能按「场景默认包」重算，否则换一次形态就把
+     解析出来的模块全抹掉——那是把用户刚说的话丢了。只按形态过滤。 */
+  n.mods = isCustomScene(n.scene)
+    ? (hub.mods || []).filter((id) => {
+        const m = hubMod(id);
+        return m && formOk(m, n.form);
+      })
+    : defaultMods(n.scene, n.sty, n.form);
   n.plat = (n.plat || []).filter((pid) => platOk(pid, n.form));
   if (!n.plat.length) n.plat = ["mac", "win"].filter((pid) => platOk(pid, n.form));
   return n;
