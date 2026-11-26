@@ -1,7 +1,7 @@
 // views/drafts.js —— 草稿箱：做一半的东西回来还能接着做。
 //
-// 每条草稿要能回答三件事：**这是什么、走到哪一步了、什么时候存的**。
-// 只写「未命名装配」等于没写——用户存三份之后就没法分辨了。
+// 每条草稿需回答三件事：这是什么、走到哪一步、何时保存。
+// 仅显示「未命名装配」时，存到第三份起就无法分辨。
 
 import { h } from "../lib/dom.js";
 import { icon } from "../icons.js";
@@ -67,7 +67,7 @@ export function viewDrafts() {
     null,
     pagehd({
       title: "草稿箱",
-      lead: "做一半可以随时存下（交付页有「存草稿」，⌘S / Ctrl+S 也行），回来时场景、形态、勾过的模块、每一格挑的做法都还在。",
+      lead: "装配中途可保存（交付页「存草稿」或 ⌘S / Ctrl+S）。恢复时场景、形态、已勾模块与各格实现均保留。",
       aside: list.length ? h("span.t-12.faint", null, `${list.length} 份`) : null,
     }),
 
@@ -78,8 +78,8 @@ export function viewDrafts() {
           null,
           emptyState({
             iconName: "clock",
-            title: "还没有草稿",
-            desc: "从挑场景开始，做到任何一步都能存",
+            title: "暂无草稿",
+            desc: "从选择场景开始，任意步骤都可保存",
             action: btn("开始装配", { kind: "primary", onclick: () => go("scenes") }),
           })
         ),
@@ -88,7 +88,7 @@ export function viewDrafts() {
       ? h(
           "p.t-12.faint",
           { style: { marginTop: "var(--sp-4)" } },
-          "草稿只存装配本身，不存组装进度——进度是按装配重算出来的，存了会出现「草稿里 60%、点开 0%」。"
+          "草稿只保存装配内容，不保存组装进度：进度由装配重算，保存后会出现不一致。"
         )
       : null
   );

@@ -9,56 +9,56 @@ import { mdFor } from "./exportMd.js";
 import { zipStore, sizeTxt } from "./zip.js";
 
 const TIER = {
-  must: ["必装", "去掉就立不起来"],
-  rec: ["推荐", "大部分人第一版就该有"],
-  opt: ["可选", "用得上再加"],
+  must: ["必装", "缺失则无法成立"],
+  rec: ["推荐", "首版建议包含"],
+  opt: ["可选", "需要时再加"],
 };
 const recOf = (provs) => provs.find((p) => p.lv === "rec") || provs[0];
 
 export function installNotes(form, plats) {
   const P = {};
   P.mac = [
-    {ty:"拦在哪", body: form === "app"
-      ? "dmg 第一次打开会提示「无法验证开发者」；如果没公证，还会直接说「已损坏，移到废纸篓」。<b>不是文件坏了</b>，是下载来的文件带了 quarantine 隔离属性。"
+    {ty:"拦截位置", body: form === "app"
+      ? "dmg 第一次打开会提示「无法验证开发者」；如果没公证，还会直接说「已损坏，移到废纸篓」。<b>文件本身并未损坏</b>，而是下载文件带有 quarantine 隔离属性。"
       : "下载来的二进制/脚本第一次运行会提示「无法验证开发者」。"},
-    {ty:"怎么过", body: form === "app"
-      ? "右键 → 打开（只对这一次有效）；或 系统设置 → 隐私与安全性 → 仍要打开；或终端 <code>xattr -dr com.apple.quarantine /Applications/X.app</code>。"
+    {ty:"处理方式", body: form === "app"
+      ? "右键 → 打开（仅本次有效）；或「系统设置 → 隐私与安全性 → 仍要打开」；或终端 <code>xattr -dr com.apple.quarantine /Applications/X.app</code>。"
       : "终端 <code>chmod +x ./x</code> 后右键打开；或 <code>xattr -dr com.apple.quarantine ./x</code>。"},
-    {ty:"想彻底没有这一步", body:"两条路：① 买 Apple Developer（99 美元/年）做 Developer ID 签名 + <code>notarytool</code> 公证；② <b>发源码</b>——<code>git clone &amp;&amp; npm i &amp;&amp; npm run dev</code>，产物是用户本机编的，没有 quarantine、不经过别人的签名，所以系统不拦。源码路线零成本且最安全（用户看得见每一行），代价是他要装 Node / Rust 工具链。"},
+    {ty:"彻底消除", body:"两条路：① 买 Apple Developer（99 美元/年）做 Developer ID 签名 + <code>notarytool</code> 公证；② <b>发源码</b>——<code>git clone &amp;&amp; npm i &amp;&amp; npm run dev</code>，产物是用户本机编的，没有 quarantine、不经过别人的签名，所以系统不拦。源码路线零成本且可审阅，代价是用户需安装 Node / Rust 工具链。"},
   ];
   P.win = [
-    {ty:"拦在哪", body:"exe 没有代码签名证书时，SmartScreen 会弹「Windows 已保护你的电脑」，默认只有「不运行」一个按钮。"},
-    {ty:"怎么过", body:"点「更多信息」→「仍要运行」；或用 zip 绿色版（解压即用，能少一层）；企业内可用组策略白名单。"},
-    {ty:"想彻底没有这一步", body:"买 OV/EV 代码签名证书（约 2000 元/年）签名；EV 证书能立刻建立信誉，OV 要累积下载量。次选是发源码，或发 <code>.zip</code> 免安装版（不写注册表、不需要管理员权限）。"},
+    {ty:"拦截位置", body:"exe 没有代码签名证书时，SmartScreen 会弹「Windows 已保护你的电脑」，默认只有「不运行」一个按钮。"},
+    {ty:"处理方式", body:"点「更多信息」→「仍要运行」；或用 zip 绿色版（解压即用，能少一层）；企业内可用组策略白名单。"},
+    {ty:"彻底消除", body:"买 OV/EV 代码签名证书（约 2000 元/年）签名；EV 证书能立刻建立信誉，OV 需累积下载量。次选为发布源码，或提供 <code>.zip</code> 免安装版（不写注册表、不需管理员权限）。"},
   ];
   P.linux = [
-    {ty:"拦在哪", body: form === "app" ? "AppImage 默认没有执行权限；deb 会缺 <code>libwebkit2gtk</code> 之类的运行时依赖。" : "下载的二进制没有执行权限。"},
-    {ty:"怎么过", body:"<code>chmod +x ./App.AppImage</code> 后双击；缺库就用 <code>apt install ./x.deb</code> 让包管理器补依赖；或直接 <code>./x</code> 看它报缺哪个 so。"},
-    {ty:"想彻底没有这一步", body:"打成 AppImage（自带运行时，最省心）或 flatpak；也可以直接给源码，一条 <code>make</code> 或 <code>npm run build</code>。"},
+    {ty:"拦截位置", body: form === "app" ? "AppImage 默认没有执行权限；deb 会缺 <code>libwebkit2gtk</code> 之类的运行时依赖。" : "下载的二进制没有执行权限。"},
+    {ty:"处理方式", body:"<code>chmod +x ./App.AppImage</code> 后双击；缺库时用 <code>apt install ./x.deb</code> 由包管理器补齐依赖；或直接运行 <code>./x</code> 查看缺失的 so。"},
+    {ty:"彻底消除", body:"打成 AppImage（自带运行时，维护成本最低）或 flatpak；也可直接提供源码，以 <code>make</code> 或 <code>npm run build</code> 构建。"},
   ];
   P.android = [
-    {ty:"拦在哪", body:"apk 不能在应用商店之外直接装，系统会拦「未知来源」；商店上架还要签名与审核（个人开发者常被要求先做小规模测试）。"},
-    {ty:"怎么过", body:"设置 → 应用 → 特殊权限 → 安装未知应用 → 允许你的浏览器/文件管理器；装完关掉这个权限。"},
-    {ty:"想彻底没有这一步", body:"上 Google Play / 国内应用商店（要签名 + 审核 + 隐私政策）；或者做成 <b>PWA</b>——用浏览器打开后「添加到主屏幕」，不经过任何安装包。"},
+    {ty:"拦截位置", body:"apk 不能在应用商店之外直接装，系统会拦「未知来源」；商店上架还要签名与审核（个人开发者常被要求先做小规模测试）。"},
+    {ty:"处理方式", body:"「设置 → 应用 → 特殊权限 → 安装未知应用」中授权对应浏览器或文件管理器，安装完成后撤销该权限。"},
+    {ty:"彻底消除", body:"上 Google Play / 国内应用商店（要签名 + 审核 + 隐私政策）；或做成 <b>PWA</b>：浏览器打开后「添加到主屏幕」，不经过安装包。"},
   ];
   P.web = [
-    {ty:"怎么装", body:"没有安装这一步：给一个网址就能用。想常驻就「添加到桌面/主屏幕」（PWA）。"},
-    {ty:"注意", body:"必须走 HTTPS 才能用摄像头、定位、剪贴板这些能力；本地双击 <code>index.html</code> 时 <code>file://</code> 下这些 API 多半被禁。"},
-    {ty:"发出去", body:"静态托管（对象存储 + CDN、GitHub Pages、Vercel）都行；单文件 HTML 可以直接发微信，对方存下来双击就能开。"},
+    {ty:"安装方式", body:"无安装步骤：提供网址即可使用。需要常驻可「添加到桌面/主屏幕」（PWA）。"},
+    {ty:"注意事项", body:"摄像头、定位、剪贴板等能力需要 HTTPS；以 <code>file://</code> 打开 <code>index.html</code> 时这些 API 多数被禁用。"},
+    {ty:"分发方式", body:"静态托管（对象存储加 CDN、GitHub Pages、Vercel）均可；单文件 HTML 可直接发送，保存后双击打开。"},
   ];
   P.cli = [
-    {ty:"怎么装", body:"<code>chmod +x ./tool</code> 后放进 <code>/usr/local/bin</code>；或者 <code>npm i -g</code> / <code>brew install</code> / <code>scoop install</code>。"},
-    {ty:"拦在哪", body:"macOS 会拦未签名的二进制（同上面的 quarantine）；Windows 会拦未签名的 exe。"},
-    {ty:"想彻底没有这一步", body:"发源码让用户自己 <code>go build</code> / <code>cargo build --release</code>；或者只发一个 <code>.sh</code>/<code>.py</code> 脚本，天然没有签名问题。"},
+    {ty:"安装方式", body:"<code>chmod +x ./tool</code> 后放进 <code>/usr/local/bin</code>；或者 <code>npm i -g</code> / <code>brew install</code> / <code>scoop install</code>。"},
+    {ty:"拦截位置", body:"macOS 会拦未签名的二进制（同上面的 quarantine）；Windows 会拦未签名的 exe。"},
+    {ty:"彻底消除", body:"发布源码由用户执行 <code>go build</code> / <code>cargo build --release</code>；或仅提供 <code>.sh</code> / <code>.py</code> 脚本，不涉及签名。"},
   ];
   /* 一行版：确认页只放这一句，不截断原文（截断会把「已损坏，移到废纸篓」这种关键话切掉半截） */
   const SHORT = {
-    mac: form === "app" ? "dmg 未签名会被 Gatekeeper 拦一次，右键「打开」就过" : "未签名的二进制会被拦一次，先 chmod +x",
+    mac: form === "app" ? "dmg 未签名会被 Gatekeeper 拦截一次，右键「打开」即可" : "未签名的二进制会被拦截一次，先 chmod +x",
     win: "exe 未签名会弹 SmartScreen，点「更多信息 → 仍要运行」",
     linux: "AppImage 要先 chmod +x；deb 缺库用 apt 补",
     android: "apk 要允许「安装未知应用」，装完关掉",
-    web: "没有安装这一步，给个网址就能用",
-    cli: "macOS 与 Windows 都会拦未签名的可执行文件"
+    web: "无安装步骤，提供网址即可使用",
+    cli: "macOS 与 Windows 均会拦截未签名的可执行文件"
   };
   const out = [];
   (plats.length ? plats : ["mac"]).forEach(pid => {
@@ -118,15 +118,15 @@ export function packTexts(hub) {
 装配于 ${data.at} · ${mods.length} 个模块 · ${data.cells.length} 格 · ${data.lines} 条连线
 形态 **${data.formNm}** · 平台 ${data.platNm.join(" / ") || "—"} · 预计占用 ${mbTxt(memo.total)}${hub.min ? " · 最小包" : ""}
 
-## 怎么用
+## 使用方式
 
 ${
   hub.form === "cli"
-    ? "双击 `index.html` 会打开一个能敲命令的终端：`todo`、`note`、`search 关键词`、`status`、`help`。\n数据存在你浏览器的 localStorage 里，不上传任何地方。"
-    : "双击 `index.html`，会打开一个**能点的模拟中台**：左侧是模块导航，待办能加能勾、速记能保存、\n搜索能跨三处找、AI 对话框能真的给你加待办。数据存在你浏览器的 localStorage 里，不上传任何地方。"
+    ? "双击 `index.html` 打开一个可输入命令的终端：`todo`、`note`、`search 关键词`、`status`、`help`。\n数据保存在浏览器 localStorage 中，不上传。"
+    : "双击 `index.html`，打开一个**可交互的模拟中台**：左侧为模块导航，待办可新增与勾选、速记可保存、\n搜索跨三处检索、AI 对话框可直接创建待办。数据保存在浏览器 localStorage 中，不上传。"
 }
 
-这是原型：界面与交互是真的，后端是假的。要变成真程序，按 \`模块清单.md\` 的施工顺序逐格落地。
+本版为原型：界面与交互为真实实现，后端为模拟。要成为可运行程序，按 \`模块清单.md\` 的施工顺序逐格实现。
 
 ## 装了什么
 
@@ -139,9 +139,9 @@ ${mods
 ${
   data.shop.length
     ? `
-## 还没装的（最小包）
+## 未包含的模块（最小包）
 
-这些模块没有打进包里，用「扩展系统」按需下载：
+以下模块未进入交付包，可通过「扩展系统」按需下载：
 
 ${data.shop
         .map((p) => `- **${p.nm}**：${p.mods.map((m) => m.nm).join("、")}`)
@@ -151,7 +151,7 @@ ${data.shop
 }
 ## 胶水与底座
 
-模块之间怎么接、整台东西跑在哪：
+模块连接方式与运行环境：
 
 ${data.glue.map((g) => `- **胶水 · ${g.nm}** → ${g.pick}（${g.k}）`).join("\n")}
 ${data.base.map((g) => `- **底座 · ${g.nm}** → ${g.pick}（${g.k}）`).join("\n")}
@@ -170,26 +170,26 @@ ${data.base.map((g) => `- **底座 · ${g.nm}** → ${g.pick}（${g.k}）`).join
 ${
   memo.ok
     ? `可用 ${mbTxt(memo.avail)}，还剩 ${mbTxt(memo.avail - memo.total)}。`
-    : `超了 ${mbTxt(memo.total - memo.avail)}——把模型降一档，或者去掉几个可选包。`
+    : `超出 ${mbTxt(memo.total - memo.avail)}：可降一档模型，或移除部分可选模块。`
 }
 
 ## 施工顺序
 
 ${data.order.map((o, i) => `${i + 1}. ${o.nm}　\`${o.id}\``).join("\n")}
 
-## 三个提醒
+## 三项提醒
 
-1. **先跑通一条链**：数据仓 → 待办 → 界面。这三格通了，后面的都是加法。
-2. **方案是候选不是承诺**：标「自研」的格子要算 token 与返工成本，标「慎选」的多半有运维代价。
-3. **别一次装全**：这块东西是从「必装」起，用两周再决定要不要加可选模块。
+1. **先打通一条链路**：数据仓 → 待办 → 界面。这三格连通后，其余为增量。
+2. **方案是候选而非承诺**：标「自研」的格需计入 token 与返工成本，标「慎选」的多伴随后续运维代价。
+3. **不要一次装全**：以「必装」为起点，使用两周后再决定是否加入可选模块。
 `;
 
   const install = `# 安装说明
 
 形态 **${data.formNm}** · 平台 ${data.platNm.join(" / ") || "—"}
 
-先说一句：**被拦住的从来不是「你的程序不好」，是「系统不认识它」。**
-要么买证书让系统认识你，要么发源码让用户自己编——后者零成本，而且用户能看到每一行。
+说明：**拦截来自系统无法验证发行者，而非程序本身。**
+可选购买代码签名证书，或发布源码由用户自行编译：后者零成本，且用户可审阅全部代码。
 
 ${(installNotes(hub.form, platOf(hub)) || [])
   .map(
@@ -225,10 +225,10 @@ export function packFiles(hub) {
   const html = protoDoc(hub);
 
   const files = [
-    { name: "index.html", data: html, why: hub.form === "cli" ? "双击打开是一个能敲命令的终端" : "刚才试的那个东西，双击即开，不依赖网络" },
+    { name: "index.html", data: html, why: hub.form === "cli" ? "双击打开为可输入命令的终端" : "试用所见原型，双击即开，不依赖网络" },
     { name: "manifest.json", data: JSON.stringify(manifest, null, 2), why: "模块、能力格、胶水、底座、内存估算、施工顺序" },
-    { name: "README.md", data: readme, why: "怎么用、装了什么、施工顺序、三个提醒" },
-    { name: "安装说明.md", data: install, why: `${installNotes(hub.form, platOf(hub)).length} 个平台：会被什么拦住、怎么过、怎么彻底绕开` },
+    { name: "README.md", data: readme, why: "使用方式、装配清单、施工顺序、三项提醒" },
+    { name: "安装说明.md", data: install, why: `${installNotes(hub.form, platOf(hub)).length} 个平台：拦截位置、处理方式、彻底消除` },
     { name: "模块清单.md", data: mdFor(hub), why: "按能力格展开的施工表，含每格选的方案与类型" },
   ];
   if (data.shop.length) {
@@ -245,7 +245,7 @@ export function packFiles(hub) {
         null,
         2
       ),
-      why: `还没装的 ${data.shop.reduce((n, p) => n + p.mods.length, 0)} 个模块清单，商店照它去下`,
+      why: `未包含的 ${data.shop.reduce((n, p) => n + p.mods.length, 0)} 个模块清单，供模块商店按需下载`,
     });
   }
 

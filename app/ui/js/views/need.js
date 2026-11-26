@@ -1,10 +1,10 @@
 // views/need.js —— 一句话需求：不挑场景，直接说要做什么，把它拆成能力格。
 //
-// 解析结果是**当场摊开给人看**的，不是转一圈再显示：命中了哪些格、每格凭什么命中、
-// 哪几格有现成模块、哪几格没有——后面七十条都要靠这张表核对，藏起来就没法核对。
+// 解析结果当场展开：命中哪些格、每格依据什么命中、哪几格有现成模块、哪几格没有。
+// 后续七十余条都以这张表为准，隐藏起来无法核对。
 //
-// 库里的模块只覆盖 160 格中的 93 格，所以「有 3 格要自己写」是常态。
-// 这一页的责任就是把这件事提前说清，而不是等人装完在交付页才发现。
+// 模块库覆盖 160 格中的 93 格，因此「有若干格需自行实现」属常态，
+// 本页负责提前说明，而非等到交付页才暴露。
 
 import { h } from "../lib/dom.js";
 import { icon } from "../icons.js";
@@ -41,7 +41,7 @@ export function viewNeed() {
     const q = ta.value.trim();
     if (!q) {
       ta.focus();
-      toast("先写一句需求", 1400);
+      toast("请先填写需求", 1400);
       return;
     }
     const r = matchNeed(q);
@@ -64,8 +64,8 @@ export function viewNeed() {
           h(
             "span",
             null,
-            "解析走关键词，不是大模型——所以每一格都能说清「凭什么加进来」，",
-            "也不会因为换个说法就多花一次 token。说法太偏（方言、内部叫法）会匹配不上，换个说法再试。"
+            "解析基于关键词匹配，不使用大模型：每一格都能说明命中依据，也不产生额外调用成本。",
+            "方言或内部叫法可能无法匹配，可换一种表述再试。"
           )
         )
       );
@@ -92,8 +92,8 @@ export function viewNeed() {
           null,
           has
             ? why(cid)
-            : /* 没模块的格重复同一句「库里还没有」没有信息量，改成说清它的接口约定：
-                 有约定 = 知道该写什么；连约定都没有才是真空白 */
+            : /* 无模块的格重复「库里没有」没有信息量，改为给出接口约定：
+                 有约定即可判断该实现什么；无约定才是真正空白 */
               [c.ins ? `收 ${c.ins}` : "", c.outs ? `出 ${c.outs}` : ""].filter(Boolean).join(" · ") ||
               "库里还没有模块覆盖这一格"
         ),
@@ -116,7 +116,7 @@ export function viewNeed() {
             : null
         ),
 
-        /* 一句话结论：这三句决定要不要往下走 */
+        /* 结论先行：这几项决定是否继续 */
         h(
           "div.asksum",
           null,
@@ -130,14 +130,14 @@ export function viewNeed() {
             "div.sm",
             { "data-tone": missed.length ? "warn" : null },
             h("b", null, String(missed.length)),
-            h("span", null, missed.length ? "格要自己写" : "格要自己写")
+            h("span", null, "格要自己写")
           ),
           h("div.sm", { "data-tone": gaps.length ? "warn" : null }, h("b", null, String(gaps.length)), h("span", null, "项在库外")),
           h("div.sm", null, h("b", null, String(modNames.length)), h("span", null, "个模块要装"))
         ),
 
-        /* 有模块的：按施工顺序摊出来，每行说清凭什么 */
-        h("div.asksec", null, secttl("① 能直接装的格", `${covered.length} 格 · 每格都说明白为什么`)),
+        /* 有模块的格按施工顺序展开，逐行给出依据 */
+        h("div.asksec", null, secttl("① 可直接装配的格", `${covered.length} 格 · 每格附命中依据`)),
         h(
           "div.celllist",
           null,
@@ -149,7 +149,7 @@ export function viewNeed() {
           ? h(
               "div.asksec",
               null,
-              secttl("② 库里还没模块的格", `${missed.length} 格 · 要自己写，或在库外找`),
+              secttl("② 库中暂无模块的格", `${missed.length} 格 · 需自行实现或在库外寻找`),
               h(
                 "div.celllist",
                 null,
@@ -158,8 +158,8 @@ export function viewNeed() {
               h(
                 "p.t-12.faint",
                 { style: { marginTop: "var(--sp-2)" } },
-                "这些格在图上是存在的（有输入输出约定），只是还没有哪个模块认领它。",
-                "装配时会跳过它们——交付页与导出清单里会把它们单独列出来，不会悄悄消失。"
+                "这些格在图中存在（已有输入输出约定），只是尚无模块认领。",
+                "装配时会跳过，并在交付页与导出清单中单独列出。"
               )
             )
           : null,
@@ -169,7 +169,7 @@ export function viewNeed() {
           ? h(
               "div.asksec",
               null,
-              secttl("③ 库外的部分", `${gaps.length} 项 · 不进装配，但要知道`),
+              secttl("③ 库外部分", `${gaps.length} 项 · 不进入装配，但需知悉`),
               h(
                 "div.gaplist",
                 null,
@@ -181,7 +181,7 @@ export function viewNeed() {
           : null,
 
         /* 组合预览：装哪几个模块、落在哪些包 */
-        h("div.asksec", null, secttl("④ 会装哪几个模块", `${modNames.length} 个 · ${new Set(modNames.flatMap((m) => m.pks || [])).size} 个包`)),
+        h("div.asksec", null, secttl("④ 将装配的模块", `${modNames.length} 个 · ${new Set(modNames.flatMap((m) => m.pks || [])).size} 个包`)),
         h(
           "div.modlist",
           null,
@@ -206,7 +206,7 @@ export function viewNeed() {
             "button.btn.btn--ghost",
             { onclick: () => { result = null; paint(); ta.focus(); } },
             icon("arrow-left", { size: 14 }),
-            h("span", null, "改一改再解析")
+            h("span", null, "修改后重新解析")
           ),
           h(
             "button.btn.btn--primary",
@@ -215,13 +215,13 @@ export function viewNeed() {
               onclick: () => {
                 if (!modNames.length) return;
                 const { hub } = needHub(result.q);
-                /* 没模块的格要跟着 hub 走：交付页、清单、README 都要能把它们点名，
-                   否则「装配时会跳过」就成了只在嘴上说的一句话。 */
+                /* 无模块的格需要随 hub 传递：交付页、清单与 README 都要逐一列出，
+                   否则「装配时跳过」只停留在说明层面。 */
                 set({ hub: { ...hub, needMiss: result.missed } });
                 go("style");
               },
             },
-            h("span", null, "按这 " + modNames.length + " 个模块装"),
+            h("span", null, `按这 ${modNames.length} 个模块装配`),
             icon("arrow-right", { size: 14 })
           )
         )
@@ -247,11 +247,11 @@ export function viewNeed() {
       h(
         "div.askwrap",
         null,
-        h("h1", null, "你要做个什么？"),
+        h("h1", null, "要做什么？"),
         h(
           "p.prose",
           null,
-          "用大白话写。说清「拿什么进来、变成什么出去、什么时候发生」就够，不用写技术栈。"
+          "用日常语言描述即可：说明输入是什么、输出是什么、何时触发，无需写技术栈。"
         ),
         ta,
         h(
@@ -273,23 +273,23 @@ export function viewNeed() {
         h(
           "div.askbtns",
           null,
-          h("button.btn.btn--primary", { onclick: run }, icon("spark", { size: 14 }), h("span", null, "开始解析")),
+          h("button.btn.btn--primary", { onclick: run }, icon("spark", { size: 14 }), h("span", null, "解析需求")),
           h("button.btn.btn--ghost", { onclick: () => { ta.value = ""; ta.focus(); } }, h("span", null, "清空")),
-          h("span.t-12.faint", null, "⌘ / Ctrl + Enter 也可以")
+          h("span.t-12.faint", null, "⌘ / Ctrl + Enter 同样可执行")
         )
       ),
 
       h(
         "aside.asktips",
         null,
-        h("b", null, "写不好的三种情况"),
-        h("div.tp", null, h("em", null, "太短"), h("span", null, "「做个记账软件」——不知道输入是什么，会出现 0 格。")),
-        h("div.tp", null, h("em", null, "太杂"), h("span", null, "一句话塞五个系统，会多勾出不相干的格子。")),
-        h("div.tp", null, h("em", null, "太术语"), h("span", null, "「要 RAG、要 Agent」——那是选型阶段的事，这里只要说清要干什么。")),
+        h("b", null, "三种常见问题"),
+        h("div.tp", null, h("em", null, "太短"), h("span", null, "如「做个记账软件」：无法判断输入，解析结果为 0 格。")),
+        h("div.tp", null, h("em", null, "太杂"), h("span", null, "一句话包含五个系统，会引入不相关的能力格。")),
+        h("div.tp", null, h("em", null, "太术语"), h("span", null, "如「要 RAG、要 Agent」：属选型阶段内容，此处只需说明用途。")),
         h(
           "div.tpnote",
           null,
-          "解析只在本地跑：需求文本不会发到任何地方，也存不进草稿以外的文件。"
+          "解析在本地完成：需求文本不会外发，也不会写入除草稿之外的文件。"
         )
       )
     ),

@@ -1,8 +1,8 @@
 // views/trial.js —— 试用：把它先跑一遍，再决定要不要带走。
 //
-// 这一页只做一件事：把 lib/proto.js 生成的那份 HTML 塞进 iframe 跑起来。
-// 不在这一页里写任何原型逻辑——原型是「带走的那个东西」本身，
-// 试用页看到的和 zip 里 index.html 里的必须是同一份，否则试用没有意义。
+// 本页只做一件事：把 lib/proto.js 生成的 HTML 放入 iframe 运行。
+// 原型逻辑不写在这里——原型就是交付物本身，
+// 试用页所见与 zip 中 index.html 必须是同一份，否则试用失去意义。
 
 import { h } from "../lib/dom.js";
 import { icon } from "../icons.js";
@@ -21,8 +21,8 @@ export function viewTrial() {
     return h(
       "div.wrap",
       null,
-      pagehd({ title: "还没有能试的东西", lead: "先把场景、模块、方案走完，这里才有东西可点。" }),
-      h("button.btn.btn--primary", { onclick: () => go("scenes") }, h("span", null, "去挑场景"))
+      pagehd({ title: "还没有可试用的内容", lead: "先完成场景、模块与方案的选择，这里才会有原型。" }),
+      h("button.btn.btn--primary", { onclick: () => go("scenes") }, h("span", null, "选择场景"))
     );
   }
 
@@ -31,16 +31,16 @@ export function viewTrial() {
   const r = check(picks, hub.form);
   const isCli = hub.form === "cli";
 
-  /* 原型只做了「桌面上能点」的面板。硬件与现场类的格子没有面板——
-     这不是漏做，是它们本来就没有可点的界面（要通电、要真机、要扫码）。
-     但必须说出来：不然用户会以为「试用里没有 = 装的时候没有」。 */
+  /* 原型只包含桌面端可交互面板。硬件与现场类格子没有面板，
+     它们需要通电、真机或扫码，本身不存在可点界面。
+     这一点必须写明，否则会被误认为装配时也缺失。 */
   const bare = hub.mods
     .map((id) => hubMod(id))
     .filter((m) => m && (m.cells || []).length && (m.cells || []).every((c) => /^(hw|site)\./.test(c)));
 
-  /* 不加 sandbox：原型要用 localStorage 记住你点过什么，
-     sandbox 不给 allow-same-origin 的话是个 opaque origin，一碰 localStorage 就抛。
-     内容是本地生成的（不含用户输入），同源没有额外风险。 */
+  /* 不加 sandbox：原型需要用 localStorage 记录操作，
+     未给 allow-same-origin 时属 opaque origin，访问 localStorage 会抛异常。
+     内容为本地生成（不含用户输入），同源不引入额外风险。 */
   const frame = h("iframe.trialbox", { title: "试用原型" });
 
   /* 每次进页面重算一次文档：装配改过之后，这里必须是新的那份 */
@@ -51,8 +51,8 @@ export function viewTrial() {
   requestAnimationFrame(mount);
 
   const reset = () => {
-    /* 试用数据按装配分桶（键里带 sig），所以清的时候按前缀整族清，
-       否则换了形态再试，里面还留着上一版的待办。 */
+    /* 试用数据按装配分桶（键含 sig），清理时按前缀整组清除，
+       否则换形态后仍会读到上一版的数据。 */
     try {
       const kill = [];
       for (let i = 0; i < localStorage.length; i++) {
@@ -61,7 +61,7 @@ export function viewTrial() {
       }
       kill.forEach((k) => localStorage.removeItem(k));
     } catch {
-      /* 某些 WebView 隐私模式下 localStorage 会抛，忽略即可：重置不了就重开一遍 */
+      /* 部分 WebView 隐私模式下 localStorage 会抛异常，忽略即可 */
     }
     mount();
     toast("试用数据已重置", 1500);
@@ -73,12 +73,12 @@ export function viewTrial() {
     steps(STEP_NAMES, ALL_DONE),
 
     pagehd({
-      title: "先试用一下",
-      lead: `这是按你选的 ${hub.mods.length} 个模块拼出来的东西（${formDef(hub.form).nm}形态）。${
+      title: "试用原型",
+      lead: `这是按所选 ${hub.mods.length} 个模块生成的可运行原型（${formDef(hub.form).nm} 形态）。${
         isCli
-          ? "输入 help 看有哪些命令——命令是真的会改数据。"
-          : "点一遍：加条待办、记条笔记、搜一下、跟 AI 说句话。"
-      } 数据只活在这一页里，随便折腾。`,
+          ? "输入 help 查看可用命令，命令会真实改写数据。"
+          : "可依次尝试：新建待办、记录笔记、检索、与 AI 对话。"
+      } 数据仅保存在本页，重载后重置。`,
       right: badge("模拟 · 不接真后端", "mute"),
     }),
 
@@ -94,7 +94,7 @@ export function viewTrial() {
       h(
         "button.btn",
         { onclick: () => go("pack") },
-        h("span", null, "没问题，打包"),
+        h("span", null, "打包"),
         icon("arrow-right", { size: 14 })
       )
     ),
@@ -106,7 +106,7 @@ export function viewTrial() {
           "p.t-12.faint.trialnote",
           null,
           `另有 ${bare.length} 个模块没有面板（${bare.slice(0, 4).map((m) => m.nm).join("、")}${bare.length > 4 ? " 等" : ""}）：`,
-          "它们要通电、要真机、要扫码，原型里只留了接口约定与接线方式，交互在真机上才有意义。"
+          "这类模块需要通电或真机环境，原型中仅保留接口约定与接线方式。"
         )
       : null,
 
@@ -114,8 +114,8 @@ export function viewTrial() {
       "p.t-12.faint.trialnote",
       null,
       isCli
-        ? "终端里的命令是真的会改数据的：todo add 之后 exit 再进，那条还在。"
-        : `左侧只列你装了、而且原型做了面板的模块${isCustomScene(hub.scene) ? "" : `（${sc.nm} 场景）`}。没装的在「模块商店」里——那是扩展系统的入口。`
+        ? "终端命令会真实改写数据：todo add 之后退出再进入，记录仍然存在。"
+        : `左侧仅列出已装配且原型提供面板的模块${isCustomScene(hub.scene) ? "" : `（${sc.nm} 场景）`}。未装配的模块位于「模块商店」，那是扩展系统的入口。`
     ),
 
     h(
@@ -125,7 +125,7 @@ export function viewTrial() {
         "button.btn.btn--ghost",
         { onclick: () => go("done") },
         icon("arrow-left", { size: 14 }),
-        h("span", null, "上一步：回交付")
+        h("span", null, "上一步：交付")
       ),
       h(
         "div.btns",

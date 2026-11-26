@@ -43,7 +43,7 @@ export function saveDraft(hub, route = "confirm") {
 export function openDraft(d) {
   if (!d || !d.hub) return "home";
   set({ hub: JSON.parse(JSON.stringify(d.hub)) });
-  // 「已组装」的草稿回到确认页：一眼看到全貌，再决定直接交付还是重装一遍
+  // 「已组装」的草稿回到确认页：先看全貌，再决定直接交付还是重新装配
   return d.route === "build" || d.route === "done" || d.route === "trial" || d.route === "pack"
     ? "confirm"
     : d.route || "confirm";

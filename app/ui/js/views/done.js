@@ -1,9 +1,9 @@
 // views/done.js —— 交付：东西装完了，接下来带走什么、先做哪三件事。
 //
-// 这一页不发新问题、也不假装在打包。它只回答三件事：
+// 本页不提出新问题，也不做打包动作，只回答三件事：
 //   1. 装成了什么（模块 / 格 / 连线 / 目录骨架）
-//   2. 还有什么没接上（自研格、断点、死端）—— 不藏，藏在里面等于骗人
-//   3. 接下来先动手做哪三件，以及存草稿 / 导出清单
+//   2. 还有什么没接上（自研格、断点、死端）
+//   3. 接下来先做哪三件，以及存草稿、导出清单
 
 import { h } from "../lib/dom.js";
 import { icon } from "../icons.js";
@@ -25,9 +25,9 @@ export function viewDone() {
     return h(
       "div.wrap",
       null,
-      h("h1.t-20", null, "还没有装完的东西"),
-      h("p.prose.t-13", { style: { margin: "8px 0 16px" } }, "从头走一遍就有了。"),
-      h("button.btn.btn--primary", { onclick: () => go("scenes") }, h("span", null, "去挑场景"))
+      h("h1.t-20", null, "还没有交付内容"),
+      h("p.prose.t-13", { style: { margin: "8px 0 16px" } }, "完成一次装配后即可查看。"),
+      h("button.btn.btn--primary", { onclick: () => go("scenes") }, h("span", null, "选择场景"))
     );
   }
 
@@ -42,9 +42,8 @@ export function viewDone() {
     return m ? m.provs.find((p) => p.id === plans[mid]) || m.provs[0] : null;
   };
 
-  /* ── 目录骨架：能力格按所属域归到目录里 ──
-     顺序不是「按域排行」，而是「按施工顺序」，因为这份骨架的用途是
-     「先建哪个目录、先填哪个格」——按域排会让人不知道该从哪下手。 */
+  /* ── 目录骨架：能力格按所属域归到目录 ──
+     顺序取施工顺序而非域名排序：这份骨架的用途是判断先建哪个目录、先填哪个格。 */
   const byDom = new Map();
   for (const cid of order) {
     const dom = (CELL_BY_ID[cid] || {}).dom || "app";
@@ -69,13 +68,13 @@ export function viewDone() {
     ...r.dead.slice(0, 2).map((x) => ({
       k: "死端",
       t: `「${x.who}」产出的${x.type}没人接`,
-      d: "要么再加一格把它用起来，要么确认这是终点（结果直接给人看）",
+      d: "补充下游能力格，或确认它是终点（结果直接呈现）",
       tone: "clay",
     })),
     ...warnMods.slice(0, 2).map((m) => ({
       k: "慎选",
       t: `「${m.nm}」用了${(planOf(m.id) || {}).n}`,
-      d: (planOf(m.id) || {}).note || "这个做法能跑，但有明显代价",
+      d: (planOf(m.id) || {}).note || "该方案可用，但存在明显代价",
       tone: "brass",
     })),
     ...(hub.needMiss || []).slice(0, 3).map((cid) => ({
@@ -87,11 +86,11 @@ export function viewDone() {
   ].slice(0, 5);
 
   /* ── 先做哪三件事 ──
-     排序理由是「谁最费时间谁先做」：自研格 > 断点 > 固定动作。
-     固定动作只是兜底——默认配置里没有自研格也没有断点，
-     这时清单会只剩一条「先跑通」，看着像没做完的页面。 */
+     排序按耗时：自研格 > 断点 > 固定动作。
+     固定动作作为兜底：默认配置下既无自研格也无断点，
+     缺少兜底时清单只剩一条，页面会显得未完成。 */
   const firstC = order.length ? cellName(order[0]) : "第一格";
-  // 端到端的另一头应该是「人看得见的那格」，不是施工顺序的最后一名（那通常是零碎的胶水）
+  // 端到端另一端取用户可见的那一格，而非施工顺序末位（通常是零碎胶水）
   const lastC = picks.includes("app.ui")
     ? cellName("app.ui")
     : order.length
@@ -111,16 +110,16 @@ export function viewDone() {
       d: "库里没有模块覆盖这一格：按接口约定自己写，或者换一种做法绕开",
     })),
     {
-      t: "把 src/wire.ts 的信箱定下来",
-      d: `先把 ${picks.length} 格之间传什么字段对齐，再逐格填实现——顺序反了要返工`,
+      t: "确定 src/wire.ts 的消息契约",
+      d: `先对齐 ${picks.length} 格之间传递的字段，再逐格实现；顺序颠倒会导致返工`,
     },
     {
       t: `跑通「${firstC}」到「${lastC}」`,
-      d: "端到端一条链路先亮起来，剩下的格照着这个模式铺，别一次全开",
+      d: "先打通一条端到端链路，其余按同一模式铺开，避免一次性全开",
     },
     {
       t: "填 .env.example",
-      d: "只填用得上的那几把 key，没用到的服务别提前申请",
+      d: "只填实际使用的 key，未启用的服务不必提前申请",
     },
   ];
   const firstThree = pool.slice(0, 3);
@@ -142,7 +141,7 @@ export function viewDone() {
         h("p", null,
           `${hubLabel(hub)} · ${formDef(hub.form).nm} · ${styName(hub.sty)}：`,
           h("b", null, `${mods.length} 个模块插在 ${picks.length} 格上`),
-          `，${r.lines} 条连线已接通。`
+          `，${r.lines} 条连线已连通。`
         )
       )
     ),
@@ -175,7 +174,7 @@ export function viewDone() {
           return el;
         })
       ),
-      h("div.pcb-ft", null, "全部就绪 · 可以带走了")
+      h("div.pcb-ft", null, "全部就绪 · 可交付")
     ),
 
     /* ③ 目录骨架 + 先做三件事 */
@@ -209,7 +208,7 @@ export function viewDone() {
             h("span.m", null, "  ← 每格做什么、为什么选这个做法"))
         ),
         h("p.t-12.faint", { style: { marginTop: "var(--sp-2)" } },
-          "按你选的能力格推出来的骨架，不是真生成过文件——")
+          "目录骨架按所选能力格推导，未实际生成文件。")
       ),
 
       h(
@@ -237,18 +236,18 @@ export function viewDone() {
               )
             )
           : h("div.note", null,
-              h("b", null, "没有自研格，也没有断点。"),
-              "每一格都有现成做法，按上面的顺序接就行。")
+              h("b", null, "无自研格，也无断点。"),
+              "每一格都有现成实现，按上述顺序接入即可。")
       )
     ),
 
-    /* ④ 带走：两个出口。先试用（能点的原型）→ 再打包（zip） */
+    /* ④ 交付出口：先试用（可交互原型），再打包（zip） */
     h(
       "div.stepnav",
       null,
       h("button.btn.btn--ghost", { onclick: () => go(S.build ? "build" : "confirm") },
         icon("arrow-left", { size: 14 }),
-        h("span", null, S.build ? "上一步：回组装" : "上一步：回确认")),
+        h("span", null, S.build ? "上一步：组装台" : "上一步：确认清单")),
       h(
         "div.btns",
         null,
@@ -259,11 +258,11 @@ export function viewDone() {
         h("button.btn", { onclick: () => go("pack") },
           icon("box", { size: 14 }), h("span", null, "直接打包")),
         h("button.btn.btn--primary", { onclick: () => go("trial") },
-          h("span", null, "先试用一下"), icon("arrow-right", { size: 14 }))
+          h("span", null, "试用原型"), icon("arrow-right", { size: 14 }))
       )
     ),
 
     h("p.t-12.faint", { style: { marginTop: "var(--sp-4)", textAlign: "right" } },
-      "试用会打开一个能点的原型（不是截图，也不是占位）：界面和交互是真的，后端是假的。")
+      "试用打开的是可交互原型：界面与交互为真实实现，后端为模拟。")
   );
 }

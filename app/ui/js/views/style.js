@@ -35,11 +35,11 @@ function rich(str) {
 }
 
 /* ────────── 三张规格示意图 ──────────
-   画在同一套坐标里，只改密度——三者的差别一眼能看出来，不用读文字。
+   三张图共用同一套坐标，仅改变密度，差异可直接对比，无需阅读文字。
    颜色走 CSS 变量，深色模式下不会突然出现一块白底。 */
 
 function styleArt(id) {
-  // 框内不填色：跟着卡片底色走，选中时不会在黄铜渐变上贴一块白
+  // 框内不填色，随卡片底色变化，选中时不会在黄铜色渐变上叠加白色块
   const frame = `<rect x="3" y="6" width="134" height="72" rx="6" style="fill:none;stroke:var(--line-strong)"/>
     <path d="M3 18h134" style="stroke:var(--line)"/>`;
   const dots = [9, 15, 21]
@@ -58,7 +58,7 @@ function styleArt(id) {
     // 侧栏 + 两张大卡 + 两行：日常够用
     inner = `${side}${box(35, 24, 46, 22)}${box(85, 24, 46, 22)}${box(35, 50, 96, 9, 2.5)}${box(35, 63, 60, 9, 2.5)}`;
   } else {
-    // 三列 × 两行 + 通栏：一眼看出「塞满了」，和均衡的「两张大卡」拉开差别
+    // 三列两行加通栏：呈现满载状态，与均衡档的两张大卡形成反差
     inner = `${side}
       ${box(35, 22, 96, 7, 2.5)}
       ${box(35, 33, 30, 15)}${box(69, 33, 30, 15)}${box(103, 33, 30, 15)}
@@ -177,7 +177,7 @@ export function viewStyle({ param }) {
       b.state.textContent = ok ? (yes ? "要" : "不要") : "不适用";
     }
 
-    // 形态导致模块被排除时，必须说出来，否则用户以为东西丢了
+    // 形态导致模块被排除时必须说明，否则会被当作模块缺失
     const no = unavailableCount(hub.scene, form);
     hint.replaceChildren(
       ...(no
@@ -186,9 +186,9 @@ export function viewStyle({ param }) {
             h(
               "span",
               null,
-              `${formDef(form).nm}形态下，这个场景另有 `,
+              `${formDef(form).nm} 形态下，另有 `,
               h("b", null, String(no)),
-              " 个模块不适用（例如 CLI 没有看板与地图），已自动排除。"
+              " 个模块不适用（如看板、地图类），已自动排除。"
             ),
           ]
         : [])
@@ -199,14 +199,14 @@ export function viewStyle({ param }) {
 
   function choose(patch) {
     const before = S.hub;
-    // 手改过勾选（当前勾选与「按规则该勾的」不一致）才会被这次换选重置，那种情况要说一声
+    // 仅当当前勾选与「按规则应勾」不一致时，换选才会重置，需明确告知
     const wasCustom =
       before.mods.join() !== defaultMods(before.scene, before.sty, before.form).join();
     const next = withChoice(before, patch);
     set({ hub: next });
     sync();
     if (wasCustom && next.mods.join() !== before.mods.join()) {
-      toast("勾选已按新规则重算，你手动加的那几个被重置了", 2200);
+      toast("勾选已按新规则重算，手动添加的模块已被重置", 2200);
     }
   }
 
@@ -214,7 +214,7 @@ export function viewStyle({ param }) {
     const cur = platOf(S.hub);
     const next = cur.includes(pid) ? cur.filter((x) => x !== pid) : [...cur, pid];
     if (!next.length) {
-      toast("至少要装到一个系统上", 1600);
+      toast("至少选择一个目标平台", 1600);
       return;
     }
     set({ hub: { ...S.hub, plat: next } });
@@ -225,17 +225,16 @@ export function viewStyle({ param }) {
     "div.wrap",
     null,
     pagehd({
-      title: "做成什么样、装多满？",
+      title: "形态与规格",
       lead: h(
         "span",
         null,
-        "三件事分三组问：",
         h("b", null, "形态"),
-        "决定哪些模块根本不适用，",
+        "决定哪些模块不适用，",
         h("b", null, "规格"),
-        "决定默认勾多满，",
+        "决定默认勾选的密度，",
         h("b", null, "平台"),
-        "只影响安装说明。它们不是三套代码，现在选简约、以后再补不会返工。"
+        "只影响安装说明。三者共用同一批功能包与能力格，先做简约、后续补齐不会返工。"
       ),
       aside: [badge(sc.nm), h("span.t-12.faint", null, `${(sc.packs || []).length} 个包`)],
     }),
@@ -245,7 +244,7 @@ export function viewStyle({ param }) {
     h(
       "section.pgroup",
       null,
-      h("div.pgt", null, h("b", null, "① 形态"), h("span", null, "这一版做成什么东西 · 三选一")),
+      h("div.pgt", null, h("b", null, "① 形态"), h("span", null, "交付形态 · 三选一")),
       h("div.fgrp", { role: "radiogroup", "aria-label": "形态" }, formCards.map((c) => c.el)),
       hint
     ),
@@ -253,7 +252,7 @@ export function viewStyle({ param }) {
     h(
       "section.pgroup",
       null,
-      h("div.pgt", null, h("b", null, "② 规格"), h("span", null, "第一版装多满 · 三选一")),
+      h("div.pgt", null, h("b", null, "② 规格"), h("span", null, "首版范围 · 三选一")),
       h("div.sgrp", { role: "radiogroup", "aria-label": "规格" }, styCards.map((c) => c.el))
     ),
 
@@ -264,22 +263,22 @@ export function viewStyle({ param }) {
         "div.pgt",
         null,
         h("b", null, "③ 平台"),
-        h("span", null, "装到哪几个系统上 · 可多选，影响安装说明与内存底线")
+        h("span", null, "目标平台 · 可多选，影响安装说明与内存底线")
       ),
       h("div.plats", { role: "group", "aria-label": "平台" }, platBtns.map((b) => b.el)),
       h(
         "p.hintline.mute",
         null,
-        "安卓的内存底线比桌面低一档：同一份东西，在手机上要先砍掉本地模型再谈。"
+        "安卓的可用内存低于桌面端，同等配置需先移除本地模型。"
       )
     ),
 
     h(
       "div.note",
       null,
-      h("b", null, "三组不是三套代码。"),
-      "它们共用同一批包与能力格，差别只在默认勾了哪些模块、底座默认选什么、打包出什么文件——" +
-        "所以「先做简约、以后再补」不会返工。换形态或规格会按新规则重算勾选，你手改过的会重置。"
+      h("b", null, "三组共用一套数据。"),
+      "差别只在默认勾选哪些模块、底座默认选什么、打包输出哪些文件，因此「先做简约、后续补齐」不会返工。" +
+        "更换形态或规格会按新规则重算勾选，手动调整过的部分将被重置。"
     ),
 
     h(
@@ -293,12 +292,12 @@ export function viewStyle({ param }) {
           "button.btn.btn--ghost",
           { onclick: () => go("scenes") },
           icon("arrow-left", { size: 14 }),
-          h("span", null, "上一步：换场景")
+          h("span", null, "上一步：选择场景")
         ),
         h(
           "button.btn.btn--primary.btn--lg",
           { onclick: () => go("packs") },
-          h("span", null, "下一步：看包"),
+          h("span", null, "下一步：选择功能包"),
           icon("arrow-right", { size: 14 })
         )
       )

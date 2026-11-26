@@ -251,9 +251,9 @@ function protoRuntime(D) {
   const save = () => { try { localStorage.setItem(K, JSON.stringify(ST)); } catch(e){} };
 
   const seed = () => ({
-    todo: [{t:"把这一版翻一遍，看看哪些模块其实用不上", done:false, at:ts()},
+    todo: [{t:"通读当前版本，确认哪些模块用不上", done:false, at:ts()},
            {t:"叉掉不用的，回去重新装一次", done:false, at:ts()}],
-    note: [{t:"中台的第一条笔记\n这段话只存在你自己的浏览器里。换台设备看不到——要跨设备，得装「多端同步」。", at:ts()}],
+    note: [{t:"中台的第一条笔记\n这段内容只保存在当前浏览器中，换设备不可见。需要跨设备请装配「多端同步」。", at:ts()}],
     clip: [{t:"https://news.ycombinator.com/item?id=39210000", k:"链接"},
            {t:'{"model":"gpt-5","tokens":842,"cost":0.0031}', k:"JSON"},
            {t:"/Users/me/Documents/发票 2026-11.pdf", k:"路径"}],
@@ -392,7 +392,7 @@ function protoRuntime(D) {
       <div class="card" style="margin-bottom:10px">
         <div style="font-size:12.5px;line-height:1.7">
           <b>最小包为什么留着这个页面：</b>先装一个能跑的地基（几十 MB），
-          其余模块你以后用到哪个再下哪个。下载是「拿一个包 + 校验 + 热加载」，不用重装主程序。
+          其余模块可按需下载。下载流程为「取包 + 校验 + 热加载」，无需重装主程序。
         </div>
       </div>
       ${packs.map(p => `<div class="card" style="margin-bottom:9px;border-left:3px solid hsl(${p.hue} 55% 62%)">
@@ -461,7 +461,7 @@ function protoRuntime(D) {
   P.imagegen = el => {
     el.innerHTML = `<div class="hd">生图<span class="c">${ST.gen.length} 张 · 提示词与种子都留着</span></div>
       <div class="card">
-        <input class="inp" id="gnIn" placeholder="描述你要的图，回车生成">
+        <input class="inp" id="gnIn" placeholder="描述需要的图像，回车生成">
         <div class="gens" id="gnList" style="margin-top:9px"></div>
         <div class="hint">模拟版只画色块，但流程是真的：提示词进队列 → 出图 → 存素材库、留参数。
           真实版本要把「提示词 + 种子 + 模型版本」一起存，否则好图复现不出来。</div>
@@ -470,7 +470,7 @@ function protoRuntime(D) {
     const draw = () => {
       box.innerHTML = ST.gen.length ? ST.gen.map((g, i) => `<div class="gi" data-gd="${i}">
         <div class="im" style="background:${g.c}22;color:${g.c}">✦</div>
-        <div class="cp">${esc(g.p)}</div></div>`).join("") : `<div class="empty">还没有图</div>`;
+        <div class="cp">${esc(g.p)}</div></div>`).join("") : `<div class="empty">暂无图像</div>`;
       $$("[data-gd]", box).forEach(n => n.onclick = () => {
         ST.gen.splice(+n.dataset.gd, 1); save(); draw(); toast("已从素材库删掉");
       });
@@ -516,7 +516,7 @@ function protoRuntime(D) {
           <div class="ck" data-tg="${i}">${t.done ? "✓" : ""}</div>
           <div class="tx" data-tg="${i}">${esc(t.t)}</div>
           <div class="at">${esc(t.at)}</div>
-          <button class="del" data-del="${i}">✕</button></div>`).join("") : `<div class="empty">还没有待办，上面加一条</div>`}</div>
+          <button class="del" data-del="${i}">✕</button></div>`).join("") : `<div class="empty">暂无待办，可在上方添加</div>`}</div>
         <div class="hint">模拟版只做勾选与增删。真实版本在这里接「自建表 + 滚动周期规则」——周期任务勾一次自动滚到下一轮，
           不会堆一屏逾期副本，提醒走后台线程。</div>
       </div>`;
@@ -534,7 +534,7 @@ function protoRuntime(D) {
   P.note = el => {
     el.innerHTML = `<div class="hd">速记<span class="c">${ST.note.length} 条</span></div>
       <div class="card">
-        <textarea class="inp" id="ntIn" placeholder="随手记一条。⌘/Ctrl + Enter 保存，第一行当标题"></textarea>
+        <textarea class="inp" id="ntIn" placeholder="输入笔记内容。⌘/Ctrl + Enter 保存，首行作为标题"></textarea>
         <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
           <button class="btn p" id="ntSave">保存</button>
           <span style="font-size:11px;color:#96938a">真实版本存成 Markdown 文件，任何编辑器都能打开</span></div>
@@ -547,7 +547,7 @@ function protoRuntime(D) {
             ${rest ? `<div style="color:#6b6960;font-size:12px;margin-top:2px">${esc(rest.length > 90 ? rest.slice(0, 90) + "…" : rest)}</div>` : ""}
             <div class="at" style="margin-top:3px">${esc(n.at)}</div></div>
           <button class="del" data-ndel="${i}">✕</button></div>`;
-      }).join("") : `<div class="empty">还没有笔记</div>`}</div>`;
+      }).join("") : `<div class="empty">暂无笔记</div>`}</div>`;
     const ta = $("#ntIn");
     const put = () => {
       const v = ta.value.trim(); if(!v) { toast("写点什么再存"); return; }
@@ -584,14 +584,14 @@ function protoRuntime(D) {
     const mod = D.mods.find(m => m.id === "ai") || {};
     el.innerHTML = `<div class="hd">AI 助手<span class="c">模拟回复 · 这一版没有联网</span></div>
       <div class="card" id="aiBox" style="display:flex;flex-direction:column;gap:8px;min-height:220px">
-        <div class="msg bot">（模拟）我读得到这个中台里的数据。试试这几句：<br>
+        <div class="msg bot">（模拟）可读取当前中台数据。可尝试以下指令：<br>
           · 帮我加一条待办：明天交电费<br>· 我现在有几条待办<br>· 总结一下</div>
       </div>
       <div style="display:flex;gap:8px;margin-top:10px">
         <input class="inp" id="aiIn" placeholder="说点什么…"><button class="btn p" id="aiGo">发送</button>
       </div>
       <div class="hint">真实版本走 <b>${esc(mod.prov ? mod.prov.n : "自带 Key 直连")}</b>：请求从本机发出，Key 进系统钥匙串。
-        你选它的理由是：${esc(mod.prov ? mod.prov.note : "—")}</div>`;
+        选用理由：${esc(mod.prov ? mod.prov.note : "—")}</div>`;
     const box = $("#aiBox"), inp = $("#aiIn");
     const push = (cls, html) => { const d = document.createElement("div"); d.className = "msg " + cls; d.innerHTML = html; box.appendChild(d); box.scrollTop = box.scrollHeight; };
     const reply = q => {
@@ -683,7 +683,7 @@ function protoRuntime(D) {
         <div id="upRes" style="font-size:12px;color:#96938a;padding:8px 2px 0"></div>
         <div class="bar" id="upBar" style="display:none"><i></i></div>
         <div class="hint">真实版本：验签 → 比 semver → 下 sha256 校验 → 两步改名自替换，失败回滚。
-          清单用 <b>Ed25519</b> 签名，防止有人给你推个假包。</div>
+          清单使用 <b>Ed25519</b> 签名，防止推送伪造包。</div>
       </div>`;
     $("#upBtn").onclick = () => {
       const b = $("#upBtn"), r = $("#upRes"), bar = $("#upBar");

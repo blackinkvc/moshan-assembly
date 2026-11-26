@@ -24,11 +24,11 @@ export function viewPlans() {
     return h(
       "div.wrap",
       null,
-      pagehd({ title: "还没有要挑的东西", lead: "先挑场景、定形态、勾包，这里才有模块。" }),
+      pagehd({ title: "还没有可选模块", lead: "先选择场景、确定形态、勾选功能包，这里才会有模块。" }),
       h(
         "div.row.gap-2",
         null,
-        h("button.btn.btn--primary", { onclick: () => go("scenes") }, h("span", null, "从头开始"))
+        h("button.btn.btn--primary", { onclick: () => go("scenes") }, h("span", null, "回到第一步"))
       )
     );
   }
@@ -126,7 +126,7 @@ export function viewPlans() {
       const isOpen = open.has(key);
       el.setAttribute("data-open", String(isOpen));
       toggle.replaceChildren(
-        h("span", null, isOpen ? "收起" : `还有 ${provs.length - 1} 个做法`),
+        h("span", null, isOpen ? "收起" : `另有 ${provs.length - 1} 种`),
         icon(isOpen ? "chevron" : "chevron-right", { size: 12 })
       );
       if (isOpen) {
@@ -203,16 +203,16 @@ export function viewPlans() {
   function askRec() {
     applyAllRec();
     const m = modal({
-      title: "都按推荐选好了",
+      title: "已全部取推荐方案",
       body: h(
         "div.col.gap-3",
         null,
         h(
           "p.prose.t-13",
           null,
-          `${mods.length} 个模块、${GLUE.length} 项胶水、${BASE.length} 项底座的实现已换成`,
+          `${mods.length} 个模块、${GLUE.length} 项胶水、${BASE.length} 项底座的实现已切换为`,
           h("b", null, "推荐方案"),
-          "。这一页没有别的要填了，下一步把它们摊成能力格、画出谁接谁。"
+          "。本页无其他待填项，下一步将它们展开为能力格并校验连线。"
         ),
         h(
           "div.col.gap-2",
@@ -224,12 +224,12 @@ export function viewPlans() {
         h(
           "p.t-12.faint",
           null,
-          "想逐项核对就留在这页，每条点开看做法，改完再点右下角「下一步」。"
+          "需要逐项核对可留在此页，展开每条查看备选做法，修改后进入下一步。"
         )
       ),
       footer: [
-        h("button.btn.btn--ghost", { onclick: () => m.close() }, h("span", null, "留在这页看看")),
-        h("button.btn.btn--primary", { onclick: () => { m.close(); go("wire"); } }, h("span", null, "下一步：看连线")),
+        h("button.btn.btn--ghost", { onclick: () => m.close() }, h("span", null, "留在此页核对")),
+        h("button.btn.btn--primary", { onclick: () => { m.close(); go("wire"); } }, h("span", null, "下一步：连线图")),
       ],
     });
   }
@@ -247,24 +247,24 @@ export function viewPlans() {
     "button.btn.btn--primary.btn--lg",
     { onclick: askRec },
     icon("spark", { size: 14 }),
-    h("span", null, "全部按推荐 →")
+    h("span", null, "全部取推荐")
   );
 
   return h(
     "div.wrap",
     null,
     pagehd({
-      title: "每块用什么做？",
+      title: "选择实现方案",
       lead: h(
         "span",
         null,
-        "三件事要定：",
-        h("b", null, "功能模块"),
+        "三项待定：",
+        h("b", null, "模块"),
         "用什么实现、模块之间的",
         h("b", null, "胶水"),
-        "怎么接、整台东西跑在什么",
+        "如何连接、整体运行在哪种",
         h("b", null, "底座"),
-        "上。都已经按推荐选好了——不想逐项看，就按上面那个按钮一步到底。"
+        "上。均已按推荐预选，可逐项修改，也可一次取全部推荐值。"
       ),
       aside: badge(`${mods.length} 模块 · ${cells.length} 格`, "plain"),
     }),
@@ -277,23 +277,23 @@ export function viewPlans() {
       h(
         "div.rb",
         null,
-        h("b", null, "三件事都不用改？"),
+        h("b", null, "三项都无需修改？"),
         h(
           "span",
           null,
-          `${mods.length} 个模块 · ${GLUE.length} 项胶水 · ${BASE.length} 项底座一次全取推荐方案，确认后直接进下一步。`
+          `${mods.length} 个模块、${GLUE.length} 项胶水、${BASE.length} 项底座一次性取推荐方案，确认后进入下一步。`
         )
       ),
       recBtn
     ),
 
-    secttl("① 功能模块", `${mods.length} 个 · 每个 2–4 个做法`, h("span.t-12.faint", null, "点「还有 N 个做法」展开")),
+    secttl("① 功能模块", `${mods.length} 个 · 每个 2–4 种实现`, h("span.t-12.faint", null, "展开可查看备选")),
     h("div.col.gap-2", null, modBlocks),
 
-    secttl("② 模块之间的胶水", `${GLUE.length} 项 · 每个新模块都要从这里穿过去`),
+    secttl("② 模块之间的胶水", `${GLUE.length} 项 · 新模块接入的公共通道`),
     h("div.col.gap-2", null, glueBlocks),
 
-    secttl("③ 底座", `${BASE.length} 项 · 整台东西跑在什么上面、怎么发出去`),
+    secttl("③ 底座", `${BASE.length} 项 · 运行环境与分发方式`),
     h("div.col.gap-2", null, baseBlocks),
 
     h(
@@ -304,7 +304,7 @@ export function viewPlans() {
       h(
         "button.btn.btn--primary",
         { onclick: () => go("wire") },
-        h("span", null, "下一步：看连线图"),
+        h("span", null, "下一步：连线图"),
         icon("arrow-right", { size: 14 })
       )
     ),
@@ -316,7 +316,7 @@ export function viewPlans() {
         "button.btn.btn--ghost",
         { onclick: () => go("packs") },
         icon("arrow-left", { size: 14 }),
-        h("span", null, "上一步：改包")
+        h("span", null, "上一步：选择功能包")
       )
     )
   );

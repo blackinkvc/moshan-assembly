@@ -10,7 +10,7 @@ import { W, D } from "../../data/catalog.js";
 export const TC = D.typeCn; // X → 界面、T → 文本 …
 export const CELL_BY_ID = Object.fromEntries((D.comps || []).map((c) => [c.id, c]));
 
-/** 同一个域用同一个色相：图上一眼看得出「这几格是一家的」 */
+/** 同一域共用同一色相，便于识别归属 */
 const DOM_HUE = {};
 export function domHue(dom = "app") {
   if (DOM_HUE[dom] == null) {

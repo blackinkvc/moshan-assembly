@@ -1,10 +1,10 @@
 // lib/exportMd.js —— 把一次装配导成 Markdown。
 //
-// 确认页和交付页都要这个，所以放在这里一份：两处各写一遍必然漂移
-// （早前就出现过交付页少了「胶水与底座」半张表）。
+// 确认页与交付页共用这一份：两处各写一遍必然产生差异
+// （此前交付页曾缺少「胶水与底座」半张表）。
 //
-// 导出用「弹窗 + 复制」而不是下载文件：Tauri 里没有文件写入权限时，
-// <a download> 会静默失败——宁可少一个按钮，也不要给一个点了没反应的按钮。
+// 导出采用「弹窗 + 复制」而非下载文件：Tauri 无文件写入权限时
+// <a download> 会静默失败，因此不提供点了无响应的按钮。
 
 import { h } from "./dom.js";
 import { modal, toast } from "../components.js";
@@ -12,7 +12,7 @@ import { GLUE, BASE, HUB, STYLES } from "../../data/catalog.js";
 import { sceneById, hubCells, hubMod, formDef, platOf, PLATS } from "./hub.js";
 import { check, cellName } from "./wire.js";
 
-const LV_TXT = { rec: "推荐", ok: "能用", warn: "慎选", build: "自研" };
+const LV_TXT = { rec: "推荐", ok: "可用", warn: "慎选", build: "自研" };
 const styName = (id) => (STYLES.find((s) => s.id === id) || STYLES[1]).nm;
 const recOf = (provs) => provs.find((p) => p.lv === "rec") || provs[0];
 
@@ -60,13 +60,13 @@ export function mdFor(hub) {
     .forEach((cid, i) => L.push(`| ${i + 1} | ${cellName(cid)}（${cid}） | ${ownerOf(cid)} |`));
 
   // 交付页比确认页多这一段：没接上的东西不能只在页面上说说，清单里也要留痕
-  L.push("", "## 还没解决", "");
+  L.push("", "## 未解决项", "");
   if (!r.breaks.length && !r.dead.length) L.push("- 无");
   for (const b of r.breaks) {
-    L.push(`- 断点：「${b.who}」缺 ${b.need}${b.fix.length ? "，可补 " + b.fix.join("、") : ""}`);
+    L.push(`- 断点：「${b.who}」缺少 ${b.need}${b.fix.length ? "，可补 " + b.fix.join("、") : ""}`);
   }
-  for (const d of r.dead) L.push(`- 死端：「${d.who}」产出的${d.type}没人接`);
-  for (const cid of hub.needMiss || []) L.push(`- 没有模块：「${cellName(cid)}」库里还没有模块认领，要自己写`);
+  for (const d of r.dead) L.push(`- 死端：「${d.who}」产出的${d.type}无下游使用`);
+  for (const cid of hub.needMiss || []) L.push(`- 无模块：「${cellName(cid)}」暂无模块认领，需自行实现`);
 
   return L.join("\n");
 }
@@ -82,7 +82,7 @@ export function openExportMd(hub) {
     body: h(
       "div.col.gap-3",
       null,
-      h("p.t-12.faint", null, "复制走，贴进笔记、Issue 或 README 都行。"),
+      h("p.t-12.faint", null, "复制后可直接粘贴到笔记、Issue 或 README。"),
       ta
     ),
     footer: [

@@ -594,11 +594,22 @@ html.is-tauri .topbar { padding-left: 84px; }
 }
 .note b { color: var(--ink); font-weight: var(--fw-medium); }
 
-/* ══ 要哪几包 ══════════════════════════════════════════════
-   一个包是一块卡：表头（名字、等级、勾了几个、全选）+ 模块行。
-   包的颜色只用在图标与一条细渐变上，不做整块上色——24 个包各一色会很花。 */
+/* ══ 选包 ══════════════════════════════════════════════════
+   一个包是一张卡：表头（三态框、名字、等级、已选数、展开）＋ 可收起的模块清单。
+   两次选择分在两处：点表头 = 整包装上或卸下，点右侧箭头 = 展开逐个取舍。
+   卡片两列铺开，不占满整行；包色只用在图标与一条细渐变上，不做整块上色。 */
 
-.pk {
+.pkgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: var(--sp-3);
+  align-items: start;
+}
+@media (max-width: 1000px) {
+  .pkgrid { grid-template-columns: 1fr; }
+}
+
+.pkg {
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   background: var(--surface);
@@ -606,19 +617,68 @@ html.is-tauri .topbar { padding-left: 84px; }
   overflow: hidden;
   transition: border-color var(--t-base) var(--ease-out), box-shadow var(--t-base) var(--ease-out);
 }
-.pk.is-off { border-color: var(--line); box-shadow: none; }
-.pk.is-off .ph b { color: var(--ink-2); }
-.pk.is-hot { border-color: hsl(var(--h) 52% 46% / .65); box-shadow: 0 0 0 1px hsl(var(--h) 52% 46% / .35); }
+.pkg.is-off { box-shadow: none; }
+.pkg.is-open { border-color: var(--line-strong); }
+.pkg.is-hot { border-color: hsl(var(--h) 52% 46% / .65); box-shadow: 0 0 0 1px hsl(var(--h) 52% 46% / .35); }
 
-.ph {
+.pk-hd { display: flex; align-items: stretch; }
+
+.pk-sel {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4);
-  border-bottom: 1px solid var(--line);
-  background: linear-gradient(90deg, hsl(var(--h) 52% 48% / .09) 0%, transparent 46%);
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: var(--sp-3) var(--sp-2) var(--sp-3) var(--sp-4);
+  text-align: left;
+  background: linear-gradient(90deg, hsl(var(--h) 52% 48% / .09) 0%, transparent 58%);
+  transition: background var(--t-fast) var(--ease-out);
 }
-.ph b { font-size: var(--fs-13); font-weight: var(--fw-semi); }
+.pk-sel:hover { background: hsl(var(--h) 52% 48% / .14); }
+.pk-sel:focus-visible { box-shadow: inset var(--ring); }
+.pk-sel b {
+  font-size: var(--fs-13);
+  font-weight: var(--fw-semi);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pkg.is-off .pk-sel b { color: var(--ink-2); }
+
+/* 三态勾选框：全选打勾、部分一横、没选留空 */
+.tri {
+  position: relative;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-xs);
+  background: var(--surface);
+  transition: background var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out);
+}
+.tri[data-on="all"], .tri[data-on="part"] { background: var(--ink-block); border-color: var(--ink-block); }
+.tri[data-on="all"]::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--ink-inv);
+  border-width: 0 1.6px 1.6px 0;
+  transform: rotate(42deg);
+}
+.tri[data-on="part"]::after {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 6.5px;
+  width: 8px;
+  height: 1.6px;
+  border-radius: 1px;
+  background: var(--ink-inv);
+}
+
 .pico {
   display: inline-flex;
   align-items: center;
@@ -644,6 +704,7 @@ html[data-theme="dark"] .pico { color: hsl(var(--h) 46% 66%); }
   background: var(--surface-2);
   font-size: var(--fs-11);
   color: var(--ink-3);
+  flex: 0 0 auto;
 }
 .pout {
   padding: 1px 6px;
@@ -651,23 +712,36 @@ html[data-theme="dark"] .pico { color: hsl(var(--h) 46% 66%); }
   border: 1px dashed var(--line-strong);
   font-size: var(--fs-11);
   color: var(--ink-4);
+  flex: 0 0 auto;
 }
-.ph .pn {
+.pk-sel .pn {
   margin-left: auto;
+  padding-left: var(--sp-2);
   font-size: var(--fs-11);
   color: var(--ink-3);
   font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
 }
-.pall {
-  height: 24px;
-  padding: 0 var(--sp-2);
-  border-radius: var(--r-xs);
+
+/* 展开开关：与表头同高，左侧一条分隔线 */
+.pkexp {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 0 var(--sp-3);
+  border-left: 1px solid var(--line);
   font-size: var(--fs-11);
   color: var(--ink-3);
-  border: 1px solid var(--line);
-  transition: color var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out);
+  transition: color var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out);
 }
-.pall:hover { color: var(--ink); border-color: var(--line-strong); }
+.pkexp:hover { color: var(--ink); background: var(--surface-2); }
+.pkexp .ico { transition: transform var(--t-fast) var(--ease-out); }
+.pkexp[aria-expanded="true"] .ico { transform: rotate(180deg); }
+.pkexp[aria-expanded="true"] { color: var(--ink); }
+
+.pk-bd { border-top: 1px solid var(--line); }
+.pkg:not(.is-open) .pk-bd { display: none; }
 
 .ps {
   padding: var(--sp-2) var(--sp-4);
@@ -677,6 +751,8 @@ html[data-theme="dark"] .pico { color: hsl(var(--h) 46% 66%); }
   color: var(--ink-3);
   background: var(--surface-2);
 }
+
+.plist { display: flex; flex-direction: column; }
 
 /* 模块行：整行是一个按钮，左边是勾选框 */
 .mod {

@@ -1,7 +1,7 @@
 // views/pack.js —— 打包带走：包里有什么、装的时候会被什么拦住、按下去真的能存。
 //
-// 文件不是「现场拼的」，而是 lib/pack.js 出的那一份——和试用页 iframe 里跑的
-// 是同一份 HTML。所以这一页列出来的大小、条数都是真的，不是写死的文案。
+// 文件不在此处拼接，而由 lib/pack.js 生成——与试用页 iframe 中运行的是同一份 HTML。
+// 因此本页列出的大小与条数均为真实值，不是固定文案。
 
 import { h } from "../lib/dom.js";
 import { icon } from "../icons.js";
@@ -23,8 +23,8 @@ export function viewPack() {
     return h(
       "div.wrap",
       null,
-      pagehd({ title: "还没有能打包的东西", lead: "先装配一套出来，这里才有东西可打。" }),
-      h("button.btn.btn--primary", { onclick: () => go("scenes") }, h("span", null, "去挑场景"))
+      pagehd({ title: "还没有可打包的内容", lead: "先完成一次装配，这里才会有产物。" }),
+      h("button.btn.btn--primary", { onclick: () => go("scenes") }, h("span", null, "选择场景"))
     );
   }
 
@@ -34,11 +34,11 @@ export function viewPack() {
   const plats = platOf(hub);
   const notes = installNotes(hub.form, plats);
   const pack = packFiles(hub);
-  /* 另一档也算一份：这一页要说清「最小包到底省了多少」，
-     不给对照就只能写一句「更小」，而那是不诚实的——它其实只省 2KB。 */
+  /* 另一档同时计算：本页需要给出最小包的实际节省量，
+     缺少对照只能写「更小」，而磁盘占用实际差异很小。 */
   const alt = packFiles({ ...hub, min: !hub.min });
-  const cur = pack; // 「当前这一档」的别名：下文和 alt 对照时读起来顺一点
-  /* 页面上的数字一律取 pack 里那份「有效数据」：开了最小包就按地基算 */
+  const cur = pack; // 当前档位的别名，下文与 alt 对照时使用
+  /* 页面数字一律取 pack 中的有效数据：启用最小包时按地基计算 */
   const memo = pack.memo;
   const effMods = pack.data.mods.length;
   const effCells = pack.data.cells.length;
@@ -52,7 +52,7 @@ export function viewPack() {
 
   const save = async (name, data) => {
     const where = await saveFile(name, data);
-    if (!where) toast("没能保存，换个浏览器或检查下载权限", 2600);
+    if (!where) toast("保存失败，请更换浏览器或检查下载权限", 2600);
     else if (where === name) toast(`已下载 ${name}`, 1800);
     else toast(`已存到 ${where}`, 3000);
   };
@@ -63,15 +63,15 @@ export function viewPack() {
     steps(STEP_NAMES, ALL_DONE),
 
     pagehd({
-      title: "打包带走",
-      lead: `包里是 ${pack.files.length} 个文件：一份能直接双击打开的试用版、模块清单、README、安装说明${
+      title: "打包与交付",
+      lead: `包内共 ${pack.files.length} 个文件：可直接打开的试用版、模块清单、README、安装说明${
         pack.files.some((f) => f.name === "modules.json") ? "、商店清单" : ""
-      }。全是普通文本，没有安装脚本，解开就是文件夹。`,
+      }。均为纯文本，无安装脚本，解压后即为文件夹。`,
       right: h("span.badge.ok", null, pack.sizeTxt),
     }),
 
     /* ① 包里有什么 */
-    secttl("① 包里有什么", `${pack.files.length} 个文件 · 解开约 ${pack.sizeTxt} · ${effMods} 个模块`),
+    secttl("① 包内文件", `${pack.files.length} 个文件 · 解压约 ${pack.sizeTxt} · ${effMods} 个模块`),
     h(
       "div.packlist",
       null,
@@ -87,7 +87,7 @@ export function viewPack() {
     ),
 
     /* ② 打多大 —— 这一块的重点不是开关，是把「省在哪、没省在哪」说清 */
-    secttl("② 打多大", "最小包省的是内存，不是磁盘"),
+    secttl("② 体积与取舍", "最小包主要节省内存，磁盘差异很小"),
     h(
       "div.minbox" + (hub.min ? ".on" : ""),
       null,
@@ -107,16 +107,16 @@ export function viewPack() {
         h(
           "p.t-12.faint",
           null,
-          `只带地基模块（core 里必装的那几块 + 扩展系统，共 ${minKeep} 个），其余 ${hub.mods.length - minKeep} 个进商店按需下。`,
-          h("b", null, "模块商店入口强制保留"),
-          "——最小包要是连下载入口都没有，以后就再也加不上东西了。"
+          `仅含地基模块（必装模块与扩展系统，共 ${minKeep} 个），其余 ${hub.mods.length - minKeep} 个由模块商店按需安装。`,
+          h("b", null, "模块商店入口必须保留"),
+          "：缺少下载入口后将无法再安装新模块。"
         ),
         h(
           "p.t-12.minfact",
           null,
           hub.min
-            ? `磁盘 ${alt.sizeTxt} → ${cur.sizeTxt}，几乎没变（原型主要是运行时，砍模块省不出多少）；真正省下来的是内存：${mbTxt(alt.memo.total)} → ${mbTxt(cur.memo.total)}。`
-            : `开了它：磁盘 ${cur.sizeTxt} → ${alt.sizeTxt}（省不出多少，原型是代码不是数据），内存 ${mbTxt(cur.memo.total)} → ${mbTxt(alt.memo.total)}。`
+            ? `磁盘 ${alt.sizeTxt} → ${cur.sizeTxt}，差异很小（体积主要来自运行时）；内存 ${mbTxt(alt.memo.total)} → ${mbTxt(cur.memo.total)}。`
+            : `启用后：磁盘 ${cur.sizeTxt} → ${alt.sizeTxt}（体积主要来自运行时，模块占比很小），内存 ${mbTxt(cur.memo.total)} → ${mbTxt(alt.memo.total)}。`
         )
       ),
       h("span.badge" + (hub.min ? ".ok" : ".mute"), null, hub.min ? "只发地基" : "全量")
@@ -124,7 +124,7 @@ export function viewPack() {
 
     /* ③ 装的时候会被什么拦住 */
     secttl(
-      "③ 装的时候会被什么拦住",
+      "③ 安装会被什么拦截",
       `${formDef(hub.form).nm} · ${plats.map((p) => (PLATS.find((x) => x.id === p) || {}).nm).filter(Boolean).join(" / ") || "—"}`
     ),
     h(
@@ -149,17 +149,17 @@ export function viewPack() {
     h(
       "p.hintline",
       null,
-      "一句话：",
-      h("b", null, "被拦住的从来不是「你的程序不好」，是「系统不认识它」"),
-      "。要么买证书让它认识你，要么发源码让用户自己编——后者零成本，而且用户能看到每一行。"
+      "原因：",
+      h("b", null, "拦截来自系统无法验证发行者，而非程序本身"),
+      "。可选购买代码签名证书，或发布源码由用户自行编译：后者零成本，且用户可审阅全部代码。"
     ),
 
     /* ④ 装完的数字 */
-    secttl("④ 装完的数字", "这些会一起写进 manifest.json"),
+    secttl("④ 运行占用", "这些数值会写入 manifest.json"),
     h(
       "div.resgrid",
       null,
-      stat("运行时外壳", mbTxt(memo.shellMB), "不管装什么都要付的底座"),
+      stat("运行时外壳", mbTxt(memo.shellMB), "固定底座开销"),
       stat("模块与数据", mbTxt(memo.packMB), `${memo.packs.length} 个包 · ${effMods} 个模块`),
       stat(
         "本地模型",
@@ -175,7 +175,7 @@ export function viewPack() {
       )
     ),
 
-    /* ⑤ 一切从哪来 */
+    /* ⑤ 数据来源 */
     h(
       "div.facts2",
       null,
@@ -192,7 +192,7 @@ export function viewPack() {
         "button.btn.btn--ghost",
         { onclick: () => go("trial") },
         icon("arrow-left", { size: 14 }),
-        h("span", null, "上一步：回试用")
+        h("span", null, "上一步：试用")
       ),
       h(
         "div.btns",
@@ -231,8 +231,8 @@ export function viewPack() {
     h(
       "p.t-12.faint",
       { style: { marginTop: "var(--sp-4)" } },
-      "这一版是原型：界面、交互、目录结构、安装说明都是真的，" +
-        "但包里没有后端——要变成真程序，照着「模块清单.md」的施工顺序逐格落地。"
+      "本版为原型：界面、交互、目录结构与安装说明均为真实产物，但不含后端。" +
+        "要成为可运行程序，按「模块清单.md」的施工顺序逐格实现。"
     )
   );
 }

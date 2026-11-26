@@ -28,21 +28,21 @@ import { viewWip } from "./views/wip.js";
 
 const NAV = [
   { id: "home", nm: "工作台", ico: "shell" },
-  { id: "scenes", nm: "挑场景", ico: "layers" },
+  { id: "scenes", nm: "场景", ico: "layers" },
   { id: "drafts", nm: "草稿箱", ico: "clock" },
 ];
 
 const CRUMB = {
   home: "工作台",
-  scenes: "挑场景",
+  scenes: "场景",
   drafts: "草稿箱",
   need: "一句话需求",
-  style: "定形态",
-  packs: "要哪几包",
-  plans: "每格挑实现",
-  wire: "它们接得上吗",
+  style: "形态与规格",
+  packs: "选择功能包",
+  plans: "选择实现方案",
+  wire: "连线与自检",
   confirm: "确认清单",
-  build: "组装",
+  build: "组装台",
   done: "交付",
   trial: "试用",
   pack: "打包",
@@ -191,7 +191,7 @@ function cycleTheme() {
 function commands() {
   const list = [
     { grp: "页面", nm: "工作台", ico: "shell", run: () => go("home") },
-    { grp: "页面", nm: "挑场景", ico: "layers", run: () => go("scenes") },
+    { grp: "页面", nm: "场景", ico: "layers", run: () => go("scenes") },
     { grp: "页面", nm: "草稿箱", ico: "clock", run: () => go("drafts") },
     { grp: "动作", nm: "切换深浅色", ico: "theme", run: cycleTheme },
     { grp: "动作", nm: "收起 / 展开侧栏", ico: "sidebar", run: () => set({ sidebar: !S.sidebar }) },
@@ -250,7 +250,7 @@ function openCmdk() {
               h("span.grp", null, c.grp)
             )
           )
-        : [h("div.cmdk-empty", null, "没有匹配的。试试「场景」「配色」「草稿」。")])
+        : [h("div.cmdk-empty", null, "没有匹配项，可尝试「场景」「外观」「草稿」。")])
     );
   }
 
@@ -285,26 +285,26 @@ function openCmdk() {
 function openHelp() {
   const row = (k, v) => h("div.row.gap-3", { style: { padding: "5px 0" } }, h("kbd", null, k), h("span.t-13.dim", null, v));
   modal({
-    title: "怎么用",
+    title: "使用说明",
     body: h(
       "div.col.gap-3",
       null,
       h(
         "p.prose.t-13",
         null,
-        "八步：挑场景 → 定形态 → 勾包 → 每格挑实现 → 查连通 → 确认 → 组装 → 交付。每一步只让你做一个决定，做错能退回上一步。"
+        "共八步：选择场景 → 形态与规格 → 选择功能包 → 选择实现方案 → 连线与自检 → 确认清单 → 组装 → 交付。每步只需做一个决定，可随时退回上一步。"
       ),
       h("div.sep-h"),
       h("div.t-12.faint.wide", null, "键盘"),
-      row(MOD + "K", "搜索场景 / 跳转 / 切外观"),
-      row(MOD + "1", "回工作台"),
+      row(MOD + "K", "搜索场景、跳转、切换外观"),
+      row(MOD + "1", "返回工作台"),
       row(MOD + "N", "新建装配"),
       row(MOD + "S", "保存草稿"),
       row(MOD + "⇧ L", "切换深浅色"),
       row(MOD + "⇧ S", "收起侧栏"),
-      h("p.t-12.faint", null, `菜单栏里的「文件 / 视图」与本页快捷键是同一套动作。`)
+      h("p.t-12.faint", null, "菜单栏中的「文件 / 视图」与本页快捷键对应同一组动作。")
     ),
-    footer: btn("知道了", { kind: "primary", onclick: () => document.querySelector(".modal-scrim")?.remove() }),
+    footer: btn("关闭", { kind: "primary", onclick: () => document.querySelector(".modal-scrim")?.remove() }),
   });
 }
 

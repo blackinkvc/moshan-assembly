@@ -123,7 +123,7 @@ export function matchNeed(need) {
   }
   opt = opt.filter((c) => !must.includes(c)).sort((x, y) => score[y] - score[x]);
 
-  // ⑦ 有记录产出却没有数据仓 / 界面：补成「推荐」而不是硬塞进主体
+  // ⑦ 有记录产出但缺数据仓或界面：补为「推荐」，不并入主体
   const core = [];
   const rec = [];
   const given = new Set();

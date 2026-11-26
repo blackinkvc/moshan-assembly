@@ -1,5 +1,5 @@
-// views/wip.js —— 还没迁移过来的页面。不做假界面：
-// 说清现在在哪、下一步做什么，给一条明确的回去的路。
+// views/wip.js —— 尚未迁移的页面。不提供假界面：
+// 说明当前状态与后续计划，并给出返回路径。
 
 import { h } from "../lib/dom.js";
 import { icon } from "../icons.js";
@@ -14,28 +14,28 @@ export function viewWip({ param }) {
     "div.wrap",
     null,
     pagehd({
-      title: sc ? `已选：${sc.nm}` : "这一页还在迁移",
+      title: sc ? `已选：${sc.nm}` : "该页面正在迁移",
       lead: sc
-        ? "场景已经记下了。形态、包、方案、连线这几页正在按新规范重做，还没接上来。"
-        : "新版按批次迁移，这一页还没排到。先回工作台，别在半个界面上做决定。",
+        ? "场景已记录。形态、功能包、方案与连线页面正在按新规范重做，尚未接入。"
+        : "新版按批次迁移，该页面尚未排期。请先返回工作台，不在未完成的界面上做决定。",
       aside: sc ? h("span.t-12.faint", null, `${(sc.packs || []).length} 个包 · ${sc.sub}`) : null,
     }),
     h(
       "div.wip",
       null,
       icon("layers", { size: 32 }),
-      h("h2", null, "还没有迁移到这里"),
+      h("h2", null, "该页面尚未迁移"),
       h(
         "p",
         null,
-        "外壳、设计规范、首页与场景选择已经换新；剩下的页面沿用旧逻辑，等下一批接过来。",
-        "现在点下去只会看到一个空页，所以先不做——它不会假装能用。"
+        "外壳、设计规范、工作台与场景选择已更换为新实现；其余页面沿用旧逻辑，待下一批接入。",
+        "此处当前只会显示空页，因此不做占位实现。"
       ),
       h(
         "div.row.gap-2",
         null,
-        btn("回工作台", { kind: "primary", onclick: () => go("home") }),
-        btn("重挑场景", { onclick: () => go("scenes") })
+        btn("返回工作台", { kind: "primary", onclick: () => go("home") }),
+        btn("重新选择场景", { onclick: () => go("scenes") })
       )
     )
   );

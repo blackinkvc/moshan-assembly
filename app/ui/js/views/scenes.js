@@ -1,6 +1,6 @@
 // views/scenes.js —— 场景选择。
-// 18 个场景平铺会找不到，所以顶部一条吸顶索引做「筛选」而不是锚点跳转；
-// 筛选后必须留一行「看全部」，否则用户会以为别的场景没了。
+// 18 个场景平铺难以查找，顶部索引因此做成筛选而非锚点跳转；
+// 筛选后保留一行「查看全部」，否则会被误认为其余场景不存在。
 
 import { h } from "../lib/dom.js";
 import { icon } from "../icons.js";
@@ -12,7 +12,7 @@ import { set } from "../store.js";
 
 const pkName = (id) => (PACKS.find((p) => p.id === id) || {}).nm || id;
 
-/** 记忆上一次选的分类：去形态页再回来还停在原处 */
+/** 记住上次选择的分类，返回时停在原处 */
 let lastCat = "all";
 
 function scCard(sc) {
@@ -46,13 +46,13 @@ function scCard(sc) {
 }
 
 function pick(id) {
-  // 场景一选定就落进状态：形态/包/方案都从这台 hub 往下推。
-  // 默认给「软件 + 均衡」，让形态页一进去就有东西可确认，而不是空等着点。
+  // 选定场景即写入状态：形态、功能包、方案都由这台 hub 往下推导。
+  // 默认取「软件 + 均衡」，形态页进入后即有可确认的选项。
   set({ hub: newHub(id) });
   go("style", id);
 }
 
-/** 键盘：方向键在网格里走，Enter 进入。比 Tab 走 18 次好用得多。 */
+/** 键盘：方向键在网格内移动，Enter 进入 */
 function wireKeys(grid) {
   grid.addEventListener("keydown", (e) => {
     const cards = [...grid.querySelectorAll(".sc")];
@@ -115,7 +115,7 @@ export function viewScenes() {
           ? h(
               "span",
               null,
-              `只看「${cat.nm}」这一类，${list.length} 个场景　`,
+              `仅显示「${cat.nm}」类，共 ${list.length} 个场景　`,
               h(
                 "span.lnk",
                 {
@@ -133,10 +133,10 @@ export function viewScenes() {
                     }
                   },
                 },
-                `看全部 ${SCENES.length} 个`
+                `查看全部 ${SCENES.length} 个`
               )
             )
-          : h("span", null, cat ? "" : `共 ${SCENES.length} 个场景，按「装给谁用」分了 ${SCAT.length} 类`)
+          : h("span", null, cat ? "" : `共 ${SCENES.length} 个场景，按使用对象分为 ${SCAT.length} 类`)
       )
     );
   }
@@ -164,13 +164,13 @@ export function viewScenes() {
     "div.wrap",
     null,
     pagehd({
-      title: "挑一个和你处境最像的",
+      title: "选择场景",
       lead: h(
         "span",
         null,
-        "不用纠结名字像不像，",
-        h("b", null, "看它最难的那件事"),
-        "是不是你正在头疼的。选错了也能退回来重挑。"
+        "判断标准是这个场景",
+        h("b", null, "最难解决的问题"),
+        "是否与当前需求一致，而非名称是否相近。选择后可以随时返回更换。"
       ),
       aside: h("span.t-12.faint", null, `${SCENES.length} 个场景 · ${SCAT.length} 类`),
     }),

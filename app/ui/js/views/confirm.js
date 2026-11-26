@@ -38,11 +38,11 @@ export function viewConfirm() {
     return h(
       "div.wrap",
       null,
-      pagehd({ title: "还没有可确认的东西", lead: "先挑场景、勾模块，这里才有清单。" }),
+      pagehd({ title: "还没有可确认的内容", lead: "先选择场景并勾选模块，这里才会有清单。" }),
       h(
         "div.row.gap-2",
         null,
-        h("button.btn.btn--primary", { onclick: () => go("scenes") }, h("span", null, "从头开始"))
+        h("button.btn.btn--primary", { onclick: () => go("scenes") }, h("span", null, "回到第一步"))
       )
     );
   }
@@ -92,7 +92,7 @@ export function viewConfirm() {
     h(
       "table",
       null,
-      h("thead", null, h("tr", null, th("模块", "32%"), th("你选的实现"), th("等级", "72px"), th("为什么 / 备注", "30%"))),
+      h("thead", null, h("tr", null, th("模块", "32%"), th("选定实现"), th("等级", "72px"), th("说明", "30%"))),
       h(
         "tbody",
         null,
@@ -118,7 +118,7 @@ export function viewConfirm() {
     h(
       "table",
       null,
-      h("thead", null, h("tr", null, th("类别", "72px"), th("这一项", "26%"), th("选了什么"), th("为什么", "26%"))),
+      h("thead", null, h("tr", null, th("类别", "72px"), th("项目", "26%"), th("选定实现"), th("说明", "26%"))),
       h(
         "tbody",
         null,
@@ -196,7 +196,7 @@ export function viewConfirm() {
         null,
         `${sc.nm} · ${formDef(hub.form).nm} · ${styName(hub.sty)}：`,
         h("b", null, `${mods.length} 个模块插在 ${picks.length} 格上`),
-        `，装到 ${plats.join(" / ") || "—"}。确认后按施工顺序逐格装，中途可以停。`
+        `，部署到 ${plats.join(" / ") || "—"}。确认后按施工顺序逐格装配，中途可暂停。`
       ),
       aside: [
         badge(bad ? `${bad} 个断点` : "接得上", bad ? "clay" : "moss"),
@@ -211,20 +211,20 @@ export function viewConfirm() {
       null,
       dcard("形态", formDef(hub.form).nm, formDef(hub.form).d),
       dcard("规格", styName(hub.sty), `${mods.length} 个模块 · ${picks.length} 格`),
-      dcard("平台", plats.join(" / ") || "—", "安装说明按这几项给"),
+      dcard("平台", plats.join(" / ") || "—", "安装说明按这几项生成"),
       dcard(
         "内存占用",
         mbTxt(memo.total),
         memWarn
-          ? `可用约 ${mbTxt(memo.avail)}，装不下${memo.model ? "——换小一号的模型" : ""}`
+          ? `可用约 ${mbTxt(memo.avail)}，超出上限${memo.model ? "，需换用更小的模型" : ""}`
           : `可用约 ${mbTxt(memo.avail)}（预算 ${mbTxt(memo.budget)}）`
       )
     ),
 
-    secttl("① 模块与实现", `${mods.length} 个 · 每个都定了做法`),
+    secttl("① 模块与实现", `${mods.length} 个 · 均已选定实现`),
     modTable,
 
-    secttl("② 胶水与底座", `${GLUE.length + BASE.length} 项 · 模块之间怎么接、跑在哪`),
+    secttl("② 胶水与底座", `${GLUE.length + BASE.length} 项 · 模块连接方式与运行环境`),
     glueTable,
 
     h(
@@ -233,7 +233,7 @@ export function viewConfirm() {
       h(
         "div",
         null,
-        secttl("③ 施工清单", `${picks.length} 格 · 从上到下就是装配顺序`),
+        secttl("③ 施工清单", `${picks.length} 格 · 自上而下即装配顺序`),
         cellTable
       ),
       h(
@@ -250,8 +250,8 @@ export function viewConfirm() {
           "div.note",
           null,
           h("b", null, "开工前确认"),
-          "商业服务的 key 要自己申请；标「自研」的格按清单里的思路写，通常最费时间；" +
-            "断点不是错误，是「这一格要自己补上」。"
+          "商业服务的 key 需自行申请；标「自研」的格按清单思路实现，通常耗时最长；" +
+            "断点不是错误，表示该格需自行补齐。"
         )
       )
     ),
@@ -260,7 +260,7 @@ export function viewConfirm() {
       "div.mobar",
       null,
       badge(`${picks.length} 格 · ${r.lines} 条连线 · ${mods.length} 个模块`, bad ? "clay" : "moss"),
-      h("span.t-12.faint", null, "确认后进组装台，一格一格装"),
+      h("span.t-12.faint", null, "确认后进入组装台，逐格装配"),
       h(
         "span.push.row.gap-2",
         null,
@@ -273,7 +273,7 @@ export function viewConfirm() {
         h(
           "button.btn.btn--primary.btn--lg",
           { onclick: () => startBuild() },
-          h("span", null, "确认开工，开始组装"),
+          h("span", null, "确认并开始组装"),
           icon("arrow-right", { size: 14 })
         )
       )
@@ -286,7 +286,7 @@ export function viewConfirm() {
         "button.btn.btn--ghost",
         { onclick: () => go("wire") },
         icon("arrow-left", { size: 14 }),
-        h("span", null, "上一步：回连线图")
+        h("span", null, "上一步：连线图")
       )
     )
   );

@@ -1,7 +1,7 @@
 // views/build.js —— 组装台：把选好的模块一格一格插上去。
 //
-// 这是全流程里唯一「有节奏」的页面：一次只推进一步，每一步都有开始与完成两行日志，
-// 主板上的槽位一个个变成实心块。它当然是模拟——页头就标着「模拟」，不假装在编译。
+// 全流程中唯一按节奏推进的页面：每次前进一步，每步留下开始与完成两行日志，
+// 主板槽位逐个变为实心块。本质是模拟，页头已标注「模拟」。
 //
 // 推进状态放在 S.build 里并落盘：中途去查东西、刷新页面，回来还能接着装。
 
@@ -19,7 +19,7 @@ const planOf = (hub, mid) => {
   return m ? m.provs.find((p) => p.id === (hub.plans || {})[mid]) || m.provs[0] : null;
 };
 
-/** 一次组装的快照要能被识别是不是同一套：模块清单变了就得重来 */
+/** 快照签名：用于判断是否同一套装配，模块清单变化即需重新开始 */
 const sigOf = (hub) => hub.scene + "|" + hub.form + "|" + hub.mods.join(",");
 
 function freshBuild(hub) {
@@ -44,11 +44,11 @@ export function viewBuild() {
     return h(
       "div.wrap",
       null,
-      h("h1.t-20", { style: { marginBottom: "8px" } }, "没有要装的东西"),
+      h("h1.t-20", { style: { marginBottom: "8px" } }, "没有待装配的内容"),
       h(
         "div.row.gap-2",
         null,
-        h("button.btn.btn--primary", { onclick: () => go("scenes") }, h("span", null, "从头开始"))
+        h("button.btn.btn--primary", { onclick: () => go("scenes") }, h("span", null, "回到第一步"))
       )
     );
   }
@@ -136,12 +136,12 @@ export function viewBuild() {
     statusLine.textContent = b.done
       ? "全部就绪"
       : b.paused
-      ? "已暂停，点继续恢复"
-      : `正在插第 ${Math.min(b.i + 1, total)} / ${total} 个模块`;
+      ? "已暂停"
+      : `正在装配第 ${Math.min(b.i + 1, total)} / ${total} 个模块`;
   }
 
-  // 注意：不要在 h() 里给 onclick，又在 paintButtons 里赋 .onclick——
-  // h() 用的是 addEventListener，两处都挂等于点一下触发两次（开关互相抵消）。
+  // 不要同时在 h() 里传 onclick 又给节点赋 .onclick：h() 走 addEventListener，
+  // 两处都挂会导致一次点击触发两次，开关互相抵消。
   const pauseBtn = h("button.btn");
   function paintButtons() {
     if (b.done) {
@@ -250,7 +250,7 @@ export function viewBuild() {
     }
   }
 
-  /** 快进：一次把剩下的日志铺完。模拟出来的东西，不必逼人看满 20 秒。 */
+  /** 快进：一次输出剩余日志，无需等待完整时长 */
   function fastForward() {
     clearTimeout(timer);
     while (b.i < total) {
@@ -284,10 +284,10 @@ export function viewBuild() {
       body: h(
         "p.prose.t-13",
         null,
-        "已装好的模块会保留，下次进来可以接着装。这是模拟，实际不会留下任何文件。"
+        "已装配的模块会保留，下次可继续。整个过程是模拟，不会写入任何文件。"
       ),
       footer: [
-        h("button.btn.btn--ghost", { onclick: () => m.close() }, h("span", null, "继续装")),
+        h("button.btn.btn--ghost", { onclick: () => m.close() }, h("span", null, "继续")),
         h(
           "button.btn.btn--danger",
           {
@@ -319,10 +319,10 @@ export function viewBuild() {
         h(
           "p.lead",
           null,
-          `${sc.nm} · ${formDef(hub.form).nm} · ${styName(hub.sty)}：${total} 个模块按施工顺序一个一个插上去。`
+          `${sc.nm} · ${formDef(hub.form).nm} · ${styName(hub.sty)}：${total} 个模块按施工顺序逐个装配。`
         )
       ),
-      // 进度在主板上已经写了「N/M 已插上」，这里不再重复一遍
+      // 进度已在主板上以「N/M 已插上」呈现，此处不重复
       h("div.row.gap-2", null, badge("模拟", "clay"))
     ),
 
@@ -395,7 +395,7 @@ export function viewBuild() {
   paint();
   if (!b.done && !b.paused && !b.busy) timer = setTimeout(tick, 420);
 
-  // 离开页面时把定时器收掉，别在别的页面上继续推进
+  // 离开页面时清除定时器，避免在其他页面继续推进
   const stopOnLeave = () => {
     if (!alive()) {
       clearTimeout(timer);
