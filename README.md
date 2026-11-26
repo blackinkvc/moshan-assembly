@@ -32,7 +32,7 @@ open arch/app.html
 | 路径 | 是什么 |
 |---|---|
 | `arch/` | 装配台本体：模板 + 生成脚本 + 130 格能力库 + 12 场景定义。做法笔记见 [`arch/README.md`](arch/README.md) |
-| `docs/` | GitHub Pages 发布目录（`docs/index.html` = 构建产物的一份拷贝） |
+| 分支 `pub` | 发布分支，只有 `index.html` + `.nojekyll`。在线站点从它出，不在主干上 |
 | `ARCHITECTURE.md` | 整体设计：数据模型、判定规则、为什么这么切 |
 | `MOSHAN-PLUGIN-SPEC.md` | 模块与插件的规格约定 |
 | `XHUB-VS-MOSHAN.md` / `arch/MATCH.md` | 与既有产品/方案的对照与取舍 |
@@ -41,11 +41,20 @@ open arch/app.html
 
 ## 发布
 
+构建产物不进主干。它有自己的工作树与分支：
+
 ```bash
+# 1) 在源码目录重建
 python3 arch/app.py
-cp arch/app.html docs/index.html     # GitHub Pages（main 分支 /docs）
-cp arch/app.html publish/index.html  # 另一份线上托管
+
+# 2) 拷进发布工作树（与本仓库并列的一个 worktree，挂 pub 分支）
+cp arch/app.html ../moshan-pub/index.html
+
+# 3) 从发布工作树提交并推送
+cd ../moshan-pub && git add -A && git commit -m "release: $(date +%F)" && git push origin pub
 ```
+
+GitHub Pages 与另一条线上托管都读这一份文件（Pages 源：`pub` 分支根目录）。
 
 ## 已知的不足
 

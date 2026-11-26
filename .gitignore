@@ -22,5 +22,7 @@ arch/planner.html
 arch/guide.html
 arch/app.html
 
-# 发布源目录：只是 index.html = arch/app.html 的一份拷贝，供线上托管用
+# 发布物不进主干。构建产物拷到并列的 ../moshan-pub 工作树（pub 分支）再推。
+# 这条规则留着，是拦着有人在本地随手建个 publish/ 就往主干里带。
 publish/
+docs/
