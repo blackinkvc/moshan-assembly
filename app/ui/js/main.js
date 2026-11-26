@@ -18,6 +18,8 @@ import { viewWire } from "./views/wire.js";
 import { viewConfirm } from "./views/confirm.js";
 import { viewBuild } from "./views/build.js";
 import { viewDone } from "./views/done.js";
+import { viewTrial } from "./views/trial.js";
+import { viewPack } from "./views/pack.js";
 import { viewWip } from "./views/wip.js";
 
 const NAV = [
@@ -38,6 +40,8 @@ const CRUMB = {
   confirm: "确认清单",
   build: "组装",
   done: "交付",
+  trial: "试用",
+  pack: "打包",
 };
 
 let viewEl, crumbEl, navEl, themeBtn;
@@ -422,6 +426,8 @@ async function boot() {
   register("confirm", viewConfirm);
   register("build", viewBuild);
   register("done", viewDone);
+  register("trial", viewTrial);
+  register("pack", viewPack);
   register("drafts", () => viewDrafts());
   start(viewEl, viewWip);
 

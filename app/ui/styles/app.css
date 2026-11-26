@@ -1844,6 +1844,231 @@ html[data-theme="dark"] .mchip {
   line-height: var(--lh-normal);
 }
 
+/* ══ 试用 ══════════════════════════════════════════════════
+   这一页的主角是 iframe，所以除了顶栏和底栏什么都不加。
+   原型自己有完整样式（独立文档），主站的变量与主题进不去——这是刻意的：
+   带走的那个东西不该带着设计系统的依赖。 */
+
+.trialbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-top: var(--sp-4);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+}
+.trialbar .sp { flex: 1; }
+
+.trialbox {
+  display: block;
+  width: 100%;
+  height: 580px;
+  margin-top: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: #fff; /* 原型文档底是白的，不给会在加载瞬间闪一下深色 */
+  box-shadow: var(--sh-1);
+}
+@media (max-width: 1000px) { .trialbox { height: 520px; } }
+
+.trialnote { margin-top: var(--sp-2); }
+
+/* ══ 打包 ══════════════════════════════════════════════════ */
+
+/* 文件表：名字等宽、说明次要、大小右对齐——三段信息各有固定位置 */
+.packlist {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+.packlist .row {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
+  border-bottom: 1px dashed var(--line);
+  font-size: var(--fs-12);
+}
+.packlist .row:last-child { border-bottom: 0; }
+.packlist .row b {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: var(--fw-medium);
+  color: var(--ink);
+}
+.packlist .row span { color: var(--ink-3); line-height: var(--lh-normal); }
+.packlist .row em {
+  font-style: normal;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-4);
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 760px) {
+  .packlist .row { grid-template-columns: 1fr auto; }
+  .packlist .row span { grid-column: 1 / -1; }
+}
+
+/* 最小包开关：一行说完「只发地基」的代价与底线 */
+.minbox {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.minbox.on { border-color: var(--brass-line); background: var(--brass-soft); }
+.minbox > div { min-width: 0; flex: 1; }
+.minbox b { font-size: var(--fs-13); font-weight: var(--fw-semi); }
+.minbox p { margin-top: 3px; }
+.minbox .badge { flex: 0 0 auto; }
+/* 对照那一行：数字是重点，所以换个颜色单独提出来 */
+.minbox .minfact {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px dashed var(--line-strong);
+  font-size: var(--fs-11);
+  line-height: var(--lh-normal);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.switch {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 20px;
+  margin-top: 1px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  background: var(--surface-3);
+  position: relative;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out);
+}
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--sh-1);
+  transition: transform var(--t-fast) var(--ease-out);
+}
+.switch.on { background: var(--ink-block); border-color: var(--ink-block); }
+.switch.on::after { transform: translateX(14px); }
+.switch:focus-visible { outline: none; box-shadow: var(--ring); }
+
+/* 安装拦截：每个平台一张卡，卡里三行（拦在哪 / 怎么过 / 彻底解决） */
+.inst {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+@media (max-width: 900px) { .inst { grid-template-columns: 1fr; } }
+
+.icard {
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+.icard .ih {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line-2);
+}
+.icard .ih b { font-size: var(--fs-13); font-weight: var(--fw-semi); }
+.icard .ih .badge { margin-left: auto; }
+
+.irow {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: var(--sp-2);
+  padding-top: var(--sp-2);
+  font-size: var(--fs-12);
+  line-height: var(--lh-normal);
+  color: var(--ink-2);
+}
+.irow em {
+  font-style: normal;
+  font-size: var(--fs-11);
+  color: var(--ink-4);
+  padding-top: 1px;
+}
+.irow b { font-weight: var(--fw-medium); color: var(--ink); }
+.irow code {
+  padding: 1px 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  /* 深色下 --surface-2 和卡片底只差一档，光靠底色认不出是代码，得靠描边 */
+  color: var(--ink-2);
+}
+
+/* 装完的数字：六格，扫一眼就够，不再展开 */
+.resgrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--line);
+  overflow: hidden;
+}
+@media (max-width: 1100px) { .resgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .resgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.rcell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-3);
+  background: var(--surface);
+}
+.rcell span { font-size: var(--fs-11); color: var(--ink-3); }
+.rcell b {
+  font-size: var(--fs-16);
+  font-weight: var(--fw-semi);
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.rcell i {
+  font-style: normal;
+  font-size: var(--fs-11);
+  line-height: var(--lh-snug);
+  color: var(--ink-4);
+}
+
+/* 「一切从哪来」：四条键值，横排 */
+.facts2 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-md);
+}
+@media (max-width: 900px) { .facts2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.facts2 .kv { display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-12); }
+.facts2 .kv b { font-size: var(--fs-11); font-weight: var(--fw-regular); color: var(--ink-4); }
+.facts2 .kv span { color: var(--ink-2); }
+
 /* ══ 页脚导航（每一步的「上一步」） ════════════════════════ */
 .stepnav {
   display: flex;

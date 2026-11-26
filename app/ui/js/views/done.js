@@ -244,7 +244,7 @@ export function viewDone() {
       )
     ),
 
-    /* ④ 带走 */
+    /* ④ 带走：两个出口。先试用（能点的原型）→ 再打包（zip） */
     h(
       "div.stepnav",
       null,
@@ -258,13 +258,14 @@ export function viewDone() {
           icon("save", { size: 14 }), h("span", null, "存草稿")),
         h("button.btn.btn--ghost", { onclick: () => openExportMd(hub) },
           icon("export", { size: 14 }), h("span", null, "导出清单")),
-        h("button.btn", {
-          onclick: () => { set({ hub: null, build: null }); go("scenes"); },
-        }, icon("loop", { size: 14 }), h("span", null, "再做一个"))
+        h("button.btn", { onclick: () => go("pack") },
+          icon("box", { size: 14 }), h("span", null, "直接打包")),
+        h("button.btn.btn--primary", { onclick: () => go("trial") },
+          h("span", null, "先试用一下"), icon("arrow-right", { size: 14 }))
       )
     ),
 
     h("p.t-12.faint", { style: { marginTop: "var(--sp-4)", textAlign: "right" } },
-      "试用与打包（生成一份能点的 HTML）还没迁过来，下一批接上。")
+      "试用会打开一个能点的原型（不是截图，也不是占位）：界面和交互是真的，后端是假的。")
   );
 }

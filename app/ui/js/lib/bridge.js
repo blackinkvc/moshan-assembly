@@ -67,6 +67,32 @@ export async function revealDataDir() {
   }
 }
 
+/** 存一个文件，回「存在哪」（没存成返回 null）。
+    浏览器里走 blob + a[download]；Tauri 里交给 Rust 落盘——
+    WebView 拦 blob 下载时是静默的，点了没反应比报错更难受。 */
+export async function saveFile(name, bytes) {
+  const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  if (isTauri) {
+    try {
+      return await invoke("save_file", { name, bytes: Array.from(u8) });
+    } catch (e) {
+      console.warn("save_file failed", e);
+      return null;
+    }
+  }
+  try {
+    const blob = new Blob([u8], { type: name.endsWith(".zip") ? "application/zip" : "application/octet-stream" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    return name;
+  } catch {
+    return null;
+  }
+}
+
 /** 原生菜单点击 → 前端动作 */
 export function onMenu(cb) {
   if (!isTauri || !ev) return () => {};

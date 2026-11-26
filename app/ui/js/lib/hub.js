@@ -186,5 +186,17 @@ export function memSim(hub) {
   const floor = Math.min(floorWant, Math.round(budget / 2));
   const avail = Math.max(1024, budget - floor);
 
-  return { shellMB, packMB, modelMB, model: mdl, total, budget, avail, pct: total / avail };
+  return {
+    shellMB,
+    packMB,
+    modelMB,
+    model: mdl,
+    total,
+    budget,
+    avail,
+    floor,
+    pct: total / avail,
+    ok: total <= avail,
+    packs: [...used], // 计了费的包（导出 README 时要写「N 个包」）
+  };
 }

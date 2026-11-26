@@ -68,6 +68,46 @@ fn reveal_data_dir(app: tauri::AppHandle) -> Result<String, String> {
     Ok(dir.to_string_lossy().to_string())
 }
 
+/// 存文件（打包下载走这里）。
+/// WebView 里 `<a download>` 不可靠——Tauri 的 WebView 拦 blob 下载时是静默的，
+/// 用户点了没反应也看不到错误。所以字节从 Rust 侧落盘，并且把路径回给前端显示。
+#[tauri::command]
+fn save_file(app: tauri::AppHandle, name: String, bytes: Vec<u8>) -> Result<String, String> {
+    // 只取最后一段文件名，挡住 "../../.zshrc" 这种
+    let safe = name
+        .rsplit(['/', '\\'])
+        .next()
+        .unwrap_or("download")
+        .trim()
+        .to_string();
+    let safe = if safe.is_empty() { "download".to_string() } else { safe };
+
+    let dir = app
+        .path()
+        .download_dir()
+        .or_else(|_| app.path().app_data_dir())
+        .map_err(|e| e.to_string())?;
+    fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+
+    // 不覆盖同名文件：xxx.zip → xxx-2.zip → xxx-3.zip
+    let (stem, ext) = match safe.rfind('.') {
+        Some(i) if i > 0 => (safe[..i].to_string(), safe[i..].to_string()),
+        _ => (safe.clone(), String::new()),
+    };
+    let mut path = dir.join(&safe);
+    let mut n = 2;
+    while path.exists() {
+        path = dir.join(format!("{}-{}{}", stem, n, ext));
+        n += 1;
+        if n > 999 {
+            return Err("同名文件太多".into());
+        }
+    }
+
+    fs::write(&path, &bytes).map_err(|e| e.to_string())?;
+    Ok(path.to_string_lossy().to_string())
+}
+
 fn build_menu(app: &tauri::AppHandle) -> tauri::Result<()> {
     let mk = |id: &str, text: &str, acc: Option<&str>| -> tauri::Result<tauri::menu::MenuItem<tauri::Wry>> {
         let mut b = MenuItemBuilder::with_id(id, text);
@@ -159,7 +199,8 @@ pub fn run() {
             store_read,
             store_write,
             app_info,
-            reveal_data_dir
+            reveal_data_dir,
+            save_file
         ])
         .run(tauri::generate_context!())
         .expect("墨山装配台启动失败");
