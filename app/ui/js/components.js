@@ -135,9 +135,13 @@ export function toast(msg, ms = 2000) {
     wrap = h("div.toast-wrap", { role: "status", "aria-live": "polite" });
     document.body.appendChild(wrap);
   }
+  // 只留最新一条：连着两次操作时，上一条的定时器会被清掉，
+  // 不清节点就会永远贴在屏幕上叠成一列。
+  wrap.replaceChildren();
+  clearTimeout(toastTimer);
+
   const el = h("div.toast", null, icon("check", { size: 13 }), h("span", null, msg));
   wrap.appendChild(el);
-  clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     el.style.transition = "opacity 160ms, transform 160ms";
     el.style.opacity = "0";

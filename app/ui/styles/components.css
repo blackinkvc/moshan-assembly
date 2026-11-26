@@ -366,15 +366,16 @@ textarea.field { height: auto; padding: var(--sp-2) var(--sp-3); line-height: va
 }
 
 /* ══ Toast ═════════════════════════════════════════════════ */
+/* 右下角而不是正下方：页面底部的「上一步 / 下一步」是主要动作，
+   提示压在它们身上会被误认成第三个按钮。 */
 .toast-wrap {
   position: fixed;
-  bottom: var(--sp-6);
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: var(--sp-5);
+  right: var(--sp-5);
   z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-end;
   gap: var(--sp-2);
   pointer-events: none;
 }

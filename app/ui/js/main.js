@@ -11,6 +11,8 @@ import { SCENES, SCAT } from "../data/catalog.js";
 
 import { viewHome } from "./views/home.js";
 import { viewScenes } from "./views/scenes.js";
+import { viewStyle } from "./views/style.js";
+import { viewPacks } from "./views/packs.js";
 import { viewWip } from "./views/wip.js";
 
 const NAV = [
@@ -408,6 +410,8 @@ async function boot() {
 
   register("home", viewHome);
   register("scenes", viewScenes);
+  register("style", viewStyle);
+  register("packs", viewPacks);
   register("drafts", () => viewDrafts());
   start(viewEl, viewWip);
 

@@ -400,6 +400,424 @@ html.is-tauri .topbar { padding-left: 84px; }
 }
 .sctip .lnk { color: var(--brass-ink); text-decoration: underline; text-underline-offset: 2px; }
 
+/* ══ 定形态页 ══════════════════════════════════════════════
+   三组问题（形态 / 规格 / 平台）用同一种卡，只是内容不同：
+   前两组是单选，卡上必须能看出「选没选」，所以用 aria-checked 驱动样式。 */
+
+.wrap > .steps { margin-bottom: var(--sp-6); }
+
+.pgroup { margin-top: var(--sp-8); }
+.pgroup:first-of-type { margin-top: 0; }
+
+.pgt {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding-bottom: var(--sp-2);
+  margin-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--line);
+}
+.pgt b { font-size: var(--fs-14); font-weight: var(--fw-semi); }
+.pgt span { font-size: var(--fs-12); color: var(--ink-3); }
+
+.fgrp, .sgrp {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+@media (max-width: 980px) { .fgrp, .sgrp { grid-template-columns: 1fr; } }
+
+/* 单选卡：默认素，选中才上黄铜 */
+.fcard, .scd {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  text-align: left;
+  box-shadow: var(--sh-1);
+  transition: border-color var(--t-base) var(--ease-out),
+              box-shadow var(--t-base) var(--ease-out),
+              background var(--t-base) var(--ease-out);
+}
+.fcard:hover, .scd:hover { border-color: var(--line-strong); box-shadow: var(--sh-2); }
+.fcard:focus-visible, .scd:focus-visible { box-shadow: var(--ring), var(--sh-2); }
+.fcard[aria-checked="true"], .scd[aria-checked="true"] {
+  border-color: var(--brass);
+  background: linear-gradient(180deg, var(--brass-soft) 0%, var(--surface) 42%);
+  box-shadow: 0 0 0 1px var(--brass) inset, var(--sh-1);
+}
+
+.fcard .hd, .scd .hd { display: flex; align-items: center; gap: var(--sp-2); }
+
+/* 形态图标：方底，选中转黄铜 */
+.fico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--ink-2);
+  flex: 0 0 auto;
+  transition: background var(--t-base) var(--ease-out), color var(--t-base) var(--ease-out);
+}
+.fcard[aria-checked="true"] .fico { background: var(--brass-soft); color: var(--brass-ink); }
+
+.fcard .nm, .scd .nm {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  font-size: var(--fs-14);
+  font-weight: var(--fw-semi);
+}
+.fcard .tag {
+  font-size: var(--fs-11);
+  font-weight: var(--fw-regular);
+  color: var(--ink-4);
+  letter-spacing: var(--ls-wide);
+}
+
+/* 规格卡上的「多少个模块 · 多少格」跟着形态变，用等宽数字避免跳动 */
+.scd .n {
+  font-size: var(--fs-11);
+  font-weight: var(--fw-regular);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* 单列时卡片会被拉得很宽，示意图跟着放大成一块巨大的装饰——限宽，让它保持"小样"的尺度 */
+.scd .art { padding: 2px 0 var(--sp-1); max-width: 300px; }
+.scd .art svg { width: 100%; height: auto; }
+
+.fcard .d, .scd .d {
+  font-size: var(--fs-12);
+  line-height: var(--lh-normal);
+  color: var(--ink-3);
+}
+
+/* 「发出去会得到什么」单独一行：虚线以上是解释，以下是结果 */
+.fcard .keep, .scd .keep {
+  margin-top: auto;
+  padding-top: var(--sp-2);
+  border-top: 1px dashed var(--line);
+  font-size: var(--fs-11);
+  line-height: var(--lh-normal);
+  color: var(--ink-4);
+}
+.fcard .keep b, .scd .keep b { color: var(--ink-2); font-weight: var(--fw-medium); }
+
+/* 选中标记：没选时也留个淡圈，让人知道这是单选而不是普通卡 */
+.pickmark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  color: transparent;
+  flex: 0 0 auto;
+  transition: background var(--t-fast) var(--ease-out),
+              border-color var(--t-fast) var(--ease-out),
+              color var(--t-fast) var(--ease-out);
+}
+.fcard[aria-checked="true"] .pickmark,
+.scd[aria-checked="true"] .pickmark {
+  background: var(--brass);
+  border-color: var(--brass);
+  color: #fff;
+}
+
+/* 平台：一行小方块，与规格/形态的卡片视觉分级 */
+.plats { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.plat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-size: var(--fs-12);
+  color: var(--ink-2);
+  transition: border-color var(--t-fast) var(--ease-out),
+              background var(--t-fast) var(--ease-out),
+              color var(--t-fast) var(--ease-out);
+}
+.plat:hover { border-color: var(--line-strong); }
+.plat:focus-visible { box-shadow: var(--ring); }
+.plat b { font-weight: var(--fw-medium); }
+.plat .pn { font-size: var(--fs-11); color: var(--ink-4); }
+.plat[aria-pressed="true"] {
+  background: var(--ink-block);
+  border-color: var(--ink-block);
+  color: var(--ink-inv);
+}
+.plat[aria-pressed="true"] .pn { color: color-mix(in srgb, var(--ink-inv) 62%, transparent); }
+.plat[disabled] {
+  opacity: .5;
+  background: transparent;
+  color: var(--ink-4);
+}
+
+/* 解释性一行：空了就整行收掉，不留一条空白 */
+.hintline {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: var(--sp-3);
+  font-size: var(--fs-12);
+  line-height: var(--lh-normal);
+  color: var(--ink-3);
+}
+.hintline:empty { display: none; }
+.hintline .ico { width: 13px; height: 13px; margin-top: 3px; color: var(--ink-4); }
+.hintline b { color: var(--ink); font-weight: var(--fw-medium); }
+
+/* 页尾那张说明卡：这里是唯一允许出现「三条并列句子」的地方 */
+.note {
+  margin-top: var(--sp-8);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface-2);
+  font-size: var(--fs-12);
+  line-height: 1.85;
+  color: var(--ink-3);
+}
+.note b { color: var(--ink); font-weight: var(--fw-medium); }
+
+/* ══ 要哪几包 ══════════════════════════════════════════════
+   一个包是一块卡：表头（名字、等级、勾了几个、全选）+ 模块行。
+   包的颜色只用在图标与一条细渐变上，不做整块上色——24 个包各一色会很花。 */
+
+.pk {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--sh-1);
+  overflow: hidden;
+  transition: border-color var(--t-base) var(--ease-out), box-shadow var(--t-base) var(--ease-out);
+}
+.pk.is-off { border-color: var(--line); box-shadow: none; }
+.pk.is-off .ph b { color: var(--ink-2); }
+.pk.is-hot { border-color: hsl(var(--h) 52% 46% / .65); box-shadow: 0 0 0 1px hsl(var(--h) 52% 46% / .35); }
+
+.ph {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(90deg, hsl(var(--h) 52% 48% / .09) 0%, transparent 46%);
+}
+.ph b { font-size: var(--fs-13); font-weight: var(--fw-semi); }
+.pico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--r-xs);
+  background: hsl(var(--h) 52% 48% / .12);
+  color: hsl(var(--h) 52% 38%);
+  flex: 0 0 auto;
+}
+/* 包色相画出来的图标在深色下必须提亮。两条通道都要覆盖：
+   「跟随系统」时 html 上没有 data-theme，只写属性选择器会漏掉一半用户。 */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) .pico { color: hsl(var(--h) 46% 66%); }
+  html:not([data-theme="light"]) .mod .mico { color: hsl(var(--h) 44% 64%); }
+}
+html[data-theme="dark"] .pico { color: hsl(var(--h) 46% 66%); }
+
+.ptk {
+  padding: 1px 6px;
+  border-radius: var(--r-pill);
+  background: var(--surface-2);
+  font-size: var(--fs-11);
+  color: var(--ink-3);
+}
+.pout {
+  padding: 1px 6px;
+  border-radius: var(--r-pill);
+  border: 1px dashed var(--line-strong);
+  font-size: var(--fs-11);
+  color: var(--ink-4);
+}
+.ph .pn {
+  margin-left: auto;
+  font-size: var(--fs-11);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.pall {
+  height: 24px;
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-xs);
+  font-size: var(--fs-11);
+  color: var(--ink-3);
+  border: 1px solid var(--line);
+  transition: color var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out);
+}
+.pall:hover { color: var(--ink); border-color: var(--line-strong); }
+
+.ps {
+  padding: var(--sp-2) var(--sp-4);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-12);
+  line-height: var(--lh-normal);
+  color: var(--ink-3);
+  background: var(--surface-2);
+}
+
+/* 模块行：整行是一个按钮，左边是勾选框 */
+.mod {
+  display: grid;
+  grid-template-columns: 16px 20px 1fr;
+  align-items: start;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: var(--sp-2) var(--sp-4);
+  text-align: left;
+  transition: background var(--t-fast) var(--ease-out);
+}
+.mod + .mod { border-top: 1px solid var(--line-2, var(--line)); }
+.mod:hover { background: var(--surface-2); }
+.mod:focus-visible { box-shadow: var(--ring); border-radius: 0; }
+
+.mod .box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-xs);
+  background: var(--surface);
+  color: transparent;
+  transition: background var(--t-fast) var(--ease-out),
+              border-color var(--t-fast) var(--ease-out),
+              color var(--t-fast) var(--ease-out);
+}
+.mod[aria-pressed="true"] .box {
+  background: var(--ink-block);
+  border-color: var(--ink-block);
+  color: var(--ink-inv);
+}
+.mod .mico { color: hsl(var(--h) 50% 42%); margin-top: 2px; }
+html[data-theme="dark"] .mod .mico { color: hsl(var(--h) 44% 64%); }
+
+/* 没勾的用「文字降级」而不是整行降透明度：
+   整段包都没勾时，一片半透明会让人以为点不动，深色下还会糊成一片。 */
+.mod[aria-pressed="false"] .nm { color: var(--ink-2); font-weight: var(--fw-regular); }
+.mod[aria-pressed="false"] .sb,
+.mod[aria-pressed="false"] .pv,
+.mod[aria-pressed="false"] .cells code { color: var(--ink-4); }
+.mod[aria-pressed="false"] .mico { opacity: .5; }
+.mod[aria-pressed="false"]:hover .nm { color: var(--ink); }
+.mod[aria-pressed="false"]:hover .sb,
+.mod[aria-pressed="false"]:hover .mico { opacity: 1; color: var(--ink-3); }
+
+.mod .body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.mod .nm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+}
+.mod .tk {
+  padding: 0 5px;
+  border-radius: var(--r-xs);
+  background: var(--clay-soft);
+  color: var(--clay-ink);
+  font-size: 10px;
+  font-weight: var(--fw-regular);
+}
+.mod .mp {
+  padding: 0 5px;
+  border-radius: var(--r-xs);
+  background: var(--surface-3);
+  color: var(--ink-3);
+  font-size: 10px;
+  font-weight: var(--fw-regular);
+}
+.mod .pv { margin-left: auto; font-size: var(--fs-11); color: var(--ink-4); }
+.mod .sb {
+  font-size: var(--fs-12);
+  line-height: var(--lh-normal);
+  color: var(--ink-3);
+}
+.mod .cells { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 1px; }
+.mod .cells code {
+  padding: 1px 5px;
+  border-radius: var(--r-xs);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+.mod:hover .cells code { background: var(--surface-3); }
+
+/* 场景外的包：默认折叠，标题本身就是开关 */
+.xpack { margin-top: var(--sp-8); }
+.xpack-hd {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: var(--sp-2) var(--sp-2) var(--sp-2) 0;
+  margin-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-13);
+  color: var(--ink-2);
+  text-align: left;
+}
+.xpack-hd b { font-weight: var(--fw-semi); color: var(--ink); }
+.xpack-hd .ico { color: var(--ink-4); transition: transform var(--t-fast) var(--ease-out); }
+.xpack-hd[aria-expanded="false"] .ico { transform: rotate(-90deg); }
+
+/* 地基被叉掉的警告：不能只是一行灰字 */
+.warnbox {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid color-mix(in srgb, var(--clay) 30%, transparent);
+  border-radius: var(--r-sm);
+  background: var(--clay-soft);
+  font-size: var(--fs-12);
+  line-height: var(--lh-normal);
+  color: var(--clay-ink);
+}
+.warnbox b { font-weight: var(--fw-medium); }
+.warnbox .ico { color: var(--clay); flex: 0 0 auto; }
+.warnbox .btn { margin-left: auto; flex: 0 0 auto; }
+
+/* 模块区底部那条汇总：滚动到这儿就该知道能进下一步了 */
+.mobar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-6);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--sh-1);
+}
+
 /* ══ 页脚导航（每一步的「上一步」） ════════════════════════ */
 .stepnav {
   display: flex;

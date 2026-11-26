@@ -6,6 +6,7 @@ import { h } from "../lib/dom.js";
 import { icon } from "../icons.js";
 import { pagehd, badge } from "../components.js";
 import { SCENES, SCAT, PACKS } from "../../data/catalog.js";
+import { newHub } from "../lib/hub.js";
 import { go } from "../router.js";
 import { set } from "../store.js";
 
@@ -45,8 +46,9 @@ function scCard(sc) {
 }
 
 function pick(id) {
-  // 场景一选定就落进状态：后续页面（形态/包/方案）都从这里往下推
-  set({ hub: { scene: id, sty: null, form: null, mods: [], picks: [] } });
+  // 场景一选定就落进状态：形态/包/方案都从这台 hub 往下推。
+  // 默认给「软件 + 均衡」，让形态页一进去就有东西可确认，而不是空等着点。
+  set({ hub: newHub(id) });
   go("style", id);
 }
 
