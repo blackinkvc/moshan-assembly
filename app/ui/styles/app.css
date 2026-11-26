@@ -1415,6 +1415,250 @@ html[data-theme="dark"] .pnode i { color: hsl(var(--h) 35% 70%); }
   resize: vertical;
 }
 
+/* ══ 组装台 ════════════════════════════════════════════════
+   一块主板 + 一排槽位：已插上的变成实心块（带包色），还没插的是虚线空槽。
+   动效与连线页共用同一套选择（S.hub.anim），这边只负责「插进去」的那一下。 */
+
+.buildhd {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-5);
+}
+.buildhd h1 { font-size: var(--fs-26); letter-spacing: var(--ls-tight); }
+.buildhd .lead {
+  margin-top: 6px;
+  max-width: 60ch;
+  font-size: var(--fs-13);
+  line-height: var(--lh-normal);
+  color: var(--ink-3);
+}
+.buildhd > .row { margin-left: auto; padding-top: 4px; }
+
+.pcb {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: linear-gradient(180deg, var(--surface-2) 0%, var(--surface) 100%);
+  overflow: hidden;
+  box-shadow: var(--sh-1);
+}
+.pcb-hd {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-12);
+  color: var(--ink-2);
+}
+.pcb-hd .ico { color: var(--ink-4); }
+.pcb-hd b { font-weight: var(--fw-semi); }
+.pcb-hd i {
+  margin-left: auto;
+  font-style: normal;
+  font-size: var(--fs-11);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.pcbgrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+  padding: var(--sp-3);
+  /* 板子的走线底纹：非常淡，只是让空槽看着像「板子上有位置」 */
+  background-image:
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(0deg, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+@media (max-width: 1100px) { .pcbgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .pcbgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.slot, .mchip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 7px;
+  border-radius: var(--r-xs);
+  font-size: 11px;
+  min-width: 0;
+}
+.slot {
+  border: 1px dashed var(--line-strong);
+  color: var(--ink-4);
+  background: color-mix(in srgb, var(--surface) 60%, transparent);
+}
+.slot .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.mchip {
+  /* 比空槽明显重一档：实心色 + 左侧深色脊，扫一眼就知道哪些插上了 */
+  border: 1px solid hsl(var(--h) 40% 66%);
+  background: hsl(var(--h) 62% 88%);
+  box-shadow: inset 2px 0 0 hsl(var(--h) 50% 55%);
+  color: hsl(var(--h) 40% 20%);
+  font-weight: var(--fw-medium);
+  overflow: hidden;
+}
+.mchip .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mchip .dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: hsl(var(--h) 50% 52%);
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) .mchip {
+    background: hsl(var(--h) 30% 20%);
+    border-color: hsl(var(--h) 32% 40%);
+    color: hsl(var(--h) 40% 86%);
+  }
+}
+html[data-theme="dark"] .mchip {
+  background: hsl(var(--h) 30% 20%);
+  border-color: hsl(var(--h) 32% 40%);
+  color: hsl(var(--h) 40% 86%);
+}
+
+.pcb-ft {
+  padding: var(--sp-2) var(--sp-3);
+  border-top: 1px dashed var(--line);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-4);
+}
+
+/* 插进去的那一下：五套动作，与连线页同名同义 */
+.pcb[data-anim="flat"] .mchip.just { animation: pcbFlat .24s steps(4, end) both; }
+.pcb[data-anim="lego"] .mchip.just { animation: pcbLego .5s cubic-bezier(.2, 1.5, .35, 1) both; }
+.pcb[data-anim="solder"] .mchip.just { animation: pcbSolder .5s cubic-bezier(.35, .05, .35, 1) both; }
+.pcb[data-anim="glow"] .mchip.just { animation: pcbGlow .62s ease-out both; }
+.pcb[data-anim="stack"] .mchip.just { animation: pcbStack .54s cubic-bezier(.25, .9, .3, 1) both; }
+
+/* 静止时也分得出来：乐高有厚度、平涂直角无影、点亮常态微光、焊接留金边 */
+.pcb[data-anim="lego"] .mchip { box-shadow: 0 3px 0 color-mix(in srgb, var(--ink) 18%, transparent); }
+.pcb[data-anim="flat"] .mchip { border-radius: 2px; box-shadow: none; }
+.pcb[data-anim="glow"] .mchip { box-shadow: 0 0 10px hsl(var(--h) 60% 60% / .35), inset 0 0 0 1px hsl(var(--h) 50% 70% / .5); }
+.pcb[data-anim="solder"] .mchip .dot { background: #c9a227; box-shadow: 0 0 4px rgba(201, 162, 39, .8); }
+
+@keyframes pcbFlat { 0% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes pcbLego {
+  0% { opacity: 0; transform: translateY(-22px) scale(1.06); }
+  58% { opacity: 1; transform: translateY(2px) scale(.98); }
+  80% { transform: translateY(-1px) scale(1.005); }
+  100% { transform: none; }
+}
+@keyframes pcbSolder {
+  0% { opacity: 0; transform: translateX(-34px); }
+  58% { opacity: 1; transform: translateX(3px); box-shadow: 0 0 13px rgba(255, 201, 64, .95); }
+  100% { transform: none; box-shadow: 0 0 0 2px rgba(201, 162, 39, .7); }
+}
+@keyframes pcbGlow {
+  0% { opacity: .12; filter: brightness(2.8) saturate(.4); }
+  55% { opacity: 1; filter: brightness(1.3); }
+  100% { opacity: 1; filter: none; }
+}
+@keyframes pcbStack {
+  0% { opacity: 0; transform: translateY(-16px) rotate(-8deg); }
+  100% { transform: none; }
+}
+
+/* 进度环 + 状态 + 阶段 */
+.buildmid {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  margin: var(--sp-5) 0 var(--sp-4);
+}
+.ring { position: relative; flex: 0 0 auto; }
+.ring svg { display: block; }
+.ring .ringtrack { stroke: var(--surface-3); stroke-width: 9; }
+.ring .ringarc {
+  stroke: var(--ink-block);
+  stroke-width: 9;
+  stroke-linecap: round;
+  transform: rotate(-90deg);
+  transform-origin: 66px 66px;
+  transition: stroke-dashoffset .45s var(--ease-out);
+}
+.ring .c {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+.ring .c b { font-size: var(--fs-20); font-weight: var(--fw-semi); font-variant-numeric: tabular-nums; }
+.ring .c span { font-size: var(--fs-11); color: var(--ink-3); }
+
+.buildline {
+  margin-bottom: var(--sp-2);
+  font-size: var(--fs-13);
+  color: var(--ink-2);
+}
+
+.stage { display: flex; gap: 6px; flex-wrap: wrap; }
+.stage .s {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-11);
+  color: var(--ink-4);
+  background: var(--surface);
+}
+.stage .s i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+.stage .s.done { color: var(--ink-3); }
+.stage .s.done i { background: var(--moss); }
+.stage .s.on {
+  color: var(--ink);
+  border-color: var(--ink-block);
+  background: var(--surface-2);
+  font-weight: var(--fw-medium);
+}
+.stage .s.on i { background: var(--brass); animation: tpulse 900ms ease-in-out infinite; }
+
+/* 日志：等宽、行距紧、自动滚到底 */
+.log {
+  height: 208px;
+  overflow-y: auto;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.85;
+  color: var(--ink-2);
+}
+.log > div { display: flex; gap: var(--sp-2); white-space: pre-wrap; }
+.log .t { color: var(--ink-4); flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+.log .now { color: var(--ink); }
+.log .ok { color: var(--moss-ink); }
+.log .dim { color: var(--ink-3); }
+
+.buildbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+}
+
 /* ══ 页脚导航（每一步的「上一步」） ════════════════════════ */
 .stepnav {
   display: flex;

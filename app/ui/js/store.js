@@ -8,6 +8,7 @@ export const S = {
   sidebar: true,
   hub: null, // 正在装配的中台（后续批次接上）
   drafts: [], // 草稿
+  build: null, // 正在进行的组装（进度、日志）
   info: null, // 壳信息（版本、平台、数据目录）
 };
 
@@ -16,7 +17,8 @@ let saveTimer = 0;
 
 /** 只序列化需要落盘的部分：route 与 info 是运行时的，存了反而会在下次启动时跳页 */
 function persistable() {
-  return { version: 2, theme: S.theme, sidebar: S.sidebar, hub: S.hub, drafts: S.drafts };
+  // build 也存：装到一半刷新/切页回来还能接着装
+  return { version: 2, theme: S.theme, sidebar: S.sidebar, hub: S.hub, drafts: S.drafts, build: S.build };
 }
 
 export async function hydrate() {
@@ -26,6 +28,7 @@ export async function hydrate() {
     if (typeof saved.sidebar === "boolean") S.sidebar = saved.sidebar;
     if (Array.isArray(saved.drafts)) S.drafts = saved.drafts;
     if (saved.hub) S.hub = saved.hub;
+    if (saved.build) S.build = saved.build;
   }
   applyTheme();
 }
