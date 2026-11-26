@@ -140,3 +140,51 @@ export function withChoice(hub, patch) {
   if (!n.plat.length) n.plat = ["mac", "win"].filter((pid) => platOk(pid, n.form));
   return n;
 }
+
+/* ────────── 本地模型 ──────────
+   ram 是「跑起来占多少」，不是文件多大：7B 的 Q4 文件 4.7GB，实际要 6.6GB，
+   中间那块是 KV cache（4k 上下文下 0.5–1.5GB）。按文件大小算内存会低估一半。 */
+export const LLM_MODELS = [
+  { id: "qwen2.5:0.5b", nm: "Qwen2.5 0.5B", q: "Q4_K_M", gb: 0.4, ram: 1.1, tps: 150, use: "分类、打标签、抽取字段" },
+  { id: "llama3.2:1b", nm: "Llama 3.2 1B", q: "Q4_K_M", gb: 0.8, ram: 1.7, tps: 95, use: "短摘要、改写、路由" },
+  { id: "qwen2.5:1.5b", nm: "Qwen2.5 1.5B", q: "Q4_K_M", gb: 1.1, ram: 2.2, tps: 78, use: "中文摘要、轻问答" },
+  { id: "qwen2.5:3b", nm: "Qwen2.5 3B", q: "Q4_K_M", gb: 2.0, ram: 3.4, tps: 42, use: "通用问答、写小段代码" },
+  { id: "llama3.2:3b", nm: "Llama 3.2 3B", q: "Q4_K_M", gb: 2.0, ram: 3.4, tps: 42, use: "英文写作、指令跟随" },
+  { id: "qwen2.5:7b", nm: "Qwen2.5 7B", q: "Q4_K_M", gb: 4.7, ram: 6.6, tps: 22, use: "主力：写作、代码、分析" },
+  { id: "qwen2.5-coder:7b", nm: "Qwen2.5-Coder 7B", q: "Q4_K_M", gb: 4.7, ram: 6.8, tps: 20, use: "补全与改代码" },
+  { id: "qwen2.5:14b", nm: "Qwen2.5 14B", q: "Q4_K_M", gb: 9.0, ram: 12.2, tps: 11, use: "复杂推理；16G 内存起步" },
+  { id: "nomic-embed", nm: "nomic-embed-text", q: "F16", gb: 0.27, ram: 0.6, tps: 0, use: "向量检索（配合知识库）" },
+];
+
+export const modelOf = (id) =>
+  LLM_MODELS.find((m) => m.id === id) || LLM_MODELS.find((m) => m.id === "qwen2.5:3b");
+
+export const mbTxt = (n) =>
+  n >= 1024 ? (n / 1024).toFixed(1) + " GB" : Math.round(n) + " MB";
+
+/* ────────── 内存估算 ──────────
+   外壳 + 各包的常驻 + 本地模型。预算按用户选的机器内存，再扣掉系统占用：
+   桌面留 8G、安卓留 4G；但机器本身只有 8G 甚至 4G 时不能整块扣掉，
+   否则「可用」会被扣成负数再兜到 1G，所有组合一律「超了」——所以最多扣一半。 */
+export function memSim(hub) {
+  const shellMB = { tauri: 95, electron: 225, web: 45, cli: 12 }[hub.base?.["bs-shell"] || formDef(hub.form).base] || 95;
+
+  const used = new Set();
+  for (const id of hub.mods) {
+    const m = hubMod(id);
+    if (m) for (const p of m.pks || []) used.add(p);
+  }
+  const packMB = [...used].reduce((n, p) => n + (packOf(p).mb || 0), 0);
+
+  const hasLLM = hub.mods.includes("llmrt") || hub.mods.includes("llmpull") || used.has("llm");
+  const mdl = hasLLM ? modelOf(hub.model) : null;
+  const modelMB = mdl ? Math.round(mdl.ram * 1024) : 0;
+
+  const total = shellMB + packMB + modelMB;
+  const budget = (hub.mem || 16) * 1024;
+  const floorWant = (hub.plat || []).includes("android") ? 4096 : 8192;
+  const floor = Math.min(floorWant, Math.round(budget / 2));
+  const avail = Math.max(1024, budget - floor);
+
+  return { shellMB, packMB, modelMB, model: mdl, total, budget, avail, pct: total / avail };
+}

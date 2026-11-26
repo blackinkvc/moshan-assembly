@@ -22,6 +22,10 @@ export function domHue(dom = "app") {
 
 export const cellName = (cid) => (CELL_BY_ID[cid] || {}).name || cid;
 
+/** 这一格吃什么、吐什么（中文名），确认清单与详情都用它 */
+export const cellIns = (cid) => ((W[cid] || [[], []])[0] || []).map((grp) => grp.map((t) => TC[t] || t));
+export const cellOuts = (cid) => ((W[cid] || [null, []])[1] || []).map((t) => TC[t] || t);
+
 /* ────────── 自检 ────────── */
 
 export function check(picks, form = "app") {

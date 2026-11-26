@@ -1289,6 +1289,132 @@ html[data-theme="dark"] .pnode i { color: hsl(var(--h) 35% 70%); }
 .gapbox b { color: var(--clay-ink); font-weight: var(--fw-medium); }
 .gapbox.warn b { color: var(--brass-ink); }
 
+/* ══ 确认清单 ══════════════════════════════════════════════
+   这一页是「核对」，所以用表格而不是卡片：表格能一眼扫完，
+   卡片会把同类信息拆散。表格只在确认清单里出现，别的地方不要用。 */
+
+.dgrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+@media (max-width: 900px) { .dgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.dcard {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  min-width: 0;
+}
+.dcard span { font-size: var(--fs-11); color: var(--ink-4); }
+.dcard b {
+  font-size: var(--fs-16);
+  font-weight: var(--fw-semi);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dcard i {
+  font-style: normal;
+  font-size: var(--fs-11);
+  line-height: var(--lh-normal);
+  color: var(--ink-3);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tbl {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+.tbl + .tbl { margin-top: var(--sp-3); }
+.tbl table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: var(--fs-12);
+}
+.tbl th {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-medium);
+  color: var(--ink-3);
+  text-align: left;
+  letter-spacing: var(--ls-wide);
+}
+.tbl td {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+  line-height: var(--lh-normal);
+  color: var(--ink-2);
+}
+.tbl tr:last-child td { border-bottom: 0; }
+.tbl td.nm { color: var(--ink); font-weight: var(--fw-medium); }
+.tbl .sub {
+  margin-top: 2px;
+  font-size: var(--fs-11);
+  font-weight: var(--fw-regular);
+  color: var(--ink-4);
+  font-family: var(--font-mono);
+}
+.tbl td.faint { color: var(--ink-3); }
+
+/* 施工清单 + 右侧统计：表格宽，统计窄，自成一栏 */
+.conf {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 232px;
+  gap: var(--sp-4);
+  align-items: start;
+  margin-top: var(--sp-2);
+}
+@media (max-width: 1000px) { .conf { grid-template-columns: 1fr; } }
+
+.stats { display: flex; flex-direction: column; gap: var(--sp-2); }
+.stat {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+.st {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: var(--sp-2);
+  text-align: center;
+}
+.st + .st { border-left: 1px solid var(--line); }
+.st b { font-size: var(--fs-16); font-weight: var(--fw-semi); font-variant-numeric: tabular-nums; }
+.st b.is-warn { color: var(--clay-ink); }
+.st span { font-size: var(--fs-11); color: var(--ink-3); }
+
+.mdout {
+  width: 100%;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-11);
+  line-height: 1.7;
+  color: var(--ink-2);
+  resize: vertical;
+}
+
 /* ══ 页脚导航（每一步的「上一步」） ════════════════════════ */
 .stepnav {
   display: flex;

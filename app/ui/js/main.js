@@ -15,6 +15,7 @@ import { viewStyle } from "./views/style.js";
 import { viewPacks } from "./views/packs.js";
 import { viewPlans } from "./views/plans.js";
 import { viewWire } from "./views/wire.js";
+import { viewConfirm } from "./views/confirm.js";
 import { viewWip } from "./views/wip.js";
 
 const NAV = [
@@ -416,6 +417,7 @@ async function boot() {
   register("packs", viewPacks);
   register("plans", viewPlans);
   register("wire", viewWire);
+  register("confirm", viewConfirm);
   register("drafts", () => viewDrafts());
   start(viewEl, viewWip);
 
