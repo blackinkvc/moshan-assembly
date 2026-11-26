@@ -18,9 +18,27 @@
 - **组装**把方案演给你看：一块块模块插上主板，跑完自检才算装好。
 - **交付**给出安装说明、最小可用包、内存占用模拟 —— 不是「去装吧」，是「装这个版本的这台机器，占了这么多」。
 
-## 本地打开
+## 两个版本
 
-构建产物是**一个 HTML 文件**，离线可用，不需要服务器：
+| | `app/` 桌面版（新版） | `arch/` 网页版（旧版） |
+|---|---|---|
+| 形态 | Tauri 2 桌面应用，原生菜单与窗口 | 单个 HTML 文件，浏览器里开 |
+| 界面 | 设计规范 1.0，组件化 | 内联样式，14px 基准 |
+| 进度 | 外壳 / 首页 / 场景页已迁移 | 功能完整（八步全通） |
+
+新版按批次迁移，未迁移的页面会明确说「还没迁移」。旧版在迁移完成前仍是线上那份。
+
+### 桌面版
+
+```bash
+cd app/src-tauri && cargo run        # 开发模式
+cd app/src-tauri && cargo tauri build # 打包 .app / .dmg
+cd app/ui && python3 -m http.server 8901   # 只看界面，不需要 Rust
+```
+
+设计规范：[`app/DESIGN.md`](app/DESIGN.md) 与活样例 `app/ui/design.html`。
+
+### 网页版
 
 ```bash
 python3 arch/app.py            # arch/app.template.html + 数据 → arch/app.html
@@ -31,7 +49,8 @@ open arch/app.html
 
 | 路径 | 是什么 |
 |---|---|
-| `arch/` | 装配台本体：模板 + 生成脚本 + 130 格能力库 + 12 场景定义。做法笔记见 [`arch/README.md`](arch/README.md) |
+| `app/` | 桌面版：Tauri 2 壳 + 原生 ES module 前端 + 设计规范。见 [`app/README.md`](app/README.md) |
+| `arch/` | 网页版：模板 + 生成脚本 + 160 格能力库 + 18 场景定义。做法笔记见 [`arch/README.md`](arch/README.md) |
 | 分支 `pub` | 发布分支，只有 `index.html` + `.nojekyll`。检出在 `publish/`（一个 worktree），主干上看不到它 |
 | `ARCHITECTURE.md` | 整体设计：数据模型、判定规则、为什么这么切 |
 | `MOSHAN-PLUGIN-SPEC.md` | 模块与插件的规格约定 |
