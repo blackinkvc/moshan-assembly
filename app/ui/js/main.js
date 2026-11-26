@@ -5,8 +5,10 @@ import { h, MOD } from "./lib/dom.js";
 import { icon } from "./icons.js";
 import { btn, toast, modal, kv, pagehd, emptyState, clearToast } from "./components.js";
 import { S, hydrate, set, subscribe, toggleTheme, applyTheme } from "./store.js";
-import { register, start, go, parse } from "./router.js";
+import { register, start, go, parse, current } from "./router.js";
 import { isTauri, onMenu, appInfo, revealDataDir } from "./lib/bridge.js";
+import { saveDraft } from "./lib/draft.js";
+import { openExportMd } from "./lib/exportMd.js";
 import { SCENES, SCAT } from "../data/catalog.js";
 
 import { viewHome } from "./views/home.js";
@@ -19,6 +21,7 @@ import { viewConfirm } from "./views/confirm.js";
 import { viewBuild } from "./views/build.js";
 import { viewDone } from "./views/done.js";
 import { viewNeed } from "./views/need.js";
+import { viewDrafts } from "./views/drafts.js";
 import { viewTrial } from "./views/trial.js";
 import { viewPack } from "./views/pack.js";
 import { viewWip } from "./views/wip.js";
@@ -368,10 +371,12 @@ function wireMenu() {
         go("drafts");
         break;
       case "save":
-        toast("已保存草稿", 1400);
+        saveDraft(S.hub, current());
         break;
       case "export":
-        toast("导出还在迁移，先存草稿", 1800);
+        // 没有装配时导出没有意义，直接说清楚
+        if (S.hub && S.hub.mods && S.hub.mods.length) openExportMd(S.hub);
+        else toast("还没有可导出的装配", 1600);
         break;
       case "prefs":
         openPrefs();
@@ -404,6 +409,12 @@ function wireMenu() {
     if (mod && e.key.toLowerCase() === "k") {
       e.preventDefault();
       openCmdk();
+      return;
+    }
+    /* ⌘S：浏览器里这个键是「保存网页」，要拦下来；Tauri 里菜单的保存也走同一条路 */
+    if (mod && e.key.toLowerCase() === "s") {
+      e.preventDefault();
+      if (S.hub && S.hub.mods && S.hub.mods.length) saveDraft(S.hub, current());
     }
   });
 }
@@ -430,7 +441,7 @@ async function boot() {
   register("done", viewDone);
   register("trial", viewTrial);
   register("pack", viewPack);
-  register("drafts", () => viewDrafts());
+  register("drafts", viewDrafts);
   start(viewEl, viewWip);
 
   // 侧栏折叠要重画外壳的 grid 标记
@@ -449,46 +460,6 @@ async function boot() {
   renderCrumb();
 
   wireMenu();
-}
-
-/** 草稿箱：没有草稿就说清楚，不摆假列表 */
-function viewDrafts() {
-  return h(
-    "div.wrap",
-    null,
-    pagehd({
-      title: "草稿箱",
-      lead: "装配做到一半可以随时 ⌘S 存下，回来时场景、形态、已经勾的模块都还在。",
-      aside: S.drafts.length ? h("span.t-12.faint", null, `${S.drafts.length} 份`) : null,
-    }),
-    S.drafts.length
-      ? h(
-          "div.col.gap-2",
-          null,
-          S.drafts.map((d) =>
-            h(
-              "div.card",
-              { style: { display: "flex", alignItems: "center", gap: "var(--sp-3)", padding: "var(--sp-3) var(--sp-4)" } },
-              icon("clock", { size: 15 }),
-              h("div.grow", null,
-                h("div.t-13.semi.ellipsis", null, d.name || "未命名装配"),
-                h("div.t-12.faint", null, d.step || "工作台")
-              ),
-              btn("打开", { size: "sm", kind: "ghost", onclick: () => go("home") })
-            )
-          )
-        )
-      : h(
-          "div.card.card--flat",
-          { style: { padding: "var(--sp-2)" } },
-          emptyState({
-            iconName: "clock",
-            title: "还没有草稿",
-            desc: "从挑场景开始，做到任何一步都能存",
-            action: btn("开始装配", { kind: "primary", onclick: () => go("scenes") }),
-          })
-        )
-  );
 }
 
 boot();

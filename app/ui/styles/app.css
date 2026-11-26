@@ -1844,6 +1844,61 @@ html[data-theme="dark"] .mchip {
   line-height: var(--lh-normal);
 }
 
+/* ══ 草稿箱 ════════════════════════════════════════════════
+   一行一份草稿：色点（来自首模块的包色相）→ 名字 + 一行元信息 → 动作。
+   元信息必须有「多久之前」，否则三份同名草稿分不出先后。 */
+
+.dlist {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  overflow: hidden;
+}
+.drow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--line-2);
+}
+.drow:last-child { border-bottom: 0; }
+.drow:hover { background: var(--surface-2); }
+
+.dtdot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: hsl(var(--h, 210) 55% 58%);
+}
+
+.dinfo { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.dinfo b {
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dinfo span {
+  font-size: var(--fs-11);
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.dacts { display: flex; gap: var(--sp-1); flex: 0 0 auto; }
+.dacts .btn { color: var(--ink-3); }
+.dacts .btn:hover { color: var(--ink); }
+
+.emptywrap {
+  padding: var(--sp-8) var(--sp-4);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-md);
+}
+
 /* ══ 一句话需求 ════════════════════════════════════════════
    左边写、右边提醒、下面出结果——结果不跳页，就地展开：
    这一步的判断依据是「凭什么给我加这一格」，跳到另一页就没法对照着改。 */

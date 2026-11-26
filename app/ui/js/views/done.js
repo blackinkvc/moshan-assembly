@@ -7,12 +7,13 @@
 
 import { h } from "../lib/dom.js";
 import { icon } from "../icons.js";
-import { secttl, steps, toast } from "../components.js";
+import { secttl, steps } from "../components.js";
 import { STYLES } from "../../data/catalog.js";
 import { STEP_NAMES, sceneById, packOf, hubCells, hubMod, formDef, hubLabel } from "../lib/hub.js";
 import { check, cellName, CELL_BY_ID } from "../lib/wire.js";
 import { openExportMd } from "../lib/exportMd.js";
-import { S, set } from "../store.js";
+import { saveDraft } from "../lib/draft.js";
+import { S } from "../store.js";
 import { go } from "../router.js";
 
 const styName = (id) => (STYLES.find((s) => s.id === id) || STYLES[1]).nm;
@@ -123,19 +124,6 @@ export function viewDone() {
     },
   ];
   const firstThree = pool.slice(0, 3);
-
-  /* ── 存草稿 ── */
-  function saveDraft() {
-    const draft = {
-      id: "d" + Date.now().toString(36),
-      nm: `${sc.nm} · ${styName(hub.sty)}`,
-      step: "已组装",
-      at: new Date().toISOString(),
-      hub: JSON.parse(JSON.stringify(hub)),
-    };
-    set({ drafts: [draft, ...(S.drafts || [])].slice(0, 20) });
-    toast("已存进草稿箱", 1600);
-  }
 
   const stat = (n, label) => h("div.fact", null, h("b", null, String(n)), h("span", null, label));
 
@@ -264,7 +252,7 @@ export function viewDone() {
       h(
         "div.btns",
         null,
-        h("button.btn.btn--ghost", { onclick: () => saveDraft() },
+        h("button.btn.btn--ghost", { onclick: () => saveDraft(hub, "done") },
           icon("save", { size: 14 }), h("span", null, "存草稿")),
         h("button.btn.btn--ghost", { onclick: () => openExportMd(hub) },
           icon("export", { size: 14 }), h("span", null, "导出清单")),
