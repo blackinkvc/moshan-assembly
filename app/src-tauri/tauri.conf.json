@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "墨山装配台",
+  "version": "2.0.0",
+  "identifier": "cn.moshan.assembly",
+  "build": {
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "墨山 · 装配台",
+        "width": 1400,
+        "height": 900,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": { "x": 18, "y": 20 },
+        "dragDropEnabled": false,
+        "backgroundColor": "#faf9f6"
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.png"
+    ],
+    "category": "DeveloperTool",
+    "shortDescription": "从一句话需求到一套能装起来的中台",
+    "longDescription": "把「想给自己搭一套东西」拆成八步，每一步只做一个决定：场景、形态、包、方案、连线、确认、组装、交付。"
+  }
+}

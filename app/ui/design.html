@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>墨山设计规范 1.0</title>
+    <link rel="stylesheet" href="./styles/tokens.css" />
+    <link rel="stylesheet" href="./styles/base.css" />
+    <link rel="stylesheet" href="./styles/components.css" />
+    <style>
+      body { overflow: auto; }
+      .doc { max-width: 1000px; margin: 0 auto; padding: 48px 32px 96px; }
+      .doc h1 { font-size: 34px; letter-spacing: -.02em; }
+      .doc h2 {
+        font-size: 16px; margin: 44px 0 14px; padding-bottom: 8px;
+        border-bottom: 1px solid var(--line);
+      }
+      .doc h3 { font-size: 13px; color: var(--ink-3); font-weight: 500; margin: 22px 0 10px; letter-spacing: .04em; }
+      .doc .lead { margin-top: 10px; font-size: 14px; line-height: 1.65; color: var(--ink-3); max-width: 66ch; }
+      .grid { display: grid; gap: 12px; }
+      .g2 { grid-template-columns: repeat(2, 1fr); }
+      .g3 { grid-template-columns: repeat(3, 1fr); }
+      .g4 { grid-template-columns: repeat(4, 1fr); }
+      .box {
+        border: 1px solid var(--line); border-radius: var(--r-md);
+        background: var(--surface); padding: 16px;
+      }
+      .swatch { height: 56px; border-radius: var(--r-sm); border: 1px solid var(--line); }
+      .sw { display: flex; flex-direction: column; gap: 6px; }
+      .sw code { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+      .row-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .sp { height: 12px; background: var(--brass-soft); border-left: 2px solid var(--brass); border-radius: 2px; }
+      .spec { display: grid; grid-template-columns: 92px 1fr; gap: 6px 14px; font-size: 12px; }
+      .spec b { color: var(--ink-3); font-weight: 500; }
+      table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+      th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line-2); }
+      th { color: var(--ink-3); font-weight: 500; font-size: 11.5px; letter-spacing: .04em; }
+      td code { font-family: var(--font-mono); font-size: 11.5px; }
+    </style>
+  </head>
+  <body>
+    <div class="doc">
+      <h1>墨山设计规范 <span class="ghost t-16 mono">1.0</span></h1>
+      <p class="lead">
+        这一页是规范的<b>活样例</b>：下面每个组件都是真实类名，改动 <code>tokens.css</code> 会同时改变这里与应用。
+        新增组件前先在这里加一格——加不进来，说明它在规范之外。
+      </p>
+
+      <h2>一、表面与文字</h2>
+      <div class="grid g4">
+        <div class="sw"><div class="swatch" style="background: var(--canvas)"></div><code>--canvas #f7f6f2 页面底</code></div>
+        <div class="sw"><div class="swatch" style="background: var(--surface)"></div><code>--surface #fffefb 卡片</code></div>
+        <div class="sw"><div class="swatch" style="background: var(--surface-2)"></div><code>--surface-2 #f1efea 下沉</code></div>
+        <div class="sw"><div class="swatch" style="background: var(--surface-3)"></div><code>--surface-3 #e8e4db 按下</code></div>
+      </div>
+      <h3>文字四级</h3>
+      <div class="box spec">
+        <b>ink</b><span style="color: var(--ink)">正文与标题 · 17:1</span>
+        <b>ink-2</b><span style="color: var(--ink-2)">次级正文 · 9:1</span>
+        <b>ink-3</b><span style="color: var(--ink-3)">辅助说明 · 4.7:1（AA 下限）</span>
+        <b>ink-4</b><span style="color: var(--ink-4)">只做占位与禁用 · 2.9:1，不承载信息</span>
+      </div>
+
+      <h2>二、语义色</h2>
+      <div class="grid g4">
+        <div class="box" style="border-color: var(--brass-line); background: var(--brass-soft)">
+          <div class="t-12" style="color: var(--brass-ink); font-weight: 600">brass · 选中</div>
+          <div class="t-11" style="color: var(--brass-ink); margin-top: 4px">当前项、可点的强调</div>
+        </div>
+        <div class="box" style="border-color: transparent; background: var(--moss-soft)">
+          <div class="t-12" style="color: var(--moss-ink); font-weight: 600">moss · 通过</div>
+          <div class="t-11" style="color: var(--moss-ink); margin-top: 4px">已完成、接得上</div>
+        </div>
+        <div class="box" style="border-color: transparent; background: var(--clay-soft)">
+          <div class="t-12" style="color: var(--clay-ink); font-weight: 600">clay · 断开</div>
+          <div class="t-11" style="color: var(--clay-ink); margin-top: 4px">断点、错误、危险操作</div>
+        </div>
+        <div class="box" style="border-color: transparent; background: var(--indigo-soft)">
+          <div class="t-12" style="color: var(--indigo-ink); font-weight: 600">indigo · 提示</div>
+          <div class="t-11" style="color: var(--indigo-ink); margin-top: 4px">链接、补充说明</div>
+        </div>
+      </div>
+
+      <h2>三、字号阶梯</h2>
+      <div class="box">
+        <div style="font-size: 26px; font-weight: 600; letter-spacing: -.01em">装一个自己的东西</div>
+        <div class="t-14 semi" style="margin-top: 10px">区块标题 14 / 600</div>
+        <div class="t-13" style="margin-top: 8px">正文 13 / 400。界面默认字号，一屏里绝大多数文字都该是这个大小。</div>
+        <div class="t-12 faint" style="margin-top: 8px">辅助 12 / 400，用于时间、计数、备注</div>
+        <div class="t-11 wide faint" style="margin-top: 8px">标注 11 / 500 · 字距 .04EM</div>
+      </div>
+
+      <h2>四、间距</h2>
+      <div class="box">
+        <div class="row-line" style="align-items: flex-end; gap: 14px">
+          <div><div class="sp" style="width: 4px"></div><code class="t-11 faint">4</code></div>
+          <div><div class="sp" style="width: 8px"></div><code class="t-11 faint">8</code></div>
+          <div><div class="sp" style="width: 12px"></div><code class="t-11 faint">12</code></div>
+          <div><div class="sp" style="width: 16px"></div><code class="t-11 faint">16</code></div>
+          <div><div class="sp" style="width: 24px"></div><code class="t-11 faint">24</code></div>
+          <div><div class="sp" style="width: 32px"></div><code class="t-11 faint">32</code></div>
+          <div><div class="sp" style="width: 48px"></div><code class="t-11 faint">48</code></div>
+          <div><div class="sp" style="width: 64px"></div><code class="t-11 faint">64</code></div>
+        </div>
+        <div class="t-12 faint" style="margin-top: 12px">只用 8 的倍数；4 与 2 是半步。同级间距必须相等。</div>
+      </div>
+
+      <h2>五、按钮</h2>
+      <div class="row-line" style="margin-bottom: 10px">
+        <button class="btn btn--primary">开始装配</button>
+        <button class="btn">次要动作</button>
+        <button class="btn btn--ghost">工具栏</button>
+        <button class="btn btn--brass">提醒</button>
+        <button class="btn btn--danger">删除</button>
+        <button class="btn" disabled>不可用</button>
+      </div>
+      <div class="row-line">
+        <button class="btn btn--primary btn--lg">大按钮 40</button>
+        <button class="btn">默认 32</button>
+        <button class="btn btn--sm">小 28</button>
+        <button class="iconbtn" aria-label="搜索">＋</button>
+      </div>
+      <p class="t-12 faint" style="margin-top: 10px">一屏只允许 1 个 primary、1 个 danger。同一个动作不出现两种样式。</p>
+
+      <h2>六、徽章与标签</h2>
+      <div class="row-line">
+        <span class="badge badge--moss"><i class="dot dot--moss"></i>接得上</span>
+        <span class="badge badge--clay"><i class="dot dot--clay"></i>3 个断点</span>
+        <span class="badge badge--brass">进行中</span>
+        <span class="badge badge--indigo">提示</span>
+        <span class="badge badge--plain">草稿</span>
+      </div>
+      <div class="row-line" style="margin-top: 12px">
+        <button class="chip" aria-pressed="true">全部 <span class="n">18</span></button>
+        <button class="chip">线下现场 <span class="n">4</span></button>
+        <button class="chip">做工程研发 <span class="n">4</span></button>
+      </div>
+
+      <h2>七、表单</h2>
+      <div class="grid g2">
+        <div>
+          <div class="t-12 faint" style="margin-bottom: 6px">单行输入</div>
+          <input class="field" placeholder="拿进来什么、变成什么出去" />
+        </div>
+        <div>
+          <div class="t-12 faint" style="margin-bottom: 6px">带图标的搜索</div>
+          <div class="field-group">
+            <svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.2" /><path d="M15.6 15.6 20 20" /></svg>
+            <input class="field" placeholder="搜场景" />
+          </div>
+        </div>
+      </div>
+      <h3>分段控件</h3>
+      <div class="seg">
+        <button aria-selected="true">场景</button>
+        <button aria-selected="false">形态</button>
+        <button aria-selected="false">包</button>
+      </div>
+
+      <h2>八、状态与控制</h2>
+      <div class="row-line" style="gap: 22px">
+        <div class="row gap-2"><span class="switch" role="switch" aria-checked="true"></span><span class="t-12">开</span></div>
+        <div class="row gap-2"><span class="switch" role="switch" aria-checked="false"></span><span class="t-12">关</span></div>
+        <div class="row gap-2"><i class="dot dot--moss"></i><span class="t-12">通过</span></div>
+        <div class="row gap-2"><i class="dot dot--clay"></i><span class="t-12">断开</span></div>
+        <div class="row gap-2"><i class="dot dot--brass dot--pulse"></i><span class="t-12">正在自检</span></div>
+      </div>
+      <div style="max-width: 320px; margin-top: 14px">
+        <div class="progress"><i style="width: 62%"></i></div>
+      </div>
+
+      <h2>九、卡片与空状态</h2>
+      <div class="grid g2">
+        <div class="card card--hover" style="padding: 16px">
+          <div class="row gap-2"><span class="t-14 semi">卡片标题</span><span class="badge badge--plain">可选</span></div>
+          <p class="t-12 faint" style="margin-top: 6px; line-height: 1.6">悬停抬起 1px + 阴影加深，不做缩放。</p>
+        </div>
+        <div class="card card--flat">
+          <div class="empty">
+            <svg class="ico" viewBox="0 0 24 24" style="width: 24px; height: 24px"><path d="M3.8 8.2 12 4l8.2 4.2v7.6L12 20l-8.2-4.2z" /></svg>
+            <b>还没有草稿</b>
+            <span class="t-12">装配到一半，⌘S 存一下</span>
+          </div>
+        </div>
+      </div>
+
+      <h2>十、步骤条</h2>
+      <div class="box">
+        <div class="steps">
+          <div class="step step--done"><span class="idx">✓</span><span>场景</span></div>
+          <i class="sep"></i>
+          <div class="step step--done"><span class="idx">✓</span><span>形态</span></div>
+          <i class="sep"></i>
+          <div class="step step--now"><span class="idx">3</span><span>包</span></div>
+          <i class="sep"></i>
+          <div class="step"><span class="idx">4</span><span>方案</span></div>
+          <i class="sep"></i>
+          <div class="step"><span class="idx">5</span><span>连线</span></div>
+        </div>
+      </div>
+
+      <h2>十一、键帽与提示</h2>
+      <div class="row-line">
+        <kbd>⌘</kbd><kbd>K</kbd>
+        <span class="t-12 faint" style="margin-left: 8px">搜索与跳转</span>
+        <button class="btn" data-tip="悬停才出现，不挡内容">悬停看提示</button>
+      </div>
+
+      <h2>十二、检查单</h2>
+      <table>
+        <tr><th>项</th><th>标准</th></tr>
+        <tr><td>字面色值</td><td>0 处。全部走 <code>var(--…)</code></td></tr>
+        <tr><td>正文对比度</td><td>≥ 4.5:1；<code>--ink-4</code> 不承载信息</td></tr>
+        <tr><td>点击区</td><td>≥ 36px（触屏 44px）</td></tr>
+        <tr><td>一屏主角</td><td>恰好 1 个 primary 按钮</td></tr>
+        <tr><td>四种状态</td><td>空 / 加载 / 错误 / 无权限都有界面</td></tr>
+        <tr><td>键盘</td><td>主流程不用鼠标能走完，焦点可见</td></tr>
+      </table>
+    </div>
+  </body>
+</html>

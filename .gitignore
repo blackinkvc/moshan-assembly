@@ -26,3 +26,7 @@ arch/app.html
 # 这条规则留着，是拦着有人在本地随手建个 publish/ 就往主干里带。
 publish/
 docs/
+
+# Tauri 编译产物与生成物（几百 MB，可随时重建）
+app/src-tauri/target/
+app/src-tauri/gen/
