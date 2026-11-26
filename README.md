@@ -32,7 +32,7 @@ open arch/app.html
 | 路径 | 是什么 |
 |---|---|
 | `arch/` | 装配台本体：模板 + 生成脚本 + 130 格能力库 + 12 场景定义。做法笔记见 [`arch/README.md`](arch/README.md) |
-| 分支 `pub` | 发布分支，只有 `index.html` + `.nojekyll`。在线站点从它出，不在主干上 |
+| 分支 `pub` | 发布分支，只有 `index.html` + `.nojekyll`。检出在 `publish/`（一个 worktree），主干上看不到它 |
 | `ARCHITECTURE.md` | 整体设计：数据模型、判定规则、为什么这么切 |
 | `MOSHAN-PLUGIN-SPEC.md` | 模块与插件的规格约定 |
 | `XHUB-VS-MOSHAN.md` / `arch/MATCH.md` | 与既有产品/方案的对照与取舍 |
@@ -41,20 +41,28 @@ open arch/app.html
 
 ## 发布
 
-构建产物不进主干。它有自己的工作树与分支：
+构建产物不进主干。它有自己的分支（`pub`），检出在 `publish/` 这个 worktree 里：
 
 ```bash
 # 1) 在源码目录重建
 python3 arch/app.py
 
-# 2) 拷进发布工作树（与本仓库并列的一个 worktree，挂 pub 分支）
-cp arch/app.html ../moshan-pub/index.html
+# 2) 拷进发布工作树
+cp arch/app.html publish/index.html
 
-# 3) 从发布工作树提交并推送
-cd ../moshan-pub && git add -A && git commit -m "release: $(date +%F)" && git push origin pub
+# 3) 在发布工作树里提交并推送
+git -C publish add -A
+git -C publish commit -m "release: $(date +%F)"
+git -C publish push origin pub
 ```
 
-GitHub Pages 与另一条线上托管都读这一份文件（Pages 源：`pub` 分支根目录）。
+GitHub Pages 与 WorkBuddy 那条线上托管都读这一份文件（Pages 源：`pub` 分支根目录）。
+
+第一次拿到仓库要重建这个 worktree（`clone` 不会带上它）：
+
+```bash
+git worktree add publish pub
+```
 
 ## 已知的不足
 
