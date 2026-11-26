@@ -13,6 +13,7 @@ import { viewHome } from "./views/home.js";
 import { viewScenes } from "./views/scenes.js";
 import { viewStyle } from "./views/style.js";
 import { viewPacks } from "./views/packs.js";
+import { viewPlans } from "./views/plans.js";
 import { viewWip } from "./views/wip.js";
 
 const NAV = [
@@ -412,6 +413,7 @@ async function boot() {
   register("scenes", viewScenes);
   register("style", viewStyle);
   register("packs", viewPacks);
+  register("plans", viewPlans);
   register("drafts", () => viewDrafts());
   start(viewEl, viewWip);
 

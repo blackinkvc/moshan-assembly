@@ -34,7 +34,14 @@ function render() {
   host.replaceChildren();
   const node = view({ param });
   if (node) host.appendChild(node);
+
+  // 切页要「立刻」停在顶部。容器上有 scroll-behavior: smooth，
+  // 直接赋 scrollTop 会从上一页的位置滑上去——看着像页面自己在滚。
+  const prev = host.style.scrollBehavior;
+  host.style.scrollBehavior = "auto";
   host.scrollTop = 0;
+  host.style.scrollBehavior = prev;
+
   document.dispatchEvent(new CustomEvent("route:change", { detail: { name, param } }));
 }
 

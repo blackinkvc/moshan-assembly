@@ -818,6 +818,170 @@ html[data-theme="dark"] .mod .mico { color: hsl(var(--h) 44% 64%); }
   box-shadow: var(--sh-1);
 }
 
+/* ══ 每格挑实现 ════════════════════════════════════════════
+   每条默认只露「已选中的做法」，点开才列出全部。
+   做法列表在 DOM 里一直都在，靠 data-open 控制显隐——省得展开时重建，
+   也省得两套节点（一套收起版、一套展开版）各改一遍。 */
+
+.recbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-6);
+  padding: var(--sp-4);
+  border: 1px solid var(--brass-line);
+  border-radius: var(--r-md);
+  background:
+    radial-gradient(120% 140% at 92% 0%, var(--brass-soft) 0%, transparent 62%),
+    var(--surface);
+  box-shadow: var(--sh-1);
+}
+.recbar .rb { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1 1 auto; }
+.recbar b { font-size: var(--fs-13); font-weight: var(--fw-semi); }
+.recbar span { font-size: var(--fs-12); line-height: var(--lh-normal); color: var(--ink-3); }
+.recbar .btn { flex: 0 0 auto; }
+
+.pl {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: var(--sh-1);
+  overflow: hidden;
+  transition: border-color var(--t-base) var(--ease-out);
+}
+.pl[data-open="true"] { border-color: var(--line-strong); }
+
+.pl-h {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  flex-wrap: wrap;
+}
+.pl-h b { font-size: var(--fs-13); font-weight: var(--fw-semi); }
+.pl-h .pico {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-xs);
+}
+.pl-h .ptag {
+  padding: 0 5px;
+  border-radius: var(--r-xs);
+  background: var(--surface-2);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+.pl-h .cells { display: flex; flex-wrap: wrap; gap: 4px; }
+.pl-h .cells code,
+.pl .cells code {
+  padding: 1px 5px;
+  border-radius: var(--r-xs);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+/* 徽章外面还包了一层（内容要随选择替换），所以把 margin 放在这层上 */
+.pl-h .lvb { margin-left: auto; display: inline-flex; align-items: center; }
+
+/* 展开开关：不是主要动作，所以做小，跟等级徽章并排 */
+.more {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line);
+  font-size: var(--fs-11);
+  color: var(--ink-3);
+  transition: color var(--t-fast) var(--ease-out), border-color var(--t-fast) var(--ease-out);
+}
+.more:hover { color: var(--ink); border-color: var(--line-strong); }
+.more .ico { width: 12px; height: 12px; }
+
+/* 收起时那一行：已选中的做法，一行说明白 */
+.pl .cur {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-3) var(--sp-2);
+  font-size: var(--fs-12);
+  line-height: var(--lh-normal);
+}
+.pl[data-open="true"] .cur { display: none; }
+.pl .cur .nm { color: var(--ink-2); font-weight: var(--fw-medium); flex: 0 0 auto; }
+.pl .cur .nt { color: var(--ink-3); min-width: 0; }
+
+.why {
+  padding: 0 var(--sp-3) var(--sp-2);
+  font-size: var(--fs-11);
+  line-height: var(--lh-normal);
+  color: var(--ink-4);
+}
+
+.opts {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+}
+.pl[data-open="false"] .opts { display: none; }
+/* 展开后列表里会重复出现「已选中的那个」，不必再单独显示一行摘要 */
+.pl[data-open="false"] .opts { display: none; }
+
+.opt {
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  align-items: start;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  text-align: left;
+  transition: background var(--t-fast) var(--ease-out);
+}
+.opt + .opt { border-top: 1px solid var(--line); }
+.opt:hover { background: var(--surface-2); }
+.opt:focus-visible { box-shadow: var(--ring); border-radius: 0; }
+
+.opt .rd {
+  width: 14px;
+  height: 14px;
+  margin-top: 3px;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: var(--surface);
+  transition: border-color var(--t-fast) var(--ease-out),
+              box-shadow var(--t-fast) var(--ease-out);
+}
+.opt[aria-checked="true"] .rd {
+  border-color: var(--brass);
+  box-shadow: inset 0 0 0 3px var(--surface), inset 0 0 0 12px var(--brass);
+}
+.opt[aria-checked="true"] { background: var(--brass-soft); }
+
+.opt .txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.opt .n {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-medium);
+  color: var(--ink);
+}
+.opt .lv {
+  padding: 0 5px;
+  border-radius: var(--r-xs);
+  font-size: 10px;
+  font-weight: var(--fw-regular);
+  background: var(--surface-3);
+  color: var(--ink-3);
+}
+.opt .lv[data-lv="rec"] { background: var(--moss-soft); color: var(--moss-ink); }
+.opt .lv[data-lv="warn"] { background: var(--clay-soft); color: var(--clay-ink); }
+.opt .lv[data-lv="build"] { background: var(--brass-soft); color: var(--brass-ink); }
+.opt .k { font-size: 10.5px; font-weight: var(--fw-regular); color: var(--ink-4); }
+.opt .nt { font-size: var(--fs-11); line-height: var(--lh-normal); color: var(--ink-3); }
+
 /* ══ 页脚导航（每一步的「上一步」） ════════════════════════ */
 .stepnav {
   display: flex;
