@@ -57,6 +57,10 @@ app/
 python3 tools/gen-catalog.py   # catalog.json → catalog.js（前端可直接 import）
 ```
 
+推送到 GitHub 走 `tools/push-api.py`：本机到 github.com:443 不通（代理返回 502），
+但 api.github.com 可达。脚本比对远端与本地 HEAD 的树，只上传有差异的文件，
+再建提交、移动 main。`git push` 在这台机器上不要用。
+
 ## 迁移进度
 
 | 页面 | 状态 |
