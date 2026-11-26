@@ -27,13 +27,14 @@ SRC = os.path.join(HERE, "arch.json")
 # ── 域输出顺序：从「用户碰得到的」往「地基」排 ──────────────────────────
 DOM_ORDER = ["ai.chat", "ai.office", "ai.text", "kb", "ai.agent", "ai.media",
              "ai.search", "ai.design", "ai.flow", "ai.model", "ai.deliver",
-             "ai.detect", "ai.prompt", "dev.code", "app", "hw"]
+             "ai.detect", "ai.prompt", "dev.code", "eng", "app", "hw"]
 DOM_CN = {"ai.chat": "对话交互", "ai.office": "办公产出", "ai.text": "文本创作",
           "kb": "知识库", "ai.agent": "智能体", "ai.media": "内容生成",
           "ai.search": "检索", "ai.design": "视觉设计", "ai.flow": "流程编排",
           "ai.model": "模型供给", "ai.deliver": "交付接入", "ai.detect": "内容检测",
           "ai.prompt": "提示词", "dev.code": "编程辅助", "app": "应用底座（要自己搭）",
-        "hw": "硬件（自己做一台真机）"}
+        "hw": "硬件（自己做一台真机）",
+        "eng": "工程研发（芯片与板级）"}
 
 # ── 模块触发面：cid -> (强词, 弱词) ──────────────────────────────────────
 # 强词＝说出这个词，这格基本就跑不掉（对象/产物/专有动作）。

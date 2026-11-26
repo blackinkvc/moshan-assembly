@@ -42,7 +42,9 @@
     border-bottom:1px solid var(--line);padding:0 28px;height:52px;display:flex;align-items:center;gap:14px}
   .crumb{font-size:12.5px;color:var(--faint);display:flex;align-items:center;gap:7px}
   .crumb b{color:var(--ink);font-weight:600}
-  .top .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+  .top .right{margin-left:auto;display:flex;gap:8px;align-items:center;
+    /* 右侧按钮不参与收缩：一收缩「专业」「存草稿」就变成一个字一行 */
+    flex:0 0 auto;white-space:nowrap}
 
   /* 步骤条 */
   .steps{display:flex;align-items:center;gap:0;font-size:12px;color:var(--faint)}
@@ -318,6 +320,18 @@
   /* ── 个人中台：风格 / 模块 / 方案 ── */
   .hubstep{display:flex;align-items:center;gap:0;font-size:12px;color:var(--faint)}
   .hubstep .s{display:flex;align-items:center;gap:6px}
+  /* 顶栏里这三样都不能被压成竖排：中文在 flex 收缩时会一个字一行。
+     桌面端也要 nowrap —— 面包屑变长（「芯片 EDA 设计台」）以后 1280 就开始挤。 */
+  .top .crumb,.top .hubstep,.top .hubstep .s{white-space:nowrap}
+  .top .hubstep{flex:0 1 auto;min-width:0;overflow:hidden}
+  .top .crumb{min-width:0;overflow:hidden}
+  .top .crumb b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  /* 1240 以下步骤条只留序号圆点：八步的文字加起来比面包屑还宽，先砍它 */
+  @media(max-width:1240px){
+    .top .hubstep .s{font-size:0}
+    .top .hubstep .s em{font-size:10px}
+    .top .hubstep .b{margin:0 3px;width:12px}
+  }
   .hubstep .s em{font-style:normal;width:17px;height:17px;border-radius:50%;border:1px solid var(--line);
     background:#fff;display:grid;place-items:center;font-size:10.5px;color:var(--faint)}
   .hubstep .s.on{color:var(--ink);font-weight:600}
@@ -340,7 +354,7 @@
 
 
   /* ── 场景：选「我要做什么」 ── */
-  /* 12 个场景一张平铺网格太长了，用户在里头找不着。按「装给谁」分四组，
+  /* 场景一多，一张平铺网格就找不着了。按「装给谁」分组，
      顶上一条吸顶索引：点一下就只看这一组，再点「全部」回来。 */
   .scidx{position:sticky;top:52px;z-index:8;display:flex;gap:7px;align-items:center;flex-wrap:wrap;
     padding:9px 0 10px;margin-bottom:2px;background:#fff;border-bottom:1px solid var(--line2)}
@@ -934,6 +948,12 @@ const PACKS = [
    sub:"代码编辑、终端、API 调试、Git 面板。把开发要用的几件塞进同一个窗口。"},
   {id:"hw", nm:"硬件连接包", tier:"opt", hue:12, art:"chip", mb:15,
    sub:"串口读数、蓝牙、配网、固件升级。软件要去碰一台真设备时用。"},
+  {id:"eng", nm:"板级工程包", tier:"opt", hue:288, art:"tool", mb:170,
+   sub:"器件库、原理图、布局布线、DRC、BOM、出图。打样一次两周，错一次几百块。"},
+  {id:"chip", nm:"芯片设计包", tier:"opt", hue:128, art:"chip", mb:340,
+   sub:"RTL、仿真验证、综合物理实现、时序功耗签核。流片一次，改不了。"},
+  {id:"train", nm:"训练调参包", tier:"opt", hue:68, art:"pulse", mb:240,
+   sub:"数据集版本、训练编排、评测回归、检查点。跑十次要学到东西，不是重新猜。"},
   {id:"biz", nm:"交易包", tier:"opt", hue:96, art:"cart", mb:50,
    sub:"商品、库存、订单、支付、物流、会员。凡是「收钱发货」都绕不开这六格。"},
   {id:"geo", nm:"位置包", tier:"opt", hue:178, art:"map", mb:55,
@@ -970,6 +990,11 @@ const EXTRA_PK = {
   save:["data"],        // 存档与离线结算：存档就是数据
   gshop:["biz"],        // 商店与内购：收钱那面
   aitool:["auto"],      // 工具调用：能自己干活
+  /* 第十批：工程研发两个包共用「检查」和「出图」——板子和芯片都要过 DRC、都要出交付包 */
+  "eng-drc":["chip"],
+  "eng-fab":["chip"],
+  "eng-sim":["eng"],    // 板级也要跑信号/电源完整性仿真
+  "train-ckpt":["llm"],  // 权重台账对本地推理同样有用：要知道这版 gguf 是哪次训出来的
 };
 
 /* ────────── 场景：从「我要做什么」开始，而不是从「要哪个模块」开始 ──────────
@@ -1023,14 +1048,39 @@ const SCENES = [
    sub:"脚本、提词、弹幕、上下架、复盘",
    out:"一个主播旁边的第二块屏：按秒推进脚本、实时看数据、下播自动出复盘",
    why:"它的时间粒度是「秒」，所以日程包（排期与提醒）+ 实时推送 + 媒体包是核心。"},
+
+/* ── 工程研发：一次做错要等两周，或烧掉几十万 ──
+   这四个场景的共性不是「难」，是「不可逆」：PCB 打样两周、流片几十万起、
+   训练跑一周只有最后一版权重。所以它们的模块重点全在「检查」与「版本」，不在「做得快」。 */
+  {id:"eda", nm:"芯片 EDA 设计台", art:"chip", must:["core","chip","dev"],
+   packs:["core","chip","dev","data","ops","beauty"],
+   sub:"写 RTL、跑仿真、综合到版图，签核完再流片",
+   out:"一条从代码到版图的可回归流水线：每次改动自动跑完 lint、仿真、时序签核",
+   why:"芯片的命门是「改一版要重跑几百个 case」：人跑不动，必须把 lint、仿真、签核串成一条命令。所以开发工具包（编辑器 + 终端 + Git）和芯片包一起是必装。"},
+  {id:"pcb", nm:"PCB 板设计台", art:"board", must:["core","eng"],
+   packs:["core","eng","hw","data","ops","beauty"],
+   sub:"原理图、网表、布局布线、DRC、BOM、Gerber",
+   out:"一套能直接发板厂的文件：Gerber + 钻孔 + BOM + 装配图，DRC 零错误",
+   why:"PCB 的钱花在第二版：第一版错了就是几百块加两周。所以器件库、DRC、出图这三格比布线本身更值钱——它们决定「能不能一次过」。"},
+  {id:"soc", nm:"SoC 设计台", art:"route", must:["core","chip","dev"],
+   packs:["core","chip","dev","hw","data","ops","beauty"],
+   sub:"IP 选型与集成、软硬协同、性能与功耗签核",
+   out:"一颗能把各家 IP 拼起来、能跑起固件、时序与功耗都签核过的 SoC 工程",
+   why:"SoC 的成本在「集成」不在「设计」：IP 来自五家供应商，接口、时钟、复位对不上就是几个月。所以它比纯芯片设计多要硬件包——评估板与固件是验证集成的最短路径。"},
+  {id:"train", nm:"大模型权重调参台", art:"pulse", must:["core","train","llm"],
+   packs:["core","train","llm","data","ops","beauty"],
+   sub:"数据集版本、训练任务、指标曲线、检查点、评测回归",
+   out:"一个能重复跑的实验台：同一份数据 + 同一份配置跑出同一条曲线，权重有版本可回退",
+   why:"调参的敌人是「忘了上次改了啥」。没有数据版本、实验台账与检查点，跑十次也学不到东西；有了这三件，每次失败都是在缩小范围。"},
 ];
 
-/* 12 个场景分四组，按「装给谁用」分——不按行业分。
+/* 16 个场景分四组，按「装给谁用」分——不按行业分。
    场景页顶上是这条索引，点一下只看一组；分组只是导航，不影响算法。 */
 const SCAT = [
   {id:"self", nm:"自己天天用", hint:"装在自己电脑上，一个人用、天天开", ids:["hub","nas","imagegen"]},
   {id:"biz",  nm:"开门做生意", hint:"有客人、有订单、要对得上账", ids:["shop","cafe","wms","sling"]},
   {id:"prod", nm:"做产品上线", hint:"做出来给别人用，出事要能救", ids:["idle","saas","live"]},
+  {id:"rd",   nm:"做工程研发", hint:"改一版要等两周，或者烧掉几十万", ids:["eda","pcb","soc","train"]},
   {id:"hw",   nm:"要接硬件", hint:"连设备、读传感器、往下发指令", ids:["drone","hotspot"]},
 ];
 /* 场景页上一次看的是哪一类。放在模块级而不是 S.hub 里：
@@ -1642,6 +1692,110 @@ const HUB = [
    {id:"builder", n:"electron-builder", lv:"ok", k:"开源", note:"dmg/exe/AppImage/deb 全支持，签名与自动更新钩子齐；包体 100MB 起"},
    {id:"source", n:"只发源码 / 单文件（不签名路线）", lv:"ok", k:"做法", note:"用户自己 npm i && npm run dev，产物是他本机编译的——没 quarantine、没别人的签名，所以不会被拦。代价是要装工具链"},
    {id:"sign", n:"买证书签名 + 公证", lv:"warn", k:"闭源", note:"Apple 99 美元/年、Windows 证书约 2000 元/年；唯一「发给陌生人也不吓人」的做法"}]},
+
+/* ── 板级工程包（打样一次两周，错一次几百块）── */
+{id:"eng-lib", nm:"器件与 IP 库", pk:"eng", tier:"rec", art:"board", cells:["eng.lib"],
+ sub:"符号、封装、参数三件对齐，一料一号；芯片侧是 LEF/Liberty/Verilog 三份对齐",
+ provs:[
+   {id:"kicad-lib", n:"KiCad 官方库 + 项目内自建库", lv:"rec", k:"开源", note:"自建库跟项目一起进 git，别放全局库；立创 EDA 的库能导出成 KiCad 格式复用"},
+   {id:"sameda", n:"SnapEDA / Ultra Librarian", lv:"ok", k:"闭源", note:"按料号下符号+封装+3D，省时间；但必须按手册核引脚，这两家出过镜像错误"},
+   {id:"ipxact", n:"IP-XACT / LEF + Liberty", lv:"ok", k:"做法", note:"芯片 IP 的标准交付：物理尺寸、时序、行为三份；对不齐是 SoC 集成最常见的坑"},
+   {id:"b-lib", n:"AI 帮你把手册读成库", lv:"build", k:"自研", note:"1 天 · 约 20 万 token：抽引脚表、生成符号与封装、按手册核焊盘尺寸"}]},
+{id:"eng-sch", nm:"原理图与网表", pk:"eng", tier:"rec", art:"code", cells:["eng.sch"],
+ sub:"把「谁连谁」写成工具能读的网表——后面布线、检查、BOM 全从这一份出",
+ provs:[
+   {id:"kicad-sch", n:"KiCad 层次化原理图", lv:"rec", k:"开源", note:"网表与 PCB 联动、python 可批量改；超过两页必须层次化，否则改一处翻五页"},
+   {id:"skidl", n:"SKiDL（用 Python 写网表）", lv:"ok", k:"开源", note:"「连 20 个一样的 LED」写成循环，改一处全生效；阵列/总线类板子首选"},
+   {id:"altium", n:"Altium Designer", lv:"ok", k:"闭源", note:"高速板与团队协作成熟；价格与授权是真门槛，小团队未必值"},
+   {id:"b-sch", n:"AI 帮你出第一版原理图", lv:"build", k:"自研", note:"2 天 · 约 35 万 token：分页 + 电源树 + 网络命名规范，ERC 清零"}]},
+{id:"eng-pcb", nm:"布局与布线", pk:"eng", tier:"rec", art:"route", cells:["eng.pcb"],
+ sub:"层叠、阻抗、走线、过孔、丝印、拼板；先定接口位置再布线的顺序不能反",
+ provs:[
+   {id:"kicad-pcb", n:"KiCad PCB + 推挤布线", lv:"rec", k:"开源", note:"差分对与等长绕线都有；四层板叠层用「信号/地/电源/信号」，EMC 能省一半麻烦"},
+   {id:"altium-pcb", n:"Altium / PADS", lv:"ok", k:"闭源", note:"六层以上与严格约束管理更成熟；一次打样失败的成本往往超过软件钱"},
+   {id:"freerouting", n:"Freerouting（自动布线）", lv:"warn", k:"开源", note:"只适合低速少层；布完必须人工查回流路径与电源走向，别直接出图"},
+   {id:"b-pcb", n:"AI 帮你做布局评审", lv:"build", k:"自研", note:"1.5 天 · 约 26 万 token：算聚簇关系、出分区建议、核对丝印与过孔压盘"}]},
+{id:"eng-drc", nm:"设计规则检查", pk:"eng", tier:"rec", art:"monitor", cells:["eng.drc"],
+ sub:"DRC / ERC / LVS：出图前唯一能拦住废板（或废片）的一道闸",
+ provs:[
+   {id:"kicad-drc", n:"KiCad DRC / ERC", lv:"rec", k:"开源", note:"kicad-cli pcb drc 能进 CI，每次提交自动跑；别等出图那天才点"},
+   {id:"klayout", n:"KLayout DRC/LVS（版图）", lv:"ok", k:"开源", note:"用 Ruby/Python 写规则；配 SkyWater 130 / GF180 开源 PDK 能本地跑完整 DRC+LVS"},
+   {id:"magic", n:"Magic + Netgen（LVS）", lv:"ok", k:"开源", note:"从版图提网表与原理图比对；判据很硬，不一致就是不一致"},
+   {id:"b-drc", n:"AI 帮你写检查规则", lv:"build", k:"自研", note:"1 天 · 约 18 万 token：按板厂工艺表生成规则，报错分「必须改/可豁免」并留理由"}]},
+{id:"eng-bom", nm:"BOM 与物料", pk:"eng", tier:"rec", art:"data", cells:["eng.bom"],
+ sub:"料号、数量、封装、替代料、起订量与损耗——设计与采购之间的合同",
+ provs:[
+   {id:"kicad-bom", n:"KiCad BOM + 自建字段", lv:"rec", k:"开源", note:"MPN/替代料/单价写进符号属性，导出一起带出来；改料号只改一处，永不脱节"},
+   {id:"ibom", n:"InteractiveHtmlBom", lv:"ok", k:"开源", note:"可点击装配图：点一行高亮板上位置，手焊与返修省大量找料时间"},
+   {id:"lcsc", n:"立创商城 / Octopart API", lv:"ok", k:"闭源", note:"按料号查库存与价格、找替代料；接口有频率限制，批量查询要加缓存"},
+   {id:"b-bom", n:"AI 帮你核 BOM", lv:"build", k:"自研", note:"0.5 天 · 约 12 万 token：合并同料、算损耗与起订量、逐行核封装与耐压"}]},
+{id:"eng-fab", nm:"出图与生产交付", pk:"eng", tier:"rec", art:"print", cells:["eng.fab"],
+ sub:"Gerber / 钻孔 / 钢网 / 坐标 / 拼板，或 GDS + 层映射；少一个文件工期就往后推三天",
+ provs:[
+   {id:"kicad-cli", n:"kicad-cli 导出（可脚本化）", lv:"rec", k:"开源", note:"一条命令出整套文件，适合进 CI；版本号进文件名，每次发版自动打压缩包"},
+   {id:"dfm", n:"嘉立创 DFM / PCBWay 预检", lv:"ok", k:"闭源", note:"自动查最小孔径、环宽、间距是否超工艺能力；下单前必跑，能挡掉退单"},
+   {id:"gds", n:"GDSII + 层映射（流片）", lv:"ok", k:"做法", note:"层号对错一层整片报废；导出后必须用 KLayout 回读一遍对数"},
+   {id:"b-fab", n:"AI 帮你出交付包", lv:"build", k:"自研", note:"1 天 · 约 16 万 token：文件名与目录规范、出包 checklist、下单说明"}]},
+
+/* ── 芯片设计包（流片一次，改不了）── */
+{id:"eng-rtl", nm:"RTL 设计与规范", pk:"chip", tier:"rec", art:"code", cells:["eng.rtl"],
+ sub:"写的是电路不是指令流：位宽、时钟域、组合环都得由 lint 拦住",
+ provs:[
+   {id:"verible", n:"Verible lint / formatter", lv:"rec", k:"开源", note:"规则集可配、能当 CI 门禁；格式统一以后 review 才看得见真正的逻辑改动"},
+   {id:"verilator-lint", n:"Verilator --lint-only", lv:"ok", k:"开源", note:"最严格的免费 lint：位宽不匹配、未驱动、组合环全能报；报错多但都值得改"},
+   {id:"sva", n:"SystemVerilog 断言（SVA）", lv:"ok", k:"做法", note:"把协议写成断言（req 后 4 拍内必回 ack），仿真时自动查，比看波形可靠"},
+   {id:"b-rtl", n:"AI 帮你写 RTL", lv:"build", k:"自研", note:"3 天 · 约 60 万 token：模块骨架、lint 规则集、模块清单与接口表"}]},
+{id:"eng-sim", nm:"仿真与验证", pk:"chip", tier:"rec", art:"pulse", cells:["eng.sim"],
+ sub:"自检 testbench + 覆盖率：验证通常吃掉芯片项目一半以上的工作量",
+ provs:[
+   {id:"verilator", n:"Verilator（编译成 C++）", lv:"rec", k:"开源", note:"比事件驱动快 10–100 倍，几十万门也能天天回归；部分 SV 语法不支持，先确认"},
+   {id:"cocotb", n:"cocotb（Python testbench）", lv:"ok", k:"开源", note:"用 Python 造激励、调 numpy 算期望；验证工程师不必是 SV 专家"},
+   {id:"iverilog", n:"Icarus Verilog + GTKWave", lv:"ok", k:"开源", note:"轻、装完就能跑，适合小模块；大设计会慢到不能忍"},
+   {id:"b-sim", n:"AI 帮你写 testbench", lv:"build", k:"自研", note:"2 天 · 约 40 万 token：定向 + 随机约束、自检机制、覆盖率缺口报告"}]},
+{id:"eng-synth", nm:"综合与物理实现", pk:"chip", tier:"rec", art:"chip", cells:["eng.synth"],
+ sub:"RTL → 门级网表 → 布局布线 → GDS；约束文件比代码更决定结果",
+ provs:[
+   {id:"yosys", n:"Yosys（综合）", lv:"rec", k:"开源", note:"Verilog → 网表 + 面积/单元数报告，配 ABC 做逻辑优化；大设计比商业工具慢"},
+   {id:"openroad", n:"OpenROAD / OpenLane", lv:"ok", k:"开源", note:"floorplan/place/CTS/route/签核全自动；配 SkyWater 130nm 能真的流片"},
+   {id:"vivado", n:"Vivado / Quartus（FPGA 原型）", lv:"ok", k:"闭源", note:"先上 FPGA 验功能，比流片便宜几个数量级；但它不验「时序能不能收敛」"},
+   {id:"b-synth", n:"AI 帮你写约束与流程", lv:"build", k:"自研", note:"2 天 · 约 45 万 token：SDC 约束、Tcl 流程、按报告定位瓶颈"}]},
+{id:"eng-signoff", nm:"时序与功耗签核", pk:"chip", tier:"rec", art:"chart", cells:["eng.signoff"],
+ sub:"WNS 必须 ≥ 0，三个工艺角都要过；签了就开始烧钱",
+ provs:[
+   {id:"opensta", n:"OpenSTA", lv:"rec", k:"开源", note:"读 SDC + SPEF 出 WNS/TNS 与违例路径；OpenROAD 流程里已内置"},
+   {id:"primetime", n:"PrimeTime / Tempus", lv:"ok", k:"闭源", note:"商业签核标准，精度与工艺库支持最全；流片前的签核通常不敢用开源"},
+   {id:"power", n:"功耗与 IR drop 报告", lv:"ok", k:"做法", note:"动态 + 漏电 + 网格压降三个数一起看；只看功耗会漏掉局部压降"},
+   {id:"b-sig", n:"AI 帮你读签核报告", lv:"build", k:"自研", note:"1 天 · 约 20 万 token：按路径分组找共性瓶颈、三角对比、给改法"}]},
+
+/* ── 训练调参包（跑十次要学到东西）── */
+{id:"train-data", nm:"数据集版本与清洗", pk:"train", tier:"rec", art:"data", cells:["ai.model.dataset"],
+ sub:"版本、去重、配比、固定切分；调参调不动八成是数据问题",
+ provs:[
+   {id:"hf-datasets", n:"Hugging Face datasets", lv:"rec", k:"开源", note:"流式 + 内存映射，几十 GB 不塞内存；push 到私有仓自带 revision"},
+   {id:"dvc", n:"DVC / git-lfs", lv:"ok", k:"开源", note:"数据与代码同仓：.dvc 进 git、大文件进对象存储，checkout 回某个 commit 就是当时那份"},
+   {id:"minhash", n:"MinHash / SimHash 去重", lv:"ok", k:"开源", note:"近重复比精确去重重要；训练集和测试集重叠会让指标虚高十几个点"},
+   {id:"b-data", n:"AI 帮你做数据流水线", lv:"build", k:"自研", note:"2 天 · 约 40 万 token：清洗规则、去重配比、固定切分、manifest"}]},
+{id:"train-run", nm:"训练与微调编排", pk:"train", tier:"rec", art:"chip", cells:["ai.model.train"],
+ sub:"并行策略、梯度累积、断点续训：跑挂了不用从头来",
+ provs:[
+   {id:"llamafactory", n:"LLaMA-Factory", lv:"rec", k:"开源", note:"一套 YAML 覆盖 SFT/DPO/LoRA/全参，一百多个模型开箱能跑"},
+   {id:"axolotl", n:"Axolotl / torchtune", lv:"ok", k:"开源", note:"配置驱动、社区配方多；改并行策略比手写脚本清楚"},
+   {id:"unsloth", n:"Unsloth（QLoRA）", lv:"ok", k:"开源", note:"单卡 24G 训 7B 的现实解：显存省一半、快 2 倍；只支持部分结构，先查兼容表"},
+   {id:"b-run", n:"AI 帮你写训练脚本", lv:"build", k:"自研", note:"2 天 · 约 45 万 token：配置模板、断点续训、OOM 自动降 batch"}]},
+{id:"train-eval", nm:"评测与回归", pk:"train", tier:"rec", art:"chart", cells:["ai.model.eval"],
+ sub:"同一套题、同一个判分器：能力涨了没有，老本事有没有退",
+ provs:[
+   {id:"lm-eval", n:"lm-evaluation-harness", lv:"rec", k:"开源", note:"标准 benchmark 参考实现，结果可复现；看通用能力，不看业务效果"},
+   {id:"opencompass", n:"OpenCompass", lv:"ok", k:"开源", note:"中文任务集更全、支持多模型对比；注意裁判模型有偏好（偏长、偏自家风格）"},
+   {id:"custom", n:"自建任务集 + 规则判分", lv:"ok", k:"做法", note:"从真实问题抽 100–300 条，人工标要点，用正则/单测判分；业务效果只能靠这个"},
+   {id:"b-eval", n:"AI 帮你搭评测台", lv:"build", k:"自研", note:"1.5 天 · 约 30 万 token：三层任务集、规则优先判分、与上一版逐题 diff"}]},
+{id:"train-ckpt", nm:"检查点与权重管理", pk:"train", tier:"rec", art:"save", cells:["ai.model.ckpt"],
+ sub:"权重 + 配置 + 数据 hash 绑成一个三元组；少了它，三个月后只能靠猜",
+ provs:[
+   {id:"hf-hub", n:"Hugging Face 私有仓", lv:"rec", k:"开源", note:"自带版本与大文件 diff，推理服务能直接拉；按存储计费，几十份 ckpt 要算成本"},
+   {id:"rclone", n:"rclone + S3/MinIO", lv:"ok", k:"开源", note:"便宜、能断点、能按前缀批量清理；目录规范定成 {实验}/{步数}/"},
+   {id:"manifest", n:"meta.json 三元组绑定", lv:"ok", k:"做法", note:"git commit + 数据 manifest hash + 超参 + 评测分；几 KB，价值高于权重本身"},
+   {id:"b-ckpt", n:"AI 帮你做权重台账", lv:"build", k:"自研", note:"1 天 · 约 18 万 token：目录规范、meta 校验、按实验保留与冷备策略"}]},
 ];
 
 /* 一个模块可以属于多包：pk 是主包，pks 是全部。挂完才能被 packMods 查。 */
@@ -2289,7 +2443,7 @@ function viewHome(){
       <div class="right"><button class="btn" id="bLib">浏览模块库</button><button class="btn primary" id="bNew2">＋ 新建装配</button></div>
     </div>
     <div class="starts">
-      <div class="start hero" id="bHub" role="button" tabindex="0" aria-label="开始装配：从 12 个场景里挑一个">
+      <div class="start hero" id="bHub" role="button" tabindex="0" aria-label="开始装配：从 16 个场景里挑一个">
         <div class="ic a">${art("shell", 30)}</div>
         <div class="hx">
           <span class="kick">从这里开始</span>

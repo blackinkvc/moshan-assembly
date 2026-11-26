@@ -6265,6 +6265,702 @@
           ]
         }
       ]
+    },
+    {
+      "id": "eng",
+      "name": "工程研发（芯片与板级）",
+      "kind": "domain",
+      "parent": null,
+      "abstract": "从器件到出厂文件：画图、布线、检查、签核、出图。一次做错要等两周或烧掉几十万",
+      "note": "这一域的判断标准只有一句：**改一版的代价是不是以「周」和「万元」计**。网页改错了刷新一下，PCB 改错了等两周，芯片改错了流一次片。代价一大，「事前检查」就比「事后调试」值钱得多——所以这一域的重心全在 DRC、仿真、签核、出图前的那几道闸，而不在画得快不快。坑一：把 EDA 当画图工具用。原理图和版图都是**有语义的数据库**，不是图片；手画的线连不上网表，导入 PCB 就是一堆飞线。坑二：跳过检查直接出图。板厂的 DFM 只查工艺能不能做，不查你的电路对不对；电气错误只能靠自己的 ERC/DRC 拦。",
+      "providers": []
+    },
+    {
+      "id": "eng.lib",
+      "name": "器件与 IP 库",
+      "kind": "module",
+      "parent": "eng",
+      "abstract": "把要用的电阻电容、连接器、芯片管脚定义整理成工具能读的库：符号、封装、参数三件对齐",
+      "note": "这一格看着最没技术含量，实际是 PCB 返工的第一大来源：**符号对了、封装错了**。SOT-23 有 SOT-23-3 和 SOT-23-5 两种引脚数，同一个料号不同厂家的引脚定义可能相反；连接器的「正视图」和「俯视图」差一个镜像，画反了板子回来只能飞线。所以库不是「下载一堆文件」，是三条硬规矩：① 一料一号，符号名带厂家料号；② 封装必须来自数据手册的推荐焊盘图，不抄别人的库；③ 新料入库必须打印 1:1 纸样比对实物。IP 那一面同理：Verilog 行为模型要跟寄存器手册对一遍，别信供应商的 demo。",
+      "io": {
+        "in": "数据手册、规格书、供应商 IP 交付物",
+        "out": "结构化记录（器件表：符号/封装/参数/替代料）"
+      },
+      "providers": [
+        {
+          "id": "kicad-lib",
+          "name": "KiCad 官方库 + 自建库（v9）",
+          "kind": "oss",
+          "license": "CC-BY-SA-4.0",
+          "repo": "KiCad/kicad-symbols",
+          "note": "官方库覆盖常用件，符号与封装成对给出；自建库放项目目录里一起进 git，别放全局库——换机器就丢。立创 EDA 的库可以导出成 KiCad 格式复用"
+        },
+        {
+          "id": "sameda",
+          "name": "SnapEDA / Ultra Librarian",
+          "kind": "commercial",
+          "license": "—",
+          "note": "按料号下符号+封装+3D 模型，省时间；但**必须按数据手册核一遍引脚**，这两家的库历史上出过镜像错误，直接用的代价是废一版板"
+        },
+        {
+          "id": "ip-xact",
+          "name": "IP-XACT / LEF + Liberty",
+          "kind": "pattern",
+          "license": "—",
+          "note": "芯片侧的标准交付格式：LEF 给物理尺寸与引脚位置、Liberty 给时序、Verilog 给行为。三份对不齐是 SoC 集成最常见的坑"
+        },
+        {
+          "id": "eng-lib-write",
+          "name": "AI 帮你把手册读成库",
+          "kind": "build",
+          "effort": "1 天",
+          "tokens": "约 20 万",
+          "outline": [
+            "从 PDF 手册抽引脚表（型号/引脚号/名称/类型/复用功能）",
+            "生成 KiCad 符号与封装脚本（.kicad_sym / footprint）",
+            "按封装库校验：引脚数、间距、焊盘尺寸与手册推荐值对账"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eng.sch",
+      "name": "原理图与网表",
+      "kind": "module",
+      "parent": "eng",
+      "abstract": "把「谁连谁」写成一份机器能读的网表：这是后面布线、检查、出 BOM 的唯一真源",
+      "note": "原理图有两个身份：给人看的图、给工具读的网表。**工具只认网表**——所以判断一张原理图对不对，不看画得漂不漂亮，看它能不能导出一份无悬浮网络的网表。这一格定下来就难改的三件事：网络命名规范（VCC/GND 分几种、模拟数字地怎么分）、层次化还是平铺（超过两页就必须层次化，否则改一处要翻五页）、以及电源树怎么画（后面算电流、选 LDO、查压降全靠它）。坑：用「网络标签」当连线。标签拼错一个字母（VDD_3V3 vs VDD3V3）就是两个网络，ERC 能查出来，但很多人不看 ERC 就导 PCB。",
+      "io": {
+        "in": "结构化记录（器件表）+ 功能框图",
+        "out": "板卡工程（原理图 + 网表）"
+      },
+      "providers": [
+        {
+          "id": "kicad-sch",
+          "name": "KiCad 原理图（层次化）",
+          "kind": "oss",
+          "license": "GPL-3.0",
+          "repo": "KiCad/kicad-source-mirror",
+          "note": "免费、跨平台、网表与 PCB 联动，脚本接口齐全（python 可批量改）；企业里做高速板不如 Altium，做控制板完全够"
+        },
+        {
+          "id": "altium",
+          "name": "Altium Designer",
+          "kind": "commercial",
+          "license": "—",
+          "note": "高速板与团队协作的老大难标准；价格与授权管理是真门槛，小团队用 KiCad + 严格规范往往更省事"
+        },
+        {
+          "id": "skidl",
+          "name": "SKiDL（用 Python 写网表）",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "devbisme/skidl",
+          "note": "把「连 20 个一样的 LED」写成循环，改一处全部生效；适合阵列、总线、多路复用的板子，纯图形界面画这类会画到崩"
+        },
+        {
+          "id": "eng-sch-write",
+          "name": "AI 帮你出第一版原理图",
+          "kind": "build",
+          "effort": "2 天",
+          "tokens": "约 35 万",
+          "outline": [
+            "按功能框图分页 + 电源树 + 网络命名规范表",
+            "生成 KiCad 工程骨架（.kicad_sch / .kicad_pro）与器件实例",
+            "ERC 清零：未连接引脚、单端网络、电源冲突逐条修"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eng.pcb",
+      "name": "布局与布线",
+      "kind": "module",
+      "parent": "eng",
+      "abstract": "把网表变成能生产的板：层叠、阻抗、走线、过孔、丝印、拼板",
+      "note": "布局决定成败：同一份网表，布局差 20mm 就可能过不了 EMC。顺序是死的：**先定结构和接口位置（连接器、按键、屏、天线）→ 再放主芯片与去耦 → 再布线**。反过来先布线，最后发现连接器位置跟外壳对不上，整版重来。三件必须先算的账：层叠（两层还是四层，四层能省掉一半 EMC 问题，成本差约 30%）、阻抗（USB/以太网/HDMI 要控 90/100Ω 差分，靠叠层和线宽算，不靠感觉）、载流（1oz 铜 1mm 宽约过 2A，电机和灯条这类大电流要单独算，别用信号线思维）。坑：自动布线一把梭。自动布线器只会按规则连起来，不管回流路径和串扰；低速板可以，超过 50MHz 或有开关电源的板子必须手动布关键网络。",
+      "io": {
+        "in": "板卡工程（原理图 + 网表）",
+        "out": "板卡工程（含布局布线的 PCB）"
+      },
+      "providers": [
+        {
+          "id": "kicad-pcb",
+          "name": "KiCad PCB + 推挤布线",
+          "kind": "oss",
+          "license": "GPL-3.0",
+          "repo": "KiCad/kicad-source-mirror",
+          "note": "交互式布线手感够用、差分对与等长绕线都有；配合 Saturn PCB Toolkit 算阻抗与载流。四层板建议叠层：信号/地/电源/信号"
+        },
+        {
+          "id": "altium-pcb",
+          "name": "Altium / PADS",
+          "kind": "commercial",
+          "license": "—",
+          "note": "高速与多层板（6 层以上）的约束管理更成熟；一次打样失败的成本往往就超过软件钱，但小批量控制板不值得"
+        },
+        {
+          "id": "freerouting",
+          "name": "Freerouting（自动布线）",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "freerouting/freerouting",
+          "note": "从 Specctra DSN 导入自动布；只适合低速、少层的板子，布完必须人工检查回流路径与电源走向，别直接出图"
+        },
+        {
+          "id": "eng-pcb-write",
+          "name": "AI 帮你做布局评审",
+          "kind": "build",
+          "effort": "1.5 天",
+          "tokens": "约 26 万",
+          "outline": [
+            "按网表算模块聚簇：哪些器件必须挨着（去耦、晶振、差分对）",
+            "生成布局建议图（分区、禁布区、接口朝向）与检查清单",
+            "出图前自动核对：丝印是否压焊盘、过孔是否落在焊盘上、板框是否闭合"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eng.drc",
+      "name": "设计规则检查（DRC / ERC / LVS）",
+      "kind": "module",
+      "parent": "eng",
+      "abstract": "出图前最后一道闸：间距、线宽、焊盘环宽、丝印压焊盘，以及版图和网表对不对得上",
+      "note": "这一格存在的理由只有一个：**它是唯一能在打样前拦住废板的环节**。板厂的 DFM 只判断「工艺能不能做出来」，不判断「你的电路对不对」；电气错误（两个网络短在一起、电源和地接反）只能靠自己的 ERC/DRC。规则要分两层：厂家能力（最小线宽/间距/孔径，看板厂工艺表填，别用默认值）和自己的设计规则（电源线宽、差分间距、晶振包地）。芯片侧同理，只是名字换了：DRC 查版图几何、LVS 查版图与网表是否一致、ERC 查电气规则——三道全绿才能流片。坑：把 DRC 报错一条条「忽略」。忽略的每一条都要在评审记录里写下理由，否则下一版没人知道那条为什么能过。",
+      "io": {
+        "in": "板卡工程（PCB 或版图）",
+        "out": "结构化记录（检查报告：错误/警告/豁免及理由）+ 界面"
+      },
+      "providers": [
+        {
+          "id": "kicad-drc",
+          "name": "KiCad DRC / ERC",
+          "kind": "oss",
+          "license": "GPL-3.0",
+          "repo": "KiCad/kicad-source-mirror",
+          "note": "内置，规则可在板级设置里改；命令行 `kicad-cli pcb drc` 能进 CI，每次提交自动跑，别等到出图那天才点"
+        },
+        {
+          "id": "klayout",
+          "name": "KLayout DRC/LVS（芯片版图）",
+          "kind": "oss",
+          "license": "GPL-3.0",
+          "repo": "KLayout/klayout",
+          "note": "开源版图工具，用 Ruby/Python 写 DRC 规则；配合开源 PDK（SkyWater 130 / GF180）能在本地跑完整 DRC+LVS，不必买 Calibre"
+        },
+        {
+          "id": "magic-netgen",
+          "name": "Magic + Netgen（LVS）",
+          "kind": "oss",
+          "license": "GPL-2.0",
+          "repo": "RTimothyEdwards/magic",
+          "note": "从版图提网表再和原理图比对，是开源流程里最成熟的一套；判据很硬：不一致就是不一致，没有「差不多」"
+        },
+        {
+          "id": "eng-drc-write",
+          "name": "AI 帮你写检查规则",
+          "kind": "build",
+          "effort": "1 天",
+          "tokens": "约 18 万",
+          "outline": [
+            "按板厂工艺表生成 DRC 规则文件（线宽/间距/孔径/环宽）",
+            "把报错按「必须改 / 可豁免」分类，并生成豁免理由模板",
+            "接进 CI：每次提交跑一遍，把新增错误贴到提交评论"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eng.bom",
+      "name": "BOM 与物料",
+      "kind": "module",
+      "parent": "eng",
+      "abstract": "从网表生成采购清单：料号、数量、封装、替代料、单价与库存",
+      "note": "BOM 是设计与采购之间的合同。它最容易错的地方不是漏料，是**「同名不同料」**：10k 电阻有 1% 和 5%、0402 和 0603、厚膜和薄膜，价格差三倍，性能差一个量级。所以 BOM 必须带三列才能采购：厂家料号（不是自己起的编号）、封装、以及至少一个可替代料号（缺货时不用改设计）。还要算一件容易被忽略的事：**最小起订量与损耗**。一片板用 3 个 0.1uF，打 10 片要 30 个，但 0402 电容按盘卖（4000 个/盘），实际支出不是 30 倍单价。",
+      "io": {
+        "in": "结构化记录（网表/器件表）",
+        "out": "结构化记录（BOM 行）+ 产物文件（采购用 CSV/XLSX）"
+      },
+      "providers": [
+        {
+          "id": "kicad-bom",
+          "name": "KiCad BOM 导出 + 自建字段",
+          "kind": "oss",
+          "license": "GPL-3.0",
+          "repo": "KiCad/kicad-source-mirror",
+          "note": "在符号属性里加 MPN/替代料/单价三个字段，导出时一起带出来；字段放在符号里，改料号只改一处，BOM 与原理图永远同步"
+        },
+        {
+          "id": "ibom",
+          "name": "InteractiveHtmlBom",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "openscopeproject/InteractiveHtmlBom",
+          "note": "生成可点击的装配图：点一行 BOM 高亮板上位置，手焊和返修时省大量找料时间"
+        },
+        {
+          "id": "lcsc-api",
+          "name": "立创商城 / Octopart API",
+          "kind": "commercial",
+          "license": "—",
+          "note": "按料号查库存与价格、自动找替代料；国内项目接立创，海外接 Octopart（Nexar）。注意接口有频率限制，批量查询要加缓存"
+        },
+        {
+          "id": "eng-bom-write",
+          "name": "AI 帮你核 BOM",
+          "kind": "build",
+          "effort": "0.5 天",
+          "tokens": "约 12 万",
+          "outline": [
+            "网表 → BOM 行（合并同料、算损耗与起订量）",
+            "逐行核对：封装与器件表一致、耐压与容差满足电路要求",
+            "缺货替代建议：同参数、同封装、可直替的料号"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eng.fab",
+      "name": "出图与生产交付",
+      "kind": "module",
+      "parent": "eng",
+      "abstract": "把工程变成板厂/晶圆厂能直接吃的东西：Gerber、钻孔、钢网、装配图、拼板，或 GDS",
+      "note": "出图是「一次做错全废」的最后一步，也是最容易漏项的一步。板厂要的是一套文件，不是一张图：**铜层 + 阻焊 + 丝印 + 钻孔 + 板框（每层一个文件）**，加上说明层叠与表面处理的工艺单；SMT 还要钢网文件和坐标文件（pick & place）；拼板要 V-cut 或邮票孔。少一个钻孔文件，板厂会打电话来问，工期就往后推三天。芯片侧对应的是 GDSII + 层映射表 + 测试结构，交给晶圆厂跑 tapeout——这一步的检查叫 sign-off，签了就开始烧钱，没有回头路。坑：文件名随便起。板厂靠文件名识别层（.GTL 顶层、.GBL 底层、.DRL 钻孔），改名成 1.gbr/2.gbr 会被当成同一层。",
+      "io": {
+        "in": "板卡工程（已通过 DRC）+ 结构化记录（BOM/工艺要求）",
+        "out": "产物文件（Gerber/钻孔/钢网/GDS）+ 外部动作（下单/流片）"
+      },
+      "providers": [
+        {
+          "id": "kicad-cli",
+          "name": "kicad-cli 导出（可脚本化）",
+          "kind": "oss",
+          "license": "GPL-3.0",
+          "repo": "KiCad/kicad-source-mirror",
+          "note": "`kicad-cli pcb export gerbers/drill/pos` 一条命令出一套文件，适合放进 CI：版本号进文件名，每次发版自动打一个压缩包"
+        },
+        {
+          "id": "jlc-dfm",
+          "name": "嘉立创 DFM / PCBWay 预检",
+          "kind": "commercial",
+          "license": "—",
+          "note": "上传后自动查最小孔径、环宽、间距是否超工艺能力；免费且比人工看准。下单前必跑一次，能挡掉「板厂做不出来」这类退单"
+        },
+        {
+          "id": "gds-stream",
+          "name": "GDSII + 层映射（芯片）",
+          "kind": "pattern",
+          "license": "—",
+          "note": "版图导出成 GDSII，附一份层号→工艺层对照表；层映射错一层，整片报废。导出后必须用 KLayout 回读一遍对数"
+        },
+        {
+          "id": "eng-fab-write",
+          "name": "AI 帮你出交付包",
+          "kind": "build",
+          "effort": "1 天",
+          "tokens": "约 16 万",
+          "outline": [
+            "按板厂要求生成文件命名与目录结构（层名/版本/日期）",
+            "出包前 checklist：层数齐、钻孔齐、板框闭合、工艺单字段全",
+            "生成下单说明（层叠/表面处理/阻抗要求/交期）"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eng.rtl",
+      "name": "RTL 设计与规范检查",
+      "kind": "module",
+      "parent": "eng",
+      "abstract": "用 Verilog/SystemVerilog 写电路，并用 lint 把它约束成「能综合、可读、可复用」的样子",
+      "note": "RTL 与软件最大的差别：**你写的是电路，不是指令流**。一个 for 循环在软件里是循环，在 RTL 里会被展开成 N 份硬件；随手写个 `a * b` 在综合后可能变成一个几十级的乘法器，时序直接崩。所以这一格真正的产出不是代码，是**编码规范 + lint 门禁**：阻塞/非阻塞赋值不能混用、每个 always 块只驱动一个信号、跨时钟域必须走同步器（两级触发器）、位宽要显式声明不许隐式截断。坑：仿真过了就以为对了。仿真只覆盖你想到的情况；lint 与 CDC 检查覆盖的是你没想到的——这两道在流片前必须全绿。",
+      "io": {
+        "in": "文本（规格/接口定义）+ 原始文件（已有 IP 源码）",
+        "out": "原始文件（RTL 源码）+ 结构化记录（模块清单/接口表）"
+      },
+      "providers": [
+        {
+          "id": "verible",
+          "name": "Verible lint / formatter",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "chipsalliance/verible",
+          "note": "Google 开源的 SV 工具链，规则集可配、能当 CI 门禁；格式统一以后，code review 才看得见真正的逻辑改动"
+        },
+        {
+          "id": "verilator-lint",
+          "name": "Verilator --lint-only",
+          "kind": "oss",
+          "license": "LGPL-3.0",
+          "repo": "verilator/verilator",
+          "note": "最严格的免费 lint，位宽不匹配、未驱动信号、组合环全能报出来；报错多但几乎每条都值得改"
+        },
+        {
+          "id": "sv-lang",
+          "name": "SystemVerilog + 断言（SVA）",
+          "kind": "pattern",
+          "license": "—",
+          "note": "把接口协议写成断言（「req 拉高后 4 拍内必须有 ack」），仿真时自动检查；比人眼看波形可靠得多"
+        },
+        {
+          "id": "eng-rtl-write",
+          "name": "AI 帮你写 RTL 与规范",
+          "kind": "build",
+          "effort": "3 天",
+          "tokens": "约 60 万",
+          "outline": [
+            "按接口表生成模块骨架（端口/参数/时钟复位）",
+            "写 lint 规则集与 CI 门禁（位宽、跨时钟域、组合环）",
+            "生成模块清单与接口表，供集成与验证复用"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eng.sim",
+      "name": "仿真与验证",
+      "kind": "module",
+      "parent": "eng",
+      "abstract": "跑 testbench 看波形：功能对不对、覆盖率够不够、改一行有没有弄坏别的",
+      "note": "验证通常占芯片项目 50–70% 的工作量，原因很简单：**流片后改不了**。这一格要建立的是「可回归」：不是跑一次看起来对，而是每次改动都能自动跑完几百个 case 并给出通过率与覆盖率。三件事必须一起有：① 自检 testbench（自己判对错，不靠人看波形）；② 覆盖率（行/分支/状态机/断言，缺哪块一目了然）；③ 随机 + 定向结合（随机撞边界，定向测协议）。坑：只看波形不看覆盖率。波形过了只说明你测的那条路对，没跑到的那 30% 里可能就藏着流片后才能发现的死锁。",
+      "io": {
+        "in": "原始文件（RTL 源码）+ 结构化记录（测试目标）",
+        "out": "结构化记录（通过率/覆盖率报告）+ 界面（波形）"
+      },
+      "providers": [
+        {
+          "id": "verilator",
+          "name": "Verilator（编译成 C++ 跑）",
+          "kind": "oss",
+          "license": "LGPL-3.0",
+          "repo": "verilator/verilator",
+          "note": "比事件驱动仿真器快 10–100 倍，几十万门的设计也能天天回归；不支持部分 SV 语法（如部分断言），要提前确认"
+        },
+        {
+          "id": "iverilog",
+          "name": "Icarus Verilog + GTKWave",
+          "kind": "oss",
+          "license": "GPL-2.0",
+          "repo": "steveicarus/iverilog",
+          "note": "轻、装起来就能跑，适合小模块与教学；GTKWave 看波形够用，大设计会慢到不能忍"
+        },
+        {
+          "id": "cocotb",
+          "name": "cocotb（Python 写 testbench）",
+          "kind": "oss",
+          "license": "BSD-3-Clause",
+          "repo": "cocotb/cocotb",
+          "note": "用 Python 写激励与检查，能直接调 numpy 造数据、调 matplotlib 画图；验证工程师不必是 SV 专家"
+        },
+        {
+          "id": "eng-sim-write",
+          "name": "AI 帮你写 testbench",
+          "kind": "build",
+          "effort": "2 天",
+          "tokens": "约 40 万",
+          "outline": [
+            "按接口协议生成定向 case + 随机约束",
+            "自检机制：期望值与实际值比对、超时检测、断言",
+            "覆盖率收集与缺口报告（哪些分支从没跑到）"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eng.synth",
+      "name": "综合与物理实现",
+      "kind": "module",
+      "parent": "eng",
+      "abstract": "RTL → 门级网表 → 布局布线 → 版图：把代码变成真的能造出来的几何图形",
+      "note": "这一步是「代码世界」与「物理世界」的分界。综合把 always 块变成标准单元，布局布线决定这些单元在硅片上的位置与连线。约束文件（SDC）比代码更决定结果：时钟频率、输入输出延迟、false path 与 multicycle 写错一条，时序报告就全是假的。面积、功耗、频率三者互斥——想把频率从 200MHz 提到 400MHz，要么加流水线（改 RTL），要么换更贵的工艺，没有第三条路。坑：先用 FPGA 验证再流片，以为是一回事。FPGA 的 LUT 与 ASIC 的标准单元延迟特性完全不同，FPGA 能跑 100MHz 不代表 ASIC 能跑 500MHz，反过来也一样。",
+      "io": {
+        "in": "原始文件（RTL 源码）+ 结构化记录（约束与工艺库）",
+        "out": "板卡工程（门级网表/版图）"
+      },
+      "providers": [
+        {
+          "id": "yosys",
+          "name": "Yosys（综合）",
+          "kind": "oss",
+          "license": "ISC",
+          "repo": "YosysHQ/yosys",
+          "note": "开源综合器，Verilog → 网表，能出面积/单元数报告；配合 ABC 做逻辑优化。大设计比商业工具慢，但完全够学习与小芯片"
+        },
+        {
+          "id": "openroad",
+          "name": "OpenROAD / OpenLane（物理实现）",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "The-OpenROAD-Project/OpenROAD",
+          "note": "从网表到 GDS 全自动：floorplan、place、CTS、route、签核。配合 SkyWater 130nm PDK 能真的流片（多次流片项目如 Tiny Tapeout 就走这条）"
+        },
+        {
+          "id": "vivado",
+          "name": "Vivado / Quartus（FPGA 原型）",
+          "kind": "commercial",
+          "license": "—",
+          "note": "先上 FPGA 验证功能，比直接流片便宜几个数量级；但 FPGA 只验证「逻辑对不对」，不验证「时序能不能收敛」"
+        },
+        {
+          "id": "eng-synth-write",
+          "name": "AI 帮你写约束与流程脚本",
+          "kind": "build",
+          "effort": "2 天",
+          "tokens": "约 45 万",
+          "outline": [
+            "SDC 约束：时钟、IO 延迟、false path、multicycle",
+            "Makefile/Tcl 流程：综合 → 布局 → CTS → 布线 → 出报告",
+            "按报告定位瓶颈：是逻辑级数多、还是布线拥塞"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eng.signoff",
+      "name": "时序与功耗签核",
+      "kind": "module",
+      "parent": "eng",
+      "abstract": "流片前最后一道算术：每个路径的建立/保持时间是否为正，功耗与压降是否在预算内",
+      "note": "签核的意思是「签了就开始烧钱」。它不看功能，只看数字：**WNS（最差负裕量）必须 ≥ 0**，否则芯片在某个角落、某个电压、某个温度下会算错；**功耗**要分动态（翻转引起）与静态（漏电），28nm 以下漏电会占到一半；**IR drop** 要看电源网格能不能在峰值电流下把电压撑住。三种工艺角必须都过：慢速/高温/低压（SS）、快速/低温/高压（FF）、典型（TT）。坑：只跑 TT 角。TT 过了不代表 SS 能过——很多芯片是「常温好用、一冷就挂」。",
+      "io": {
+        "in": "板卡工程（版图 + 寄生参数）",
+        "out": "结构化记录（时序/功耗/压降报告）+ 界面"
+      },
+      "providers": [
+        {
+          "id": "opensta",
+          "name": "OpenSTA",
+          "kind": "oss",
+          "license": "GPL-3.0",
+          "repo": "The-OpenROAD-Project/OpenSTA",
+          "note": "开源静态时序分析，读 SDC + SPEF，出 WNS/TNS 与违例路径；OpenROAD 流程里已内置，单独用也方便"
+        },
+        {
+          "id": "primetime",
+          "name": "PrimeTime / Tempus",
+          "kind": "commercial",
+          "license": "—",
+          "note": "商业签核标准，精度与工艺库支持最全；贵，但流片前的签核通常不敢用开源工具"
+        },
+        {
+          "id": "power-report",
+          "name": "功耗与 IR drop 报告",
+          "kind": "pattern",
+          "license": "—",
+          "note": "按翻转率算动态功耗、按工艺库算漏电，再用峰值电流跑网格分析；三个数必须一起看，单看功耗会漏掉局部压降"
+        },
+        {
+          "id": "eng-signoff-write",
+          "name": "AI 帮你读签核报告",
+          "kind": "build",
+          "effort": "1 天",
+          "tokens": "约 20 万",
+          "outline": [
+            "解析时序报告：按路径分组、找出共性瓶颈（逻辑级数/扇出/长线）",
+            "三工艺角对比表：哪个角最差、差多少",
+            "给修改建议：加流水线、降频、改约束或换单元"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.model.dataset",
+      "name": "数据集版本与清洗",
+      "kind": "module",
+      "parent": "ai.model",
+      "abstract": "把训练数据变成「可复现的一份」：版本号、去重、配比、train/val 切分固定下来",
+      "note": "调参调不动，八成不是超参问题，是数据问题。这一格要钉死三件事：**版本**（数据集变了要能对应到哪次训练）、**去重**（训练集与测试集重叠会让指标虚高十几个点，且上线就崩）、**配比**（通用能力与领域能力的比例，改一次就是一个新实验）。切分必须固定并写进 manifest：每次随机切分等于每次换考卷，指标不可比，前面所有实验白做。坑：只存处理后的 jsonl，不存原始数据与清洗脚本。三个月后想复现，发现不知道当时过滤了什么。",
+      "io": {
+        "in": "原始文件（原始语料/标注）",
+        "out": "原始文件（清洗后的数据集）+ 结构化记录（manifest：版本/条数/去重统计/切分）"
+      },
+      "providers": [
+        {
+          "id": "hf-datasets",
+          "name": "Hugging Face datasets",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "huggingface/datasets",
+          "note": "流式读取 + 内存映射，几十 GB 不用先塞进内存；push 到私有仓就自带版本（revision/commit hash）"
+        },
+        {
+          "id": "dvc",
+          "name": "DVC / git-lfs",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "iterative/dvc",
+          "note": "数据与代码同仓管理：.dvc 文件进 git，大文件进对象存储；checkout 到某个 commit 就能拿回当时那份数据"
+        },
+        {
+          "id": "minhash",
+          "name": "MinHash / SimHash 去重",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "ekzhu/datasketch",
+          "note": "近重复检测比精确去重重要得多（同一段话改两个标点仍是重复）；按 Jaccard 阈值 0.8 聚簇，每簇留一条"
+        },
+        {
+          "id": "eng-dataset-write",
+          "name": "AI 帮你做数据流水线",
+          "kind": "build",
+          "effort": "2 天",
+          "tokens": "约 40 万",
+          "outline": [
+            "清洗规则：编码、去 HTML、长度过滤、敏感内容过滤",
+            "去重 + 配比采样 + 固定切分，产出 manifest.json",
+            "质量抽检：按来源分层抽样，人工过 100 条再全量跑"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.model.train",
+      "name": "训练与微调编排",
+      "kind": "module",
+      "parent": "ai.model",
+      "abstract": "把「跑一次训练」变成可重复的任务：配置、显存、断点、日志，一条命令起",
+      "note": "训练这一格的价值不在「能跑起来」，在**「跑挂了不用从头来」**。全参微调 7B 要 8×A100，断在第 3000 步很常见——没有检查点就是白烧了几千卡时。三件事必须配好：**并行策略**（单卡装不下就用 ZeRO/FSDP 切参数，或者 LoRA/QLoRA 只训低秩增量，7B 在单张 24G 卡上就能跑）、**梯度累积**（小显存模拟大 batch，注意学习率要跟着开方调）、**日志粒度**（每步记 loss/lr/grad_norm，每 N 步存 ckpt）。坑：改了 batch size 不改学习率。线性缩放规则不是玄学，是 SGD 的方差补偿，batch 翻倍学习率不调，loss 曲线会先平后炸。",
+      "io": {
+        "in": "原始文件（数据集）+ 结构化记录（训练配置）",
+        "out": "外部动作（训练任务：占卡、跑步、产出检查点）"
+      },
+      "providers": [
+        {
+          "id": "llamafactory",
+          "name": "LLaMA-Factory",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "hiyouga/LLaMA-Factory",
+          "note": "一套 YAML 覆盖 SFT/DPO/LoRA/全参，一百多个模型开箱能跑；适合「先跑通再改代码」，最省事的一条路"
+        },
+        {
+          "id": "axolotl",
+          "name": "Axolotl / torchtune",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "axolotl-ai-cloud/axolotl",
+          "note": "配置驱动、社区配方多（各尺寸的推荐超参），改并行策略比手写脚本清楚；torchtune 更贴近原生 PyTorch"
+        },
+        {
+          "id": "unsloth",
+          "name": "Unsloth（QLoRA 加速）",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "unslothai/unsloth",
+          "note": "单卡 24G 训 7B 的现实解：4bit 量化 + 手写 kernel，显存省一半、速度快 2 倍；只支持部分模型结构，换模型前先查兼容表"
+        },
+        {
+          "id": "eng-train-write",
+          "name": "AI 帮你写训练脚本",
+          "kind": "build",
+          "effort": "2 天",
+          "tokens": "约 45 万",
+          "outline": [
+            "训练配置模板（模型/数据/并行/优化器/调度器）与校验",
+            "断点续训：从最新 ckpt 恢复优化器状态与步数",
+            "异常自愈：OOM 自动降 batch / 提高累积步数并重试"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.model.eval",
+      "name": "评测与回归",
+      "kind": "module",
+      "parent": "ai.model",
+      "abstract": "同一套题、同一个判分器，回答「这一版到底比上一版好还是坏」",
+      "note": "没有固定评测集，调参就是掷骰子。这一格要解决三个具体的坑：**题变了**（每次都临时想几个问题，前后不可比）、**判分器不一致**（一会儿人看、一会儿模型打分，标准漂移）、**只测能力不测退化**（领域能力涨了 5 分，通用指令跟随掉了 10 分，上线才发现）。所以要三层：能力集（目标任务）、回归集（上一版必须过的老题）、安全集（不该说的不说）。判分尽量用规则（精确匹配/包含/正则/代码单测），模型打分只做兜底并记录打分模型版本。坑：在测试集上反复调，调到 95% 然后上线 60%——那是过拟合评测集，不是模型变强。",
+      "io": {
+        "in": "原始文件（权重/数据集）+ 外部动作（推理服务）",
+        "out": "结构化记录（分数表：能力/回归/安全）+ 界面"
+      },
+      "providers": [
+        {
+          "id": "lm-eval",
+          "name": "lm-evaluation-harness",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "EleutherAI/lm-evaluation-harness",
+          "note": "标准 benchmark 的参考实现，几十个任务、结果可复现；适合看通用能力有没有掉，不适合衡量你的业务效果"
+        },
+        {
+          "id": "opencompass",
+          "name": "OpenCompass",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "open-compass/opencompass",
+          "note": "中文任务集更全，支持多模型对比与裁判模型；注意裁判模型本身有偏好（偏长、偏自己家的风格）"
+        },
+        {
+          "id": "custom-eval",
+          "name": "自建任务集 + 规则判分",
+          "kind": "pattern",
+          "license": "—",
+          "note": "从真实用户问题里抽 100–300 条，人工标注期望答案要点，用关键词/正则/单测判分。业务效果只能靠这个，公开榜参考价值有限"
+        },
+        {
+          "id": "eng-eval-write",
+          "name": "AI 帮你搭评测台",
+          "kind": "build",
+          "effort": "1.5 天",
+          "tokens": "约 30 万",
+          "outline": [
+            "任务集结构（能力/回归/安全）与标注模板",
+            "判分器：规则优先、模型兜底，记录判分版本",
+            "出对比报告：与上一版的逐项差异，标出退化的题"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai.model.ckpt",
+      "name": "检查点与权重管理",
+      "kind": "module",
+      "parent": "ai.model",
+      "abstract": "把每一步的权重、配置、数据版本绑在一起存：能回退、能对比、能交付",
+      "note": "权重文件是这一行的「发布物」，但它有三个麻烦：**大**（7B fp16 约 14GB）、**多**（每 N 步存一个，跑一周就是几十份）、**缺上下文**（光有 .safetensors，不知道是哪份数据、哪套超参训出来的）。所以这一格不是「存文件」，是**三元组绑定**：权重 + 训练配置 + 数据 manifest hash，写进同一个目录的 meta.json。少了它，三个月后想复现最好那一版，只能靠猜。策略上：只留「最好的 + 最近的 + 每 N 步的一个」，其余按时间清理；对比实验只留最终权重，中间态扔对象存储冷备。坑：把 ckpt 提交进 git。一次 commit 十几 GB，仓库直接废掉。",
+      "io": {
+        "in": "外部动作（训练产出的检查点）",
+        "out": "原始文件（可加载的权重 + meta）"
+      },
+      "providers": [
+        {
+          "id": "hf-hub",
+          "name": "Hugging Face 私有仓",
+          "kind": "oss",
+          "license": "Apache-2.0",
+          "repo": "huggingface/huggingface_hub",
+          "note": "自带版本与 diff（大文件走 LFS）、能直接给推理服务拉；私有仓按存储计费，几十份 ckpt 要算清成本"
+        },
+        {
+          "id": "rclone-s3",
+          "name": "rclone + S3/MinIO",
+          "kind": "oss",
+          "license": "MIT",
+          "repo": "rclone/rclone",
+          "note": "便宜、能断点、能按前缀批量清理；自己定目录规范：`{实验}/{步数}/`，meta.json 与权重同目录"
+        },
+        {
+          "id": "manifest",
+          "name": "meta.json 三元组绑定",
+          "kind": "pattern",
+          "license": "—",
+          "note": "每次存 ckpt 写一份：git commit、数据集 manifest hash、超参文件、评测分数。体积几 KB，价值比权重本身高"
+        },
+        {
+          "id": "eng-ckpt-write",
+          "name": "AI 帮你做权重台账",
+          "kind": "build",
+          "effort": "1 天",
+          "tokens": "约 18 万",
+          "outline": [
+            "目录规范与自动归档（最好的/最近的/里程碑）",
+            "meta.json 生成与校验：权重能加载、hash 对得上",
+            "清理策略：按实验保留，冷备到对象存储"
+          ]
+        }
+      ]
     }
   ],
   "products": [
