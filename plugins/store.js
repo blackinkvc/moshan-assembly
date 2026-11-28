@@ -1,0 +1,65 @@
+/* 由 tools/pluginctl.py index 生成，别手改 */
+window.MOSHAN_STORE = {
+ "schema": "moshan.store/1",
+ "name": "墨山插件仓库",
+ "note": "由 tools/pluginctl.py index 生成，别手改",
+ "updated_at": "2026-11-28T18:14:39+08:00",
+ "categories": [
+  {
+   "id": "workbench",
+   "name": "工作台"
+  },
+  {
+   "id": "collect",
+   "name": "收集"
+  },
+  {
+   "id": "read",
+   "name": "阅读"
+  },
+  {
+   "id": "media",
+   "name": "影音"
+  },
+  {
+   "id": "create",
+   "name": "创作"
+  },
+  {
+   "id": "dev",
+   "name": "开发"
+  },
+  {
+   "id": "life",
+   "name": "生活"
+  },
+  {
+   "id": "sys",
+   "name": "系统"
+  }
+ ],
+ "plugins": [
+  {
+   "id": "refine",
+   "name": "顷刻炼化",
+   "version": "0.3.0",
+   "summary": "输入 GitHub 链接，拆解并炼化成中台模块",
+   "category": "workbench",
+   "category_name": "工作台",
+   "kind": "service",
+   "port": 8790,
+   "data_default": "~/Documents/Moshan/09-个人工作台/顷刻炼化",
+   "tags": [
+    "炼化",
+    "GitHub",
+    "胶水"
+   ],
+   "shots": [],
+   "pack": "https://blackinkvc.github.io/moshan-assembly/plugins/_packs/refine-0.3.0.moshanplug",
+   "sha256": "1463927742c25444ddb81f6ec6f8e489430282509ae7e620d8eeeab6e1988550",
+   "size": 5273,
+   "source": "https://github.com/blackinkvc/moshan-assembly/tree/main/plugins/workbench/refine",
+   "updated_at": "2026-11-28T18:14:39+08:00"
+  }
+ ]
+};
