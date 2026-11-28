@@ -390,6 +390,15 @@
   .sc .sp{display:flex;flex-wrap:wrap;gap:4px;margin-top:auto;padding-top:5px}
   .sc .sp span{font-size:10.5px;border-radius:20px;padding:2px 7px;font-weight:500;
     background:hsl(var(--h) 70% 94%);color:hsl(var(--h) 46% 30%);border:1px solid hsl(var(--h) 52% 84%)}
+  /* 场景卡上的「参考实现」：说明这套东西已经有一份装好的，点开能看真身 */
+  .sc .sref{margin-top:6px;font-size:11px;color:var(--brand);border-top:1px dashed var(--line);
+    padding-top:6px;display:flex;align-items:center;gap:4px}
+  .sc .sref:hover{text-decoration:underline}
+  .sc .sref::after{content:"↗";font-size:10px;color:var(--faint)}
+  /* 交付页上「这份已经装好了」那条 */
+  .refbar{display:flex;gap:10px;align-items:center;margin:0 0 14px;padding:12px 16px;font-size:12.5px}
+  .refbar span{color:var(--dim);min-width:0}
+  .refbar .btn{margin-left:auto;flex:0 0 auto}
 
   /* ── 包：成套的功能，带色相 ── */
   .packs{display:flex;flex-direction:column;gap:15px}
@@ -1100,12 +1109,20 @@ const SCENES = [
    sub:"房态日历、渠道订单、门锁密码、自助入住、夜里值守",
    out:"一个手机能改房态的后台加一把能发离线密码的锁：客人十点到也能自己进门",
    why:"山里的三件事决定一切：信号差（离线优先）、没人值守（自助入住 + 求助升级）、渠道多（携程/美团/Airbnb 一起占房，晚一步就超售）。位置包给周边与交通，日程包给保洁与交接。"},
+  {id:"deals", nm:"投资部项目台", art:"note", must:["core","data"],
+   packs:["core","data","beauty","auto","collab"],
+   sub:"企业资料丢进来，抽成一份档案，按不同报告出 Word / PPT / PDF",
+   out:"一个项目档案台：资料进得去、栏目对得上、登记表一键成 Word，缺什么、哪两个数打架都自动列出来",
+   why:"它的难点不在记项目，在「同一份数据要出好几种报告」——数据只该抽一次，栏目差异放进视图配置，否则字段一改要改十几处。第二难在数字必须自洽：单位混用（万元/亿元/元）、明细加起来不等于合计、比率重算对不上，是这类表里最常见的错，得用纯规则校验一遍，不能交给模型。所以地基包给存取、数据包给导入与导出、美化包让输出的表像份正式文件；自动化包定时提醒补资料，协作包让风控与投委能一起看。",
+   /* 已经装好的参考实现：字段存在时，场景卡与完成页会给一个入口 */
+   ref:{nm:"股权项目台", dir:"equity-desk", port:8795, run:"cd equity-desk && python3 rivet.py --serve"}},
 ];
 
-/* 20 个场景分六组，按「装给谁用」分——不按行业分。
+/* 19 个场景分七组，按「装给谁用」分——不按行业分。
    场景页顶上是这条索引，点一下只看一组；分组只是导航，不影响算法。 */
 const SCAT = [
   {id:"self", nm:"自己天天用", hint:"装在自己电脑上，一个人用、天天开", ids:["hub","nas","imagegen"]},
+  {id:"office", nm:"办公与业务", hint:"资料进、档案出，一趟流程要对得上数", ids:["deals"]},
   {id:"biz",  nm:"开门做生意", hint:"有客人、有订单、要对得上账", ids:["shop","sling"]},
   {id:"floor", nm:"线下现场", hint:"有门、有货架、有闸机，断网也得营业", ids:["wms","cafe","park","lodge"]},
   {id:"prod", nm:"做产品上线", hint:"做出来给别人用，出事要能救", ids:["idle","saas","live"]},
@@ -2027,6 +2044,35 @@ const memBudget = () => (S.hub && S.hub.mem) || 16;
    极简与场景无关（只留地基），中等勾场景包的必装+推荐，齐全把场景包全勾上。 */
 function sceneById(id){ return SCENES.find(x => x.id === id) || SCENES[0]; }
 function scenePacks(id){ return sceneById(id).packs; }
+
+/* 参考实现：场景里挂着一份真装好的东西。
+   它是本机进程，不是网页——线上点开只会是死链，所以干脆把启动命令摆出来。 */
+function refOf(id){
+  const sc = SCENES.find(x => x.id === id);
+  return (sc && sc.ref) || null;
+}
+function onLocal(){
+  return location.protocol === "file:" || /^(127\.0\.0\.1|localhost)$/.test(location.hostname);
+}
+function openRef(id){
+  const r = refOf(id);
+  if(!r) return;
+  if(onLocal()){
+    window.open(`http://127.0.0.1:${r.port}/`, "_blank", "noopener");
+    return;
+  }
+  modal(`<div class="mh"><b>${esc(r.nm)}</b><button class="x" data-x="1">✕</button></div>
+    <div class="mb">
+      <p style="margin-top:0">它跑在你自己这台机器上，不是网页——在这个页面上点，够不到本机的
+        ${r.port} 端口。</p>
+      <p>在仓库里起一下：</p>
+      <pre style="background:#f4f2ec;border:1px solid var(--line);border-radius:8px;
+        padding:10px 12px;overflow:auto;font-size:12px;line-height:1.6">${esc(r.run)}</pre>
+      <p class="faint" style="font-size:12px">起来后浏览器开 <b>http://127.0.0.1:${r.port}/</b>。
+        它不联网、不用 Key；档案落在 <code>~/Documents/AI项目/20-股权项目/deals/</code>。</p>
+    </div>`, `<button class="btn" data-x="1">知道了</button>`);
+  $("#modal").querySelectorAll("[data-x]").forEach(x => x.onclick = closeModal);
+}
 /* 一个包在本次装配里的「有效等级」：场景把它列为核心、而它本身是可选包时，升一档。
    这样「仓库管理」里的交易包不会被当成可有可无——同一个包在「个人中台」里仍然是可选。 */
 function packTierEff(pid){
@@ -2783,6 +2829,8 @@ function viewHubScene(){
       <div class="so"><em>装出来</em>${esc(sc.out)}</div>
       <div class="sp">${sc.packs.map(pid => { const p = packOf(pid);
         return `<span style="--h:${p.hue}">${esc(p.nm)}</span>`; }).join("")}</div>
+      ${sc.ref ? `<div class="sref" data-ref="${sc.id}" role="button" tabindex="0"
+        title="这套东西已经装好一份，点开看看它长什么样">▸ 参考实现：${esc(sc.ref.nm)}</div>` : ""}
     </div>`;
   const body = (gg) => (gg === "all" ? SCAT : SCAT.filter(x => x.id === gg)).map(gp => `
     <div class="scgh"><b>${esc(gp.nm)}</b><span>${esc(gp.hint)}</span></div>
@@ -2821,6 +2869,13 @@ function viewHubScene(){
     });
     /* 筛选后那条「看全部」是重新渲染出来的，得跟着绑 */
     document.querySelectorAll("#scbody [data-g]").forEach(b => b.onclick = () => pickG(b.dataset.g));
+    /* 参考实现那一行在卡片里面，点它不能顺手把场景选了 */
+    document.querySelectorAll("[data-ref]").forEach(n => {
+      n.onclick = e => { e.stopPropagation(); openRef(n.dataset.ref); };
+      n.onkeydown = e => {
+        if(e.key === "Enter" || e.key === " "){ e.preventDefault(); e.stopPropagation(); openRef(n.dataset.ref); }
+      };
+    });
   };
   bind();
   const pickG = gg => {
@@ -5198,6 +5253,8 @@ function viewPack(){
     return a.some(m => m.id === "plugin") ? a.length : a.length + 1;
   })();
   const bar = pct => Math.min(100, Math.round(pct * 100));
+  /* 这个场景如果已经有一份装好的样板，交付页就直接给入口——比「照着清单重装一遍」实在 */
+  const rf = isHub ? refOf((S.hub || {}).scene) : null;
   topbar(`工作台 <span>/</span> <b>${esc(sceneName())}</b>`, isHub ? hubSteps(7) : 4,
     `<button class="btn sm ghost" id="bPBack">回试用</button>`);
   $("#view").innerHTML = `<div class="page">
@@ -5206,6 +5263,11 @@ function viewPack(){
       包里是 ${files.length} 个文件：一个能直接双击打开的试用版、清单、说明、安装说明${(data.shop || []).length ? "、模块商店清单" : ""}。</p></div>
       <div class="right"><span class="badge ok">${kb} KB</span>
         ${data.min ? `<span class="badge mute" style="margin-left:6px">最小包</span>` : ""}</div></div>
+
+    ${rf ? `<div class="card box refbar">
+      <b>这套东西已经装好一份：${esc(rf.nm)}</b>
+      <span>它就是这个场景的样板，不联网、不用 API Key，跑在本机 ${rf.port} 端口。</span>
+      <button class="btn sm primary" id="bRef">打开看看</button></div>` : ""}
 
     <div class="secttl first"><b>① 内存够不够</b><span>打包前先模拟一次 · 装完再看实际结果</span></div>
     <div class="memcard">
@@ -5318,6 +5380,7 @@ function viewPack(){
   $("#bOnlyHtml").onclick = () => dl(new Blob([htmlDoc], {type:"text/html;charset=utf-8"}), "试用版.html");
   $("#bExpP").onclick = exportMd;
   $("#bPBack").onclick = $("#bPBack2").onclick = () => go("#/trial");
+  if($("#bRef")) $("#bRef").onclick = () => openRef((S.hub || {}).scene);
   $("#bPAgain").onclick = () => { S.need = ""; S.hub = null; save(); go("#/hub-style"); };
   $("#bMin").onclick = () => { S.hub.min = !S.hub.min; save(); route(); };
   document.querySelectorAll("[data-mem]").forEach(b => b.onclick = () => {
